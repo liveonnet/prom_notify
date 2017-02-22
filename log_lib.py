@@ -68,30 +68,28 @@ class InternalLog(object):
             cls._logger.removeHandler(_h)
 
         # stream log
-#-#        log_sh = logging.StreamHandler(sys.stdout)
         log_sh = colorlog.StreamHandler()
-        log_sh.setLevel(logging.INFO)
-#-#        fmt = Formatter('%(asctime)s %(levelname)s %(processName)s %(module)s %(funcName)s %(lineno)d | %(message)s', '%H:%M:%S')
-        fmt = colorlog.ColoredFormatter('%(log_color)s%(asctime)s %(levelname)1.1s %(processName)s %(module)s %(funcName)s %(lineno)d | %(message)s',
+        log_sh.setLevel(logging.DEBUG)
+        fmt = colorlog.ColoredFormatter('%(log_color)s%(asctime)s %(levelname)1.1s %(processName)s %(module)s %(funcName)s %(lineno)d |%(message_log_color)s%(message)s',
                                         log_colors={'DEBUG': 'cyan',
                                                     'INFO': 'green',
                                                     'WARNING': 'yellow',
                                                     'ERROR': 'red',
-                                                    'CRITICAL': 'red,bg_white',
+                                                    'CRITICAL': 'red',
                                                     },
-                                        secondary_log_colors={'message': {'ERROR': 'red',
-                                                                          'CRITICAL': 'red',
+                                        secondary_log_colors={'message': {'ERROR': 'red,bg_yellow',
+                                                                          'CRITICAL': 'red,bg_white',
                                                                           }
                                                               },
                                         datefmt='%H:%M:%S')
         log_sh.setFormatter(fmt)
-        print('logger handler StreamHandler init done.')
+        print('logger handler StreamHandler init done.', flush=True)
 
         log_handlers = [log_sh]
         for hdl in log_handlers:
             cls._logger.addHandler(hdl)  # add handler(s) to root logger
             if isinstance(hdl, logging.handlers.RotatingFileHandler) or isinstance(hdl, logging.FileHandler):
-                print('log file %s %s' % (hdl.baseFilename, hdl.mode))
+                print('log file %s %s' % (hdl.baseFilename, hdl.mode), flush=True)
         cls._logger.info('root logger init done. script dir %s' % (os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)), ))
         return cls._logger
 

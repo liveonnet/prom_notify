@@ -1,3 +1,4 @@
+
 #! /usr/bin/python
 #encoding=utf-8
 
@@ -10,23 +11,26 @@ from io import BytesIO
 import sys
 import time
 import codecs
+#-#from tools_lib import pcformat
 from conf_lib import getConf
 from log_lib import app_log
 info, debug, warn, error = app_log.info, app_log.debug, app_log.warning, app_log.error
 
 TTS_FLAG_DATA_END = 2
-conf = getConf()
-conf = conf['t2s']
 
 
 class CMSC(object):
 
-    def __init__(self):
+    def __init__(self, conf_path):
         # input param
+        self.conf_path = conf_path
         self.from_file = None
         self.to_file = None
         self.only_print_result = None
-        self.getArgs()
+        self.short_mode = None
+        self.conf = getConf(self.conf_path, root_key='t2s')
+        if __name__ == '__main__':
+            self.getArgs()
 
         # interval use
         self.dl = None  # msc handler
@@ -60,7 +64,7 @@ class CMSC(object):
         if not self.dl:
             self.dl = ctypes.CDLL('libmsc.so')
 
-        ret = self.dl.MSPLogin(conf['t2s_username'].encode('utf-8'), conf['t2s_password'].encode('utf-8'), ('appid = %s, work_dir = %s' % (conf['t2s_appid'], conf['t2s_workdir'])).encode('utf-8'))
+        ret = self.dl.MSPLogin(self.conf['username'].encode('utf-8'), self.conf['password'].encode('utf-8'), ('appid = %s, work_dir = %s' % (self.conf['appid'], self.conf['workdir'])).encode('utf-8'))
         if ret != 0:
             warn('init error! %s', ret)
             return
@@ -81,6 +85,17 @@ class CMSC(object):
                 self.process_short()
             else:
                 self.process()
+        except KeyboardInterrupt:
+            pass
+        finally:
+            self.fini()
+
+    def short_t2s(self, from_file, to_file):
+        try:
+            self.init()
+            self.from_file = from_file
+            self.to_file = to_file
+            self.process_short()
         except KeyboardInterrupt:
             pass
         finally:
@@ -305,7 +320,9 @@ class CParagraphText(object):
 
 if __name__ == '__main__':
 
-    CMSC().doWork()
+    cmsc = CMSC()
+    cmsc.getArgs()
+    cmsc.doWork()
     sys.exit(0)
 
     t = CParagraphText('/home/kevin/qqts-5-20.txt')
