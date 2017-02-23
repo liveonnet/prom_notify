@@ -1,23 +1,20 @@
+import os
 import sys
 import json
+import collections
 from datetime import date
 import re
 from functools import partial
 from itertools import chain
 import pprint
 from io import StringIO
+import html.entities
 from urllib.parse import unquote
 import xml.etree.ElementTree as ET
 from datetime import datetime
 if __name__ == '__main__':
-    import os
     sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
-    import server_conf
-    server_conf
-#-#from lib.redis_manager import m_redis
-#-#from lib.mysql_manager_rw import mmysql_rw
-#-#from tornado.options import options as _options
-from log_lib import app_log
+from applib.log_lib import app_log
 info, debug, error, warn = app_log.info, app_log.debug, app_log.error, app_log.warning
 
 
@@ -246,6 +243,18 @@ pp.format = format
 pcformat = pp.pformat
 
 
+class Dummy(object):
+    '''支持pickle的基类
+    '''
+    def __getstate__(self):
+        d_var = dict((k, v) for k, v in self.__dict__.items() if (not k.startswith('__')) and (not isinstance(v, collections.Callable)))
+#-#        print 'd_var = %s'%(d_var, )
+        return d_var
+
+    def __setstate(self, state):
+        self.__dict__.update(state)
+
+
 class MyBreak(Exception):
     '''用于从深层逻辑中直接退出
     '''
@@ -363,6 +372,50 @@ def str2_str_list(s, sep=','):
 
 #-#def str2_str_set(s, sep=','):
 #-#    return set(filter(None, s.split(sep)))
+
+def utf82unicode(m):
+    # change u'\xe6\xa0\xbc\xe5\x85\xb0\xe4\xbb\x95' to '\xe6\xa0\xbc\xe5\x85\xb0\xe4\xbb\x95'
+    # decode utf8 string in unicode
+    tmp = ''.join([chr(int(x, 16)) for x in re.findall(r'\\x(\w{2})', repr(m.group(0)))])
+    tmp_s = tmp[:]
+    # remove invalid continuous \xa0
+    tmp_s = tmp_s.replace('\xa0\xa0\xa0', '')
+    tmp_s = tmp_s.replace('\xa0\xa0', '')
+
+    if tmp_s not in ('\xb0', '\xba', '\xb2', '\xbc', '\xb4', '\xb7', '\xbc', '\xbd', '\xd7', '\xae', '\xe9', '\xe8', '\xd6', '\xf1', '\xa0', '\xa5', '\xf3', '\xa3', '\xdc', '\xfc', '\xb1', '\xb7', '\xe4', '\xed', '\xe0', '\xc9', '\xc8', '\xd4', '\xea', '\xc4', '\xfa', '\xab', '\xf6', '\xf6\xdf', '\xf4', '\xe1', '\xd3', '\xc5', '\xeb'):
+        try:
+            return tmp_s.decode('utf8')
+        except UnicodeError as e:
+            print('tmp_s=%s, e=%s' % (repr(tmp_s), e))
+            raise e
+        except UnicodeDecodeError as e:
+            print('tmp_s=%s, e=%s' % (repr(tmp_s), e))
+            return ''.join(chr(ord(_c)) for _c in tmp_s)
+    else:
+        try:
+            return chr(ord(tmp_s))
+        except (TypeError, UnicodeDecodeError) as e:
+            print('tmp_s=%s, e=%s' % (repr(tmp_s), e))
+            return ''.join(chr(ord(_c)) for _c in tmp_s)
+#-#        return unicode(tmp_s)
+
+
+def htmlentitydecode(s):
+    """http://snipplr.com/view/15261/python-decode-and-strip-html-entites-to-unicode/"""
+    # First convert alpha entities (such as &eacute;)
+    # (Inspired from http://mail.python.org/pipermail/python-list/2007-June/443813.html)
+    def entity2char(m):
+        entity = m.group(1)
+        if entity in html.entities.name2codepoint:
+            return chr(html.entities.name2codepoint[entity])
+        return " "  # Unknown entity: We replace with a space.
+    t = re.sub('&(%s);' % '|'.join(html.entities.name2codepoint), entity2char, s)
+
+    # Then convert numerical entities (such as &#233;)
+    t = re.sub('&#(\d+);', lambda x: chr(int(x.group(1))), t)
+
+    # Then convert hexa entities (such as &#x00E9;)
+    return re.sub('&#x(\w+);', lambda x: chr(int(x.group(1), 16)), t)
 
 
 class ArgValidator(object):

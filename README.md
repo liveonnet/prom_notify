@@ -15,4 +15,5 @@ promotion notify for smzdm and manmanbuy
 
     pip3 install pyinotify
     pip3 install colorlog
+    pip3 install jieba
 

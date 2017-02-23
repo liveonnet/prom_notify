@@ -1,8 +1,3 @@
-
-#! /usr/bin/python
-#encoding=utf-8
-
-
 import ctypes
 import ctypes.util
 import argparse
@@ -11,9 +6,11 @@ from io import BytesIO
 import sys
 import time
 import codecs
-#-#from tools_lib import pcformat
-from conf_lib import getConf
-from log_lib import app_log
+if __name__ == '__main__':
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
+#-#from applib.tools_lib import pcformat
+from applib.conf_lib import getConf
+from applib.log_lib import app_log
 info, debug, warn, error = app_log.info, app_log.debug, app_log.warning, app_log.error
 
 TTS_FLAG_DATA_END = 2
