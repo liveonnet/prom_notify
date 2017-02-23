@@ -50,10 +50,9 @@ premovetag = re.compile('(<.*?>)', re.M | re.S)
 #-#exclude_first_a_tag = re.compile(r'\A<a.*?>\s*(.*?)\s*</a>\Z', re.M | re.S)
 
 
-def signal_handler(sig, frame):
-    global event_exit
+async def signal_handler(sig):
     if sig == signal.SIGINT:
-        info('got Ctrl+C')
+        warn('got Ctrl+C')
         event_exit.set()
 
 
@@ -230,6 +229,7 @@ class PromNotify(object):
         streaming_cb = kwargs.pop('my_streaming_cb', None)
 
         try:
+#-#            debug('url %s %s %s', url, pcformat(args), pcformat(kwargs))
             resp = await self.sess.get(url, *args, **kwargs)
             if fmt == 'str':
                 data = await resp.text(encoding=str_encoding)
@@ -419,7 +419,7 @@ class PromNotify(object):
         base_url = '''http://www.smzdm.com/youhui/json_more'''
         debug('base_url = %s', base_url)
         real_url = None
-        r, text, ok = await self.getData(base_url, params={'timesort': process_time}, timeout=10, my_fmt='json')
+        r, text, ok = await self.getData(base_url, params={'timesort': str(process_time)}, timeout=10, my_fmt='json')
         if ok:
             if r.status == 200:
                 info('url %s', r.url)
@@ -502,7 +502,8 @@ class PromNotify(object):
             if event_exit.is_set():
                 info('got exit flag, exit~')
                 break
-            await asyncio.sleep(interval)
+#-#            await asyncio.sleep(interval)
+            await asyncio.wait_for(event_exit.wait(), interval)
             if event_exit.is_set():
                 info('got exit flag, exit~')
                 break
@@ -516,13 +517,14 @@ class PromNotify(object):
             if event_exit.is_set():
                 info('got exit flag, exit~')
                 break
-            await asyncio.sleep(interval)
+#-#            await asyncio.sleep(interval)
+            await asyncio.wait_for(event_exit.wait(), interval)
             if event_exit.is_set():
                 info('got exit flag, exit~')
                 break
 
     async def do_work_async(self):
-        signal.signal(signal.SIGINT, signal_handler)
+        self.loop.add_signal_handler(signal.SIGINT, lambda: asyncio.ensure_future(signal_handler(signal.SIGINT)))
         await self.init()
         self._loadDb()
         wm, notifier, wdd = startWatchConf(self.all_conf['filter']['filter_path'], event_notify)

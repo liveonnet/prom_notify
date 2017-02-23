@@ -8,6 +8,10 @@ __pycache__/
 
 *.swp
 *~
+msc/
+config/db.gz
+config/fx_process.cfg
+config/pn_conf.yaml
 
 # Distribution / packaging
 .Python

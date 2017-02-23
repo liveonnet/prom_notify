@@ -72,13 +72,14 @@ class InternalLog(object):
         log_sh.setLevel(logging.DEBUG)
         fmt = colorlog.ColoredFormatter('%(log_color)s%(asctime)s %(levelname)1.1s %(processName)s %(module)s %(funcName)s %(lineno)d |%(message_log_color)s%(message)s',
                                         log_colors={'DEBUG': 'cyan',
-                                                    'INFO': 'green',
-                                                    'WARNING': 'yellow',
+                                                    'INFO': 'white',
+                                                    'WARNING': 'purple',
                                                     'ERROR': 'red',
                                                     'CRITICAL': 'red',
                                                     },
                                         secondary_log_colors={'message': {'ERROR': 'red,bg_yellow',
                                                                           'CRITICAL': 'red,bg_white',
+                                                                          'WARNING': 'yellow,bg_blue',
                                                                           }
                                                               },
                                         datefmt='%H:%M:%S')
