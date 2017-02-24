@@ -21,20 +21,29 @@ class FilterTitle(object):
         self.st_exclude = set()
         self._loadIncludeExcludeData()
 
-        jieba.dt.tmp_dir = self.conf.get('jieba_tmp_dir', '')
-        self.jieba_userdict_path = os.path.abspath(self.conf['jieba_userdict_path'])
-        if self.jieba_userdict_path and os.path.exists(self.jieba_userdict_path):
-            self.jieba_userdict = jieba.load_userdict(self.jieba_userdict_path)
-        else:
-            self.jieba_userdict = None
-        self.jieba_strip_word = self.conf['jieba_strip_word']
+        self.jieba_userdict_path = None
+        self.jieba_userdict = None
+        self.jieba_strip_word = None
+        self._initJieba()
 
     def _loadIncludeExcludeData(self, force_reload=False):
         conf = getConf(self.filter_path, force_reload=force_reload)
         self.st_include, self.st_exclude = set(conf['l_include']), set(conf['l_exclude'])
         info('%s/%s include/exlude item(s) loaded', len(self.st_include), len(self.st_exclude))
 
-    def cutWord_jieba(self, s):
+    def _initJieba(self):
+        jieba.dt.tmp_dir = self.conf.get('jieba_tmp_dir', '')
+        self.jieba_userdict_path = os.path.abspath(self.conf['jieba_userdict_path'])
+        if self.jieba_userdict_path and os.path.exists(self.jieba_userdict_path):
+            self.jieba_userdict = jieba.load_userdict(self.jieba_userdict_path)
+        else:
+            self.jieba_userdict = None
+        l_dynamic_word = sorted(self.st_include | self.st_exclude, key=lambda x: len(x), reverse=True)
+        list(map(lambda w: jieba.add_word(w, freq=None, tag=None), l_dynamic_word))
+        info('added %s include/exclude word to jieba', len(l_dynamic_word))
+        self.jieba_strip_word = self.conf['jieba_strip_word']
+
+    def cutWordJieba(self, s):
         l_word = list(filter(None, map(lambda x: x.strip(self.jieba_strip_word), jieba.cut(s, cut_all=False))))
         warn('%s <= %s', '/'.join(l_word), s)
         return l_word
@@ -52,7 +61,7 @@ class FilterTitle(object):
             self._loadIncludeExcludeData(force_reload=True)
             self.event_notify.clear()
 
-        st_word = set(self.cutWord_jieba(title))
+        st_word = set(self.cutWordJieba(title))
         if self.st_exclude & st_word:
             action, word = 'SKIP', '/'.join(self.st_exclude & st_word)
         elif self.st_include & st_word:

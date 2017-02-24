@@ -3,7 +3,6 @@ import json
 import pickle
 from datetime import datetime
 from datetime import timedelta
-import random
 import time
 import gzip
 import os
@@ -28,10 +27,9 @@ import signal
 import re
 import multiprocessing
 import execjs
-import pyaudio
 import webbrowser
 from applib.conf_lib import getConf
-from applib.t2s_lib import CMSC
+from applib.audio_lib import PlaySound
 from applib.qrcode_lib import QrCode
 from applib.watch_lib import startWatchConf, stopWatchConf
 from applib.filter_lib import FilterTitle
@@ -80,8 +78,8 @@ class PromNotify(object):
         self.progress = ProgressData(self.progress_file)
         # filter module
         self.filter = FilterTitle(self.conf_file_path, event_notify)
-        # text2speech module
-        self.t2s = CMSC(self.conf_file_path)
+        # audio module
+        self.ps = PlaySound(self.conf_file_path)
         # voice play processes
         self.voice = multiprocessing.Queue()
 
@@ -92,7 +90,7 @@ class PromNotify(object):
     def _loadDb(self):
         if os.path.exists(self.history_file):
             self.history = pickle.loads(gzip.open(self.history_file).read())
-            info('%d loaded.', len(self.history))
+            debug('%d histroy data loaded.', len(self.history))
 
     def _saveDb(self):
         if len(self.history) > 0:
@@ -155,57 +153,57 @@ class PromNotify(object):
                 info('ACCEPT open url for word %s in %s', word, title)
                 pic_path = await self.getPic(pic)
                 webbrowser.get('firefox').open_new_tab('file:///%s' % QrCode.getQrCode(real_url, pic=pic_path))
-                await self._play_sound(title)
+                self.ps.playText(title)
             elif action == 'NORMAL':
                 action, ret_data = '', ''
-                await self._play_sound(title)
+                self.ps.playText(title)
             elif action == 'SKIP':
                 ret_data = word
 
         return action, ret_data
 
-    async def _play_sound(self, content, tp='pyaudio'):
-        new_content = re.sub('(\d+-\d+)', lambda x: x.group(1).replace('-', '减'), content, re.U)
-    #-#    if new_content != content:
-    #-#        info('%s -> %s', content, new_content)
-        # call tts
-        rand = '%6d' % (random.random() * 1000000)
-        file_in = '/tmp/tmp_in_%s.txt' % rand
-        file_out = '/tmp/tmp_out_%s.pcm' % rand
-        open(file_in, 'wb').write(new_content.encode('utf8'))
-        self.t2s.short_t2s(file_in, file_out)
-
-        if tp == 'mplayer':
-    #-#        cmd = 'mplayer -demuxer rawaudio -rawaudio channels=1:rate=16000:bitrate=16 -softvol -volume 20 -ao alsa:device=hw=0.0 -novideo ./tmp_out.pcm'
-    #-#        cmd = 'mplayer -demuxer rawaudio -rawaudio channels=1:rate=16000:bitrate=16  -novideo ./tmp_out.pcm'
-            cmd = 'mplayer -demuxer rawaudio -rawaudio channels=1:rate=16000:bitrate=16 -softvol -volume 10 -novideo %s' % file_out
-            info('EXEC_CMD< %s ...', cmd)
-            subprocess.Popen(cmd, shell=True).wait()
-        elif tp == 'ao':
-            import ao
-            ao.AudioDevice('raw', bits=16, rate=16000, channels=1).play(open(file_out).read())
-        elif tp == 'pcm':
-            import alsaaudio
-    #-#        pcm = alsaaudio.PCM(card='hw:0,0')
-            pcm = alsaaudio.PCM(card='Intel')
-            pcm.setchannels(2)
-            pcm.setrate(16000)
-            pcm.setformat(alsaaudio.PCM_FORMAT_S16_LE)
-            # play pcm file from tts
-            pcm.write(open(file_out).read())
-            del pcm
-        elif tp == 'pyaudio':
-            cmd = 'cmus-remote -u'
-            subprocess.Popen(cmd, shell=True).wait()
-            p = pyaudio.PyAudio()
-            stream = p.open(format=p.get_format_from_width(2), channels=1, rate=16000, output=True)
-            stream.write(open(file_out, 'rb').read())  # 播放获得到的音频
-    #-#        stream.stop_stream()
-    #-#        stream.close()
-    #-#        p.terminate()
-            cmd = 'cmus-remote -u'
-            subprocess.Popen(cmd, shell=True).wait()
-
+#-#    async def _play_sound(self, content, tp='pyaudio'):
+#-#        new_content = re.sub('(\d+-\d+)', lambda x: x.group(1).replace('-', '减'), content, re.U)
+#-#    #-#    if new_content != content:
+#-#    #-#        info('%s -> %s', content, new_content)
+#-#        # call tts
+#-#        rand = '%6d' % (random.random() * 1000000)
+#-#        file_in = '/tmp/tmp_in_%s.txt' % rand
+#-#        file_out = '/tmp/tmp_out_%s.pcm' % rand
+#-#        open(file_in, 'wb').write(new_content.encode('utf8'))
+#-#        self.t2s.short_t2s(file_in, file_out)
+#-#        if not os.path.exists(file_out):
+#-#            return
+#-#
+#-#        if tp == 'mplayer':
+#-#    #-#        cmd = 'mplayer -demuxer rawaudio -rawaudio channels=1:rate=16000:bitrate=16 -softvol -volume 20 -ao alsa:device=hw=0.0 -novideo ./tmp_out.pcm'
+#-#    #-#        cmd = 'mplayer -demuxer rawaudio -rawaudio channels=1:rate=16000:bitrate=16  -novideo ./tmp_out.pcm'
+#-#            cmd = 'mplayer -demuxer rawaudio -rawaudio channels=1:rate=16000:bitrate=16 -softvol -volume 10 -novideo %s' % file_out
+#-#            info('EXEC_CMD< %s ...', cmd)
+#-#            subprocess.Popen(cmd, shell=True).wait()
+#-#        elif tp == 'ao':
+#-#            import ao
+#-#            ao.AudioDevice('raw', bits=16, rate=16000, channels=1).play(open(file_out).read())
+#-#        elif tp == 'pcm':
+#-#            import alsaaudio
+#-#    #-#        pcm = alsaaudio.PCM(card='hw:0,0')
+#-#            pcm = alsaaudio.PCM(card='Intel')
+#-#            pcm.setchannels(2)
+#-#            pcm.setrate(16000)
+#-#            pcm.setformat(alsaaudio.PCM_FORMAT_S16_LE)
+#-#            # play pcm file from tts
+#-#            pcm.write(open(file_out).read())
+#-#            del pcm
+#-#        elif tp == 'pyaudio':
+#-#            subprocess.Popen('cmus-remote -u', shell=True).wait()
+#-#            p = pyaudio.PyAudio()
+#-#            stream = p.open(format=p.get_format_from_width(2), channels=1, rate=16000, output=True)
+#-#            stream.write(open(file_out, 'rb').read())  # 播放获得到的音频
+#-##-#                stream.stop_stream()
+#-##-#                stream.close()
+#-##-#                p.terminate()
+#-#            subprocess.Popen('cmus-remote -u', shell=True).wait()
+#-#
     async def getData(self, url, *args, **kwargs):
         """
         my_fmt:
@@ -227,36 +225,39 @@ class PromNotify(object):
         json_loads = kwargs.pop('my_json_loads', json.loads)
         streaming_chunk_size = kwargs.pop('my_streaming_chunk_size', 1024)
         streaming_cb = kwargs.pop('my_streaming_cb', None)
+        max_try = kwargs.pop('my_retry', 1)
 
-        try:
-#-#            debug('url %s %s %s', url, pcformat(args), pcformat(kwargs))
-            resp = await self.sess.get(url, *args, **kwargs)
-            if fmt == 'str':
-                data = await resp.text(encoding=str_encoding)
-            elif fmt == 'json':
-                data = await resp.json(encoding=json_encoding, loads=json_loads)
-            elif fmt == 'bytes':
-                data = await resp.read()
-            elif fmt == 'stream':
-                while 1:
-                    chunk = await resp.content.read(streaming_chunk_size)
-                    if not chunk:
-                        break
-                    streaming_cb(url, chunk)
-            ok = True
-        except asyncio.TimeoutError:
-            info('TimeoutError %s %s %s', url, pcformat(args), pcformat(kwargs))
-        except ClientConnectionError:
-            error('ConnectionError %s %s %s', url, pcformat(args), pcformat(kwargs))
-        except ClientHttpProcessingError:
-            error('ClientHttpProcessingError %s %s %s', url, pcformat(args), pcformat(kwargs), exc_info=True)
-        except ClientTimeoutError:
-            error('ClientTimeoutError %s %s %s', url, pcformat(args), pcformat(kwargs))
-        except ClientError:
-            error('ClientError %s %s %s', url, pcformat(args), pcformat(kwargs), exc_info=True)
-        finally:
-            if resp:
-                resp.release()
+        for nr_try in range(max_try):
+            try:
+#-#                debug('url %s %s %s', url, pcformat(args), pcformat(kwargs))
+                resp = await self.sess.get(url, *args, **kwargs)
+                if fmt == 'str':
+                    data = await resp.text(encoding=str_encoding)
+                elif fmt == 'json':
+                    data = await resp.json(encoding=json_encoding, loads=json_loads)
+                elif fmt == 'bytes':
+                    data = await resp.read()
+                elif fmt == 'stream':
+                    while 1:
+                        chunk = await resp.content.read(streaming_chunk_size)
+                        if not chunk:
+                            break
+                        streaming_cb(url, chunk)
+                ok = True
+                break
+            except asyncio.TimeoutError:
+                info('%sTimeoutError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
+            except ClientConnectionError:
+                error('%sConnectionError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
+            except ClientHttpProcessingError:
+                error('%sClientHttpProcessingError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs), exc_info=True)
+            except ClientTimeoutError:
+                error('%sClientTimeoutError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
+            except ClientError:
+                error('%sClientError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs), exc_info=True)
+            finally:
+                if resp:
+                    resp.release()
 
         return resp, data, ok
 
@@ -503,7 +504,10 @@ class PromNotify(object):
                 info('got exit flag, exit~')
                 break
 #-#            await asyncio.sleep(interval)
-            await asyncio.wait_for(event_exit.wait(), interval)
+            try:
+                await asyncio.wait_for(event_exit.wait(), interval)
+            except concurrent.futures._base.TimeoutError:
+                pass
             if event_exit.is_set():
                 info('got exit flag, exit~')
                 break
@@ -518,7 +522,10 @@ class PromNotify(object):
                 info('got exit flag, exit~')
                 break
 #-#            await asyncio.sleep(interval)
-            await asyncio.wait_for(event_exit.wait(), interval)
+            try:
+                await asyncio.wait_for(event_exit.wait(), interval)
+            except concurrent.futures._base.TimeoutError:
+                pass
             if event_exit.is_set():
                 info('got exit flag, exit~')
                 break
