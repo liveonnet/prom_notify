@@ -1,7 +1,9 @@
 import os
 import sys
 import re
-#-#import random
+from setproctitle import setproctitle
+import multiprocessing
+import concurrent.futures
 import shlex
 import pyaudio
 import subprocess
@@ -19,33 +21,39 @@ class PlaySound(object):
         # input param
         self.conf_path = conf_path
         self.conf = getConf(self.conf_path, root_key='audio')
-        self.t2s = Text2Speech(self.conf_path)
+        self.t2s = Text2Speech(self.conf_path)  # sync
+        self.executor_t2s = concurrent.futures.ProcessPoolExecutor()  # async
+        mgr = multiprocessing.Manager()
+        self.q_audio = mgr.Queue()
+#-#        debug('audio data queue created. %s', self.q_audio)
+        self.event_exit = mgr.Event()
+        self.proc_play = multiprocessing.Process(target=self.playAudioFromQ, args=(self.q_audio, self.event_exit))
+        self.proc_play.start()
+#-#        debug('play background proc start. %s', self.proc_play)
 
-    def playText(self, text, tp='pyaudio'):
-        audio_data = self.text2Speech(text)
-        self.playAudio(audio_data)
-
-    def playTextFile(self, text_file_path, tp='pyaudio'):
-        self.playText(open(text_file_path).read().encode('utf8'))
-
-    def text2Speech(self, text):
+    def _text2Audio(self, text):
+        """text data => audio data
+        """
         new_text = re.sub('(\d+-\d+)', lambda x: x.group(1).replace('-', '减'), text, re.U)
         if new_text != text:
             info('%s -> %s', text, new_text)
         # call tts
         audio_data = self.t2s.short_t2s(from_text=text.encode('utf8'))
-#-#        rand = '%6d' % (random.random() * 1000000)
-#-#        file_in = '/tmp/tmp_in_%s.txt' % rand
-#-#        open(file_in, 'wb').write(new_text.encode('utf8'))
-#-#        self.t2s.short_t2s(file_in, file_out)
         return audio_data
+
+    def playText(self, text, tp='pyaudio'):
+        audio_data = self._text2Audio(text)
+        self.playAudio(audio_data, tp=tp)
+
+    def playTextFile(self, text_file_path, tp='pyaudio'):
+        self.playText(open(text_file_path).read().encode('utf8'))
 
     def playAudio(self, audio_data, tp='pyaudio'):
         if tp == 'mplayer':
-            cmd = 'mplayer -demuxer rawaudio -rawaudio channels=1:rate=16000:bitrate=16  -novideo -'
+            cmd = 'mplayer -demuxer rawaudio -rawaudio channels=1:rate=16000:bitrate=16  -novideo -really-quiet -noconsolecontrols -nolirc -'
             cmd = shlex.split(cmd)
-            info('EXEC_CMD< %s ...', cmd)
-            proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, shell=True)
+            debug('EXEC_CMD< %s ...', cmd)
+            proc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
             try:
                 outs, errs = proc.communicate(audio_data, timeout=30)
             except subprocess.TimeoutExpired:
@@ -67,7 +75,7 @@ class PlaySound(object):
         if tp == 'pyaudio':
             p = pyaudio.PyAudio()
             stream = p.open(format=p.get_format_from_width(2), channels=1, rate=16000, output=True)
-            stream.write(audio_data)  # 播放获得到的音频
+            stream.write(audio_data)
 
     def playAudioFile(self, audio_file, tp='pyaudio'):
         assert os.path.exists(audio_file)
@@ -87,4 +95,59 @@ class PlaySound(object):
             subprocess.Popen('cmus-remote -u', shell=True).wait()
             self.playAudio(open(audio_file, 'rb').read(), tp=tp)
             subprocess.Popen('cmus-remote -u', shell=True).wait()
+
+    def playTextAsync(self, text, tp='pyaudio'):
+        """async support
+        """
+        self.executor_t2s.submit(text2AudioAsync, self.conf_path, text, tp, self.q_audio)
+
+    def playAudioFromQ(self, q_audio, event_exit):
+        """async support
+        """
+        setproctitle('audio_play')
+        debug('wait for audio to play')
+        while 1:
+            try:
+                text, audio_data, tp = q_audio.get()
+            except KeyboardInterrupt:
+                warn('got KeyboardInterrupt when playing, exit!')
+                break
+            except Exception as e:
+                warn('got exception when playing, exit! %s', e)
+                break
+            else:
+                if not text and not audio_data:
+                    info('break !!!')
+                    break
+                warn('(%s left)got audio data for %s', q_audio.qsize(), text)
+                try:
+                    self.playAudio(audio_data, tp)
+                except KeyboardInterrupt:
+                    warn('got KeyboardInterrupt when playing, exit!')
+                    break
+                except Exception as e:
+                    warn('got exception when playing, exit! %s', e)
+                    break
+                if event_exit.is_set():
+                    info('got exit flas, exit ~')
+                    break
+
+    def clean(self):
+        if self.executor_t2s:
+            self.executor_t2s.shutdown()
+        if self.proc_play and self.proc_play.is_alive():
+            self.proc_play.join()
+
+
+def text2AudioAsync(conf_path, text, tp, q_audio):
+    """text data => audio data
+    """
+    setproctitle('text_2_audio')
+    new_text = re.sub('(\d+-\d+)', lambda x: x.group(1).replace('-', '减'), text, re.U)
+    if new_text != text:
+        info('%s -> %s', text, new_text)
+    # call tts
+    audio_data = Text2Speech(conf_path).short_t2s(from_text=text.encode('utf8'))
+    # to audio queue
+    q_audio.put([text, audio_data, tp])
 

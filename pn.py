@@ -51,7 +51,8 @@ premovetag = re.compile('(<.*?>)', re.M | re.S)
 async def signal_handler(sig):
     if sig == signal.SIGINT:
         warn('got Ctrl+C')
-        event_exit.set()
+        if not event_exit.is_set():
+            event_exit.set()
 
 
 class PromNotify(object):
@@ -80,8 +81,6 @@ class PromNotify(object):
         self.filter = FilterTitle(self.conf_file_path, event_notify)
         # audio module
         self.ps = PlaySound(self.conf_file_path)
-        # voice play processes
-        self.voice = multiprocessing.Queue()
 
     async def init(self):
         if self.sess is None:
@@ -153,57 +152,15 @@ class PromNotify(object):
                 info('ACCEPT open url for word %s in %s', word, title)
                 pic_path = await self.getPic(pic)
                 webbrowser.get('firefox').open_new_tab('file:///%s' % QrCode.getQrCode(real_url, pic=pic_path))
-                self.ps.playText(title)
+                self.ps.playTextAsync(title)
             elif action == 'NORMAL':
                 action, ret_data = '', ''
-                self.ps.playText(title)
+                self.ps.playTextAsync(title)
             elif action == 'SKIP':
                 ret_data = word
 
         return action, ret_data
 
-#-#    async def _play_sound(self, content, tp='pyaudio'):
-#-#        new_content = re.sub('(\d+-\d+)', lambda x: x.group(1).replace('-', '减'), content, re.U)
-#-#    #-#    if new_content != content:
-#-#    #-#        info('%s -> %s', content, new_content)
-#-#        # call tts
-#-#        rand = '%6d' % (random.random() * 1000000)
-#-#        file_in = '/tmp/tmp_in_%s.txt' % rand
-#-#        file_out = '/tmp/tmp_out_%s.pcm' % rand
-#-#        open(file_in, 'wb').write(new_content.encode('utf8'))
-#-#        self.t2s.short_t2s(file_in, file_out)
-#-#        if not os.path.exists(file_out):
-#-#            return
-#-#
-#-#        if tp == 'mplayer':
-#-#    #-#        cmd = 'mplayer -demuxer rawaudio -rawaudio channels=1:rate=16000:bitrate=16 -softvol -volume 20 -ao alsa:device=hw=0.0 -novideo ./tmp_out.pcm'
-#-#    #-#        cmd = 'mplayer -demuxer rawaudio -rawaudio channels=1:rate=16000:bitrate=16  -novideo ./tmp_out.pcm'
-#-#            cmd = 'mplayer -demuxer rawaudio -rawaudio channels=1:rate=16000:bitrate=16 -softvol -volume 10 -novideo %s' % file_out
-#-#            info('EXEC_CMD< %s ...', cmd)
-#-#            subprocess.Popen(cmd, shell=True).wait()
-#-#        elif tp == 'ao':
-#-#            import ao
-#-#            ao.AudioDevice('raw', bits=16, rate=16000, channels=1).play(open(file_out).read())
-#-#        elif tp == 'pcm':
-#-#            import alsaaudio
-#-#    #-#        pcm = alsaaudio.PCM(card='hw:0,0')
-#-#            pcm = alsaaudio.PCM(card='Intel')
-#-#            pcm.setchannels(2)
-#-#            pcm.setrate(16000)
-#-#            pcm.setformat(alsaaudio.PCM_FORMAT_S16_LE)
-#-#            # play pcm file from tts
-#-#            pcm.write(open(file_out).read())
-#-#            del pcm
-#-#        elif tp == 'pyaudio':
-#-#            subprocess.Popen('cmus-remote -u', shell=True).wait()
-#-#            p = pyaudio.PyAudio()
-#-#            stream = p.open(format=p.get_format_from_width(2), channels=1, rate=16000, output=True)
-#-#            stream.write(open(file_out, 'rb').read())  # 播放获得到的音频
-#-##-#                stream.stop_stream()
-#-##-#                stream.close()
-#-##-#                p.terminate()
-#-#            subprocess.Popen('cmus-remote -u', shell=True).wait()
-#-#
     async def getData(self, url, *args, **kwargs):
         """
         my_fmt:
@@ -324,6 +281,9 @@ class PromNotify(object):
                                 break
                             if nr_redirect > 5:
                                 warn('too many redirect %s', real_url)
+                                break
+                            if url.endswith('404.html'):
+                                warn('no real url found for %s(only found %s)', real_url, url)
                                 break
 
                     real_url = url
@@ -471,8 +431,11 @@ class PromNotify(object):
         return nr_new, max_time, min_time
 
     def clean(self):
+        info('cleaning ...')
         if self.sess:
             self.sess.close()
+        if self.ps:
+            self.ps.clean()
 
     async def do_work_smzdm(self):
         global event_exit
@@ -532,11 +495,12 @@ class PromNotify(object):
 
     async def do_work_async(self):
         self.loop.add_signal_handler(signal.SIGINT, lambda: asyncio.ensure_future(signal_handler(signal.SIGINT)))
+
         await self.init()
         self._loadDb()
         wm, notifier, wdd = startWatchConf(self.all_conf['filter']['filter_path'], event_notify)
 
-        info('doing ...')
+        debug('doing ...')
         fut = [self.do_work_smzdm(), self.do_work_mmb()]
         try:
             await asyncio.gather(*fut)
@@ -546,8 +510,8 @@ class PromNotify(object):
         stopWatchConf(wm, notifier, wdd)
         self.clean()
         self.progress.saveCfg()
-
         self._saveDb()
+
         info('done.')
 
 

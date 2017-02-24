@@ -29,7 +29,7 @@ class FilterTitle(object):
     def _loadIncludeExcludeData(self, force_reload=False):
         conf = getConf(self.filter_path, force_reload=force_reload)
         self.st_include, self.st_exclude = set(conf['l_include']), set(conf['l_exclude'])
-        info('%s/%s include/exlude item(s) loaded', len(self.st_include), len(self.st_exclude))
+        debug('%s/%s include/exlude item(s) loaded', len(self.st_include), len(self.st_exclude))
 
     def _initJieba(self):
         jieba.dt.tmp_dir = self.conf.get('jieba_tmp_dir', '')
@@ -40,7 +40,7 @@ class FilterTitle(object):
             self.jieba_userdict = None
         l_dynamic_word = sorted(self.st_include | self.st_exclude, key=lambda x: len(x), reverse=True)
         list(map(lambda w: jieba.add_word(w, freq=None, tag=None), l_dynamic_word))
-        info('added %s include/exclude word to jieba', len(l_dynamic_word))
+        debug('added %s include/exclude word to jieba', len(l_dynamic_word))
         self.jieba_strip_word = self.conf['jieba_strip_word']
 
     def cutWordJieba(self, s):

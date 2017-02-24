@@ -11,7 +11,7 @@ class EventHandler(pyinotify.ProcessEvent):
     def my_init(self, **kwargs):
         self.file2watch = kwargs.get('file2watch')
         self.event_notify = kwargs.get('event_notify')
-        info('handler modify for %s', self.file2watch)
+        debug('handler modify for %s', self.file2watch)
 
     def process_default(self, event):
         if event.pathname not in self.file2watch:
@@ -36,7 +36,7 @@ def startWatchConf(path_name, event_notify):
     wm = pyinotify.WatchManager()
 #-#    mask = pyinotify.IN_CLOSE_WRITE | pyinotify.IN_MODIFY | pyinotify.IN_MOVE_SELF | pyinotify.IN_DELETE_SELF | pyinotify.IN_CREATE
     mask = pyinotify.IN_MODIFY
-    info('inotify check start for %s', path_name)
+    debug('inotify check start for %s', path_name)
     eh = EventHandler(file2watch=[path_name, ], event_notify=event_notify)
     try:
         notifier = pyinotify.ThreadedNotifier(wm, eh)

@@ -75,7 +75,7 @@ class Text2Speech(object):
             self.dl = None
 
     def doWork(self):
-        '''工作入口函数
+        '''工作入口函数 单独使用本模块时使用
         '''
         try:
             self._init()
@@ -89,6 +89,8 @@ class Text2Speech(object):
             self._fini()
 
     def short_t2s(self, from_text=None, from_file=None, to_file=None):
+        """以模块方式调用时的入口
+        """
         ret = None
         try:
             self._init()
@@ -104,6 +106,8 @@ class Text2Speech(object):
         return ret
 
     def _process_each(self, text_in):
+        """获取一段文字的语音合成数据
+        """
         ok = True
         # create session
         volLen, synthStatus, errorCode, ret = ctypes.c_uint(0), ctypes.c_int(1), ctypes.c_int(0), ctypes.c_int(0)
@@ -135,7 +139,7 @@ class Text2Speech(object):
                 total_pcm_size += volLen.value
                 s_vol.write(ctypes.string_at(retData, volLen.value))
             else:
-                print('.', end='', file=sys.stderr, flush=True)
+                print('=', end='', file=sys.stderr, flush=True)
                 time.sleep(0.8)
         # sess end
         rslt = self.dl.QTTSSessionEnd(sess_id, b"success")
@@ -147,6 +151,8 @@ class Text2Speech(object):
         return s, ok
 
     def process_short(self):
+        '''处理小段文本文件
+        '''
         if not self.from_text:
             assert os.path.exists(self.from_file)
             tmp_text = open(self.from_file).read().encode('utf8')
@@ -158,13 +164,13 @@ class Text2Speech(object):
                 with open(self.to_file, 'wb') as out_file:
                     out_file.write(s)
                     info('audio file saved %s', self.to_file)
-            info('audio data returned. %s bytes', format(len(s), ','))
+#-#            debug('audio data returned. %s bytes', format(len(s), ','))
             return s
         else:
             warn('t2s failed !!!')
 
     def process(self):
-        '''执行具体工作的函数
+        '''处理大段文本文件
         '''
         # open output file
         out_file = open(self.to_file, 'wb')

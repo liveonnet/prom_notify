@@ -21,9 +21,9 @@ def getConf(conf_path='./pn_conf.yaml', root_key=None, force_reload=False):
         assert os.path.exists(conf_file_path)
         conf = yaml.load(open(conf_file_path))
         _cache_conf[conf_file_path] = conf
-        debug('load %s done. %s key(s)', conf_file_path, len(conf))
-    else:
-        debug('get conf from cache %s', conf_file_path)
+#-#        debug('load done %s. %s key(s)', conf_file_path, len(conf))
+#-#    else:
+#-#        debug('get conf from cache %s', conf_file_path)
 
     if root_key:
         if root_key not in conf:
