@@ -1,6 +1,5 @@
 import sys
 import json
-import pickle
 from datetime import datetime
 from datetime import timedelta
 import time
@@ -88,13 +87,13 @@ class PromNotify(object):
 
     def _loadDb(self):
         if os.path.exists(self.history_file):
-            self.history = pickle.loads(gzip.open(self.history_file).read())
+            self.history = json.loads(gzip.open(self.history_file).read().decode('utf8'))
             debug('%d histroy data loaded.', len(self.history))
 
     def _saveDb(self):
         if len(self.history) > 0:
             info('saving data file (%d)...', len(self.history))
-            gzip.open(self.history_file, 'wb').write(pickle.dumps(self.history))
+            gzip.open(self.history_file, 'wb').write(json.dumps(self.history).encode('utf8'))
 
     async def getPic(self, pic):
         '''获取图片数据
@@ -288,11 +287,10 @@ class PromNotify(object):
 
                     real_url = url
 
-    #-#            print >> sys.stderr, ''  # return line
                 pic = pic.replace('////', '//')
                 action, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=tim, item_url=item_url, from_title='慢慢买')
                 (info if action != 'SKIP' else debug)('%sadding [%s] %s %s --> %s\n', (data + ' ') if data else '', tim, show_title, item_url, real_url)
-                self.history[key] = (pic, show_title, item_url, real_url, tim)
+                self.history[key] = [pic, show_title, item_url, real_url, tim.strftime('%Y%m%d_%H%M%S')]
         except:
             error('error ', exc_info=True)
 
@@ -363,10 +361,9 @@ class PromNotify(object):
                         if pic[0] == '/':
                             pic = 'http://www.smzdm.com%s' % pic
 
-    #-#                    print >> sys.stderr, ''  # return line
                         err_msg, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=sbr_time, item_url=url, from_title='什么值得买')
                         (info if not err_msg else debug)('%sadding [%s] %s %s --> %s\n', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
-                        self.history[item_id] = (pic, show_title, url, real_url, sbr_time)
+                        self.history[item_id] = [pic, show_title, url, real_url, sbr_time.strftime('%Y%m%d_%H%M%S')]
                     else:
                         pass
             else:
@@ -424,7 +421,7 @@ class PromNotify(object):
                         if len(x['article_link_list']) > 0:
                             (info if not err_msg else debug)('have more url:\n%s', '\n'.join('%s %s %s' % (_url['name'], _url['buy_btn_domain'], _url['link']) for _url in x['article_link_list']))
 
-                        self.history[item_id] = (pic, show_title, url, real_url, sbr_time)
+                        self.history[item_id] = [pic, show_title, url, real_url, sbr_time.strftime('%Y%m%d_%H%M%S')]
             else:
                 info('return code = %d !!!', r.status)
 
