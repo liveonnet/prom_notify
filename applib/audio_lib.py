@@ -19,11 +19,6 @@ from applib.log_lib import app_log
 info, debug, warn, error = app_log.info, app_log.debug, app_log.warning, app_log.error
 
 
-USE_REMOTE_MANAGER = True
-ADDRESS = (get_lan_ip(), 5788)
-AUTHKEY = b'*(3qjoHvl)'
-
-
 def server_manager(address, authkey):
     mgr = SyncManager(address, authkey)
     setproctitle('process_mgr')
@@ -40,20 +35,20 @@ class PlaySound(object):
         self.conf = getConf(self.conf_path, root_key='audio')
         self.t2s = Text2Speech(self.conf_path)  # sync
         self.executor_t2s = concurrent.futures.ProcessPoolExecutor(2)  # async
-        if USE_REMOTE_MANAGER:
+        if self.conf['use_custom_manager']:
             # start remote manager
-            p_mgr = multiprocessing.Process(target=server_manager, args=(ADDRESS, AUTHKEY))
+            p_mgr = multiprocessing.Process(target=server_manager, args=((get_lan_ip(), self.conf['custom_manager_port']), self.conf['custom_manager_authkey'].encode('utf8')))
             p_mgr.start()
             # create proxy manager
-            mgr = SyncManager(ADDRESS, AUTHKEY)
-            sleep(1)  # wait for manager start
+            mgr = SyncManager((get_lan_ip(), self.conf['custom_manager_port']), self.conf['custom_manager_authkey'].encode('utf8'))
+            sleep(0.5)  # wait for manager to start
             mgr.connect()
         else:
             mgr = multiprocessing.Manager()
         self.q_audio = mgr.Queue()
 #-#        debug('audio data queue created. %s', self.q_audio)
         self.event_exit = mgr.Event()
-        multiprocessing.current_process().authkey = AUTHKEY  # https://bugs.python.org/issue7503
+        multiprocessing.current_process().authkey = self.conf['custom_manager_authkey'].encode('utf8')  # https://bugs.python.org/issue7503
         self.proc_play = multiprocessing.Process(target=self.playAudioFromQ, args=(self.q_audio, self.event_exit))
         self.proc_play.start()
 #-#        debug('play background proc start. %s', self.proc_play)
