@@ -10,7 +10,7 @@ info, debug, warn, error = app_log.info, app_log.debug, app_log.warning, app_log
 
 
 class FilterTitle(object):
-    def __init__(self, conf_path, event_notify):
+    def __init__(self, conf_path='config/pn_conf.yaml', event_notify=None):
         self.conf_path = os.path.abspath(conf_path)
         self.conf = getConf(self.conf_path, root_key='filter')
 
@@ -57,7 +57,7 @@ class FilterTitle(object):
         action, word = '', ''
         title = kwargs.get('title', '')
         # reload modified filter data
-        if self.event_notify.is_set():
+        if self.event_notify is not None and self.event_notify.is_set():
             self._loadIncludeExcludeData(force_reload=True)
             self.event_notify.clear()
 

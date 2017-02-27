@@ -1,8 +1,10 @@
 import os
 import sys
 import re
+from time import sleep
 from setproctitle import setproctitle
 import multiprocessing
+from multiprocessing.managers import SyncManager
 import concurrent.futures
 import shlex
 import pyaudio
@@ -12,8 +14,23 @@ if __name__ == '__main__':
 #-#from applib.tools_lib import pcformat
 from applib.conf_lib import getConf
 from applib.t2s_lib import Text2Speech
+from applib.log_lib import get_lan_ip
 from applib.log_lib import app_log
 info, debug, warn, error = app_log.info, app_log.debug, app_log.warning, app_log.error
+
+
+USE_REMOTE_MANAGER = True
+ADDRESS = (get_lan_ip(), 5788)
+AUTHKEY = b'*(3qjoHvl)'
+
+
+def server_manager(address, authkey):
+    mgr = SyncManager(address, authkey)
+    setproctitle('process_mgr')
+    info('manager server started.')
+    server = mgr.get_server()
+    server.serve_forever()
+    info('manager server stopped.')
 
 
 class PlaySound(object):
@@ -22,11 +39,21 @@ class PlaySound(object):
         self.conf_path = conf_path
         self.conf = getConf(self.conf_path, root_key='audio')
         self.t2s = Text2Speech(self.conf_path)  # sync
-        self.executor_t2s = concurrent.futures.ProcessPoolExecutor()  # async
-        mgr = multiprocessing.Manager()
+        self.executor_t2s = concurrent.futures.ProcessPoolExecutor(2)  # async
+        if USE_REMOTE_MANAGER:
+            # start remote manager
+            p_mgr = multiprocessing.Process(target=server_manager, args=(ADDRESS, AUTHKEY))
+            p_mgr.start()
+            # create proxy manager
+            mgr = SyncManager(ADDRESS, AUTHKEY)
+            sleep(1)  # wait for manager start
+            mgr.connect()
+        else:
+            mgr = multiprocessing.Manager()
         self.q_audio = mgr.Queue()
 #-#        debug('audio data queue created. %s', self.q_audio)
         self.event_exit = mgr.Event()
+        multiprocessing.current_process().authkey = AUTHKEY  # https://bugs.python.org/issue7503
         self.proc_play = multiprocessing.Process(target=self.playAudioFromQ, args=(self.q_audio, self.event_exit))
         self.proc_play.start()
 #-#        debug('play background proc start. %s', self.proc_play)
