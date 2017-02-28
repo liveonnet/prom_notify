@@ -166,10 +166,10 @@ def text2AudioAsync(conf_path, text, tp, extra_data, q_audio):
     """
     setproctitle('text_2_audio')
     new_text = re.sub('(\d+-\d+)', lambda x: x.group(1).replace('-', '减'), text, re.U)
-    if new_text != text:
-        info('%s -> %s', text, new_text)
+#-#    if new_text != text:
+#-#        debug('%s -> %s', text, new_text)
     # call tts
-    audio_data = Text2Speech(conf_path).short_t2s(from_text=text.encode('utf8'))
+    audio_data = Text2Speech(conf_path).short_t2s(from_text=new_text.encode('utf8'))
     # to audio queue
     q_audio.put([text, audio_data, tp, extra_data])
 

@@ -74,8 +74,7 @@ class PromNotify(object):
         # history data
         self.his = HistoryDB(self.conf_file_path)
         # progress data
-        self.progress_file = os.path.abspath(self.conf['progress_file'])
-        self.progress = ProgressData(self.progress_file)
+        self.progress = ProgressData(os.path.abspath(self.conf['progress_file']))
         # filter module
         self.filter = FilterTitle(self.conf_file_path, event_notify)
         # audio module
@@ -85,10 +84,12 @@ class PromNotify(object):
         if self.sess is None:
             self.sess = aiohttp.ClientSession(headers={'User-Agent': self.conf['user_agent']})
 
-    async def _getPic(self, pic):
+    async def _getPic(self, pic, raw_data=False):
         '''获取图片数据
+
+        ``raw_data`` True 返回二进制图片数据  False 返回图片文件路径
         '''
-        picfilepath = '/tmp/fxx_tmp_icon.jpg'
+        ret = None
         nr_try = 5
         while nr_try:
             pr = urlparse(pic)
@@ -97,7 +98,7 @@ class PromNotify(object):
                 warn('pic %s -> %s', pic, new_pic)
                 pic = new_pic
             try:
-                pr = await self.sess.get(pic, timeout=5)
+                picr = await self.sess.get(pic, timeout=5)
             except ClientTimeoutError:
                 error('ReadTimeout pic get error %s', pic)
                 await asyncio.sleep(1)
@@ -113,16 +114,20 @@ class PromNotify(object):
                 error('InvalidSchema pic get error %s', pic)
                 break
             else:
-                if pr.status == 200:
-                    open(picfilepath, 'wb').write(pr.content)
+                if picr.status == 200:
+                    if raw_data:
+                        ret = await picr.read()
+                    else:
+                        ret = '/tmp/fxx_tmp_icon.jpg'  # 可能被其他协程覆盖，尽量不用这种模式
+                        open(ret, 'wb').write(await picr.read())
                 else:
-                    warn('pic get status_code %s for %s', pr.status, pic)
+                    warn('pic get status_code %s for %s', picr.status, pic)
                 break
             finally:
-                if pr:
-                    await pr.release()
+                if picr:
+                    await picr.release()
 
-        return picfilepath
+        return ret
 
     async def _notify(self, **kwargs):
         action, ret_data = 'SKIP', 'IGNORE'
@@ -147,8 +152,10 @@ class PromNotify(object):
                 subprocess.Popen(cmd, shell=True).wait()
 #-#                    # 禁掉open url
                 info('ACCEPT open url for word %s in %s', word, title)
-                pic_path = await self._getPic(pic)
-                webbrowser.get('firefox').open_new_tab('file:///%s' % QrCode.getQrCode(real_url, pic=pic_path))
+#-#                pic_path = await self._getPic(pic)
+#-#                webbrowser.get('firefox').open_new_tab('file:///%s' % QrCode.getQrCode(real_url, pic=pic_path))
+                pic_data = await self._getPic(pic, raw_data=True)
+                webbrowser.get('firefox').open_new_tab('file:///%s' % QrCode.getQrCode(real_url, pic_data=pic_data))
                 self.ps.playTextAsync(title, extra_data)
             elif action == 'NORMAL':
                 action, ret_data = '', ''
@@ -450,6 +457,8 @@ class PromNotify(object):
             self.sess.close()
         if self.ps:
             self.ps.clean()
+        if self.his:
+            self.his.clean()
 
     async def do_work_smzdm(self):
         global event_exit

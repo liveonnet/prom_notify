@@ -42,15 +42,21 @@ class HistoryDB(object):
         self.conf = getConf(self.conf_path, root_key='db')
         assert self.conf['type'] in ('sqlite', 'mysql')
         if self.conf['type'] == 'sqlite':
-            self.db = SqliteDatabase(os.path.abspath(self.conf['path']), autocommit=False)
+#-#            self.db = SqliteDatabase(os.path.abspath(self.conf['path']), autocommit=False)
+            self.db = SqliteDatabase(os.path.abspath(self.conf['path']))
         elif self.conf['type'] == 'db_url':
+            # http://docs.peewee-orm.com/en/latest/peewee/playhouse.html#database-url
             # mysql: mysql://user:passwd@ip:port/my_db
+            # mysql with pool: mysql+pool://user:passwd@ip:port/my_db?max_connections=20&stale_timeout=300
             # postgresql: postgresql://postgres:my_password@localhost:5432/my_database will
             # sqlit: sqlite:///my_database.db
             # sqlite in memory: sqlite:///:memory:
             self.db = connect(self.conf['path'])
         db_proxy.initialize(self.db)
         self.db.connect()
+
+    def clean(self):
+        self.db.close()
 
 #-#    def __getattr__(self, name):
 #-#        """直接访问底层的方法
