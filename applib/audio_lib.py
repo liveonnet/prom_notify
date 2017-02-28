@@ -22,10 +22,10 @@ info, debug, warn, error = app_log.info, app_log.debug, app_log.warning, app_log
 def server_manager(address, authkey):
     mgr = SyncManager(address, authkey)
     setproctitle('process_mgr')
-    info('manager server started.')
+    debug('manager server started.')
     server = mgr.get_server()
     server.serve_forever()
-    info('manager server stopped.')
+    debug('manager server stopped.')
 
 
 class PlaySound(object):
@@ -127,7 +127,7 @@ class PlaySound(object):
         """async support
         """
         setproctitle('audio_play')
-        debug('wait for audio to play')
+        debug('audio play process started.')
         while 1:
             try:
                 text, audio_data, tp, extra_data = q_audio.get()
@@ -141,7 +141,7 @@ class PlaySound(object):
                 if not text and not audio_data:
                     info('break !!!')
                     break
-                warn('(%s left) [%s] %s (%s) %s --> %s', q_audio.qsize(), extra_data['from_title'], text, '/'.join(extra_data['cut_word']), extra_data['item_url'], extra_data['real_url'])
+                info('(%s left) [%s] %s (%s) %s --> %s', q_audio.qsize(), extra_data['from_title'], text, '/'.join(extra_data['cut_word']), extra_data['item_url'], extra_data['real_url'])
                 try:
                     self.playAudio(audio_data, tp)
                 except KeyboardInterrupt:
@@ -159,6 +159,7 @@ class PlaySound(object):
             self.executor_t2s.shutdown()
         if self.proc_play and self.proc_play.is_alive():
             self.proc_play.join()
+        info('audio closed.')
 
 
 def text2AudioAsync(conf_path, text, tp, extra_data, q_audio):

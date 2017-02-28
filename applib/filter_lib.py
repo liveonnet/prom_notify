@@ -73,3 +73,5 @@ class FilterTitle(object):
 
         return action, word, extra_data
 
+    def clean(self):
+        info('filter closed.')

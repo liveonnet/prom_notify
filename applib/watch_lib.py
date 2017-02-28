@@ -19,7 +19,7 @@ class EventHandler(pyinotify.ProcessEvent):
             return
         if event.maskname == 'IN_MODIFY':
             if self.event_notify.is_set():
-                info('already set changed flag for %s', event.pathname)
+                debug('already set changed flag for %s', event.pathname)
             else:
                 debug('%s %s%s', event.maskname, event.pathname, '(DIR)' if event.dir else '')
                 info('set changed flag for %s', event.pathname)

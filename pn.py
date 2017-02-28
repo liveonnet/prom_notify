@@ -298,14 +298,14 @@ class PromNotify(object):
                                 warn('too many redirect %s', real_url)
                                 break
                             if url.endswith('404.html'):
-                                warn('no real url found for %s(only found %s)', real_url, url)
+                                warn('no real url found for %s (only found %s)', real_url, url)
                                 break
 
                     real_url = url
 
                 pic = pic.replace('////', '//')
                 action, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=tim, item_url=item_url, from_title='慢慢买')
-                (info if action != 'SKIP' else debug)('%sadding [%s] %s %s --> %s\n', (data + ' ') if data else '', tim, show_title, item_url, real_url)
+                debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', tim, show_title, item_url, real_url)
                 Item.create(source='mmb', sid=_id, show_title=show_title, item_url=item_url, real_url=real_url, pic_url=pic, get_time=tim)
         except:
             error('error ', exc_info=True)
@@ -381,7 +381,7 @@ class PromNotify(object):
                             pic = 'http://www.smzdm.com%s' % pic
 
                         err_msg, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=sbr_time, item_url=url, from_title='什么值得买')
-                        (info if not err_msg else debug)('%sadding [%s] %s %s --> %s\n', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
+                        debug('%s%sadding [%s] %s %s --> %s\n', ('[' + err_msg + ']') if err_msg else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
                         Item.create(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
 #-#                    else:
 #-#                        info('SKIP EXISTING item smzdm %s', _id)
@@ -439,7 +439,7 @@ class PromNotify(object):
                                         warn('can\'t find real_url')
 
                         err_msg, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=sbr_time, item_url=url, from_title='什么值得买')
-                        (info if not err_msg else debug)('%sadding [%s] %s %s --> %s\n', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
+                        debug('%s%sadding [%s] %s %s --> %s\n', ('[' + err_msg + ']') if err_msg else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
                         if len(x['article_link_list']) > 0:
                             (info if not err_msg else debug)('have more url:\n%s', '\n'.join('%s %s %s' % (_url['name'], _url['buy_btn_domain'], _url['link']) for _url in x['article_link_list']))
 
@@ -455,6 +455,8 @@ class PromNotify(object):
         info('cleaning ...')
         if self.sess:
             self.sess.close()
+        if self.filter:
+            self.filter.clean()
         if self.ps:
             self.ps.clean()
         if self.his:
