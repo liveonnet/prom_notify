@@ -71,14 +71,14 @@ class PromNotify(object):
         self.sess = None
         if self.loop:
             self.sess = aiohttp.ClientSession(headers={'User-Agent': self.conf['user_agent']}, loop=self.loop)
+        # audio module
+        self.ps = PlaySound(self.conf_file_path)
         # history data
         self.his = HistoryDB(self.conf_file_path)
         # progress data
         self.progress = ProgressData(os.path.abspath(self.conf['progress_file']))
         # filter module
         self.filter = FilterTitle(self.conf_file_path, event_notify)
-        # audio module
-        self.ps = PlaySound(self.conf_file_path)
 
     async def init(self):
         if self.sess is None:
@@ -380,8 +380,8 @@ class PromNotify(object):
                         if pic[0] == '/':
                             pic = 'http://www.smzdm.com%s' % pic
 
-                        err_msg, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=sbr_time, item_url=url, from_title='什么值得买')
-                        debug('%s%sadding [%s] %s %s --> %s\n', ('[' + err_msg + ']') if err_msg else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
+                        action, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=sbr_time, item_url=url, from_title='什么值得买')
+                        debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
                         Item.create(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
 #-#                    else:
 #-#                        info('SKIP EXISTING item smzdm %s', _id)
@@ -438,10 +438,10 @@ class PromNotify(object):
                                     else:
                                         warn('can\'t find real_url')
 
-                        err_msg, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=sbr_time, item_url=url, from_title='什么值得买')
-                        debug('%s%sadding [%s] %s %s --> %s\n', ('[' + err_msg + ']') if err_msg else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
+                        action, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=sbr_time, item_url=url, from_title='什么值得买')
+                        debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
                         if len(x['article_link_list']) > 0:
-                            (info if not err_msg else debug)('have more url:\n%s', '\n'.join('%s %s %s' % (_url['name'], _url['buy_btn_domain'], _url['link']) for _url in x['article_link_list']))
+                            (info if not action else debug)('have more url:\n%s', '\n'.join('%s %s %s' % (_url['name'], _url['buy_btn_domain'], _url['link']) for _url in x['article_link_list']))
 
                         Item.create(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
 #-#                    else:

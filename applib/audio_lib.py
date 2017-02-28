@@ -6,6 +6,8 @@ from setproctitle import setproctitle
 import multiprocessing
 from multiprocessing.managers import SyncManager
 import concurrent.futures
+from ctypes import cdll, CFUNCTYPE, c_char_p, c_int
+from contextlib import contextmanager
 import shlex
 import pyaudio
 import subprocess
@@ -17,6 +19,24 @@ from applib.t2s_lib import Text2Speech
 from applib.log_lib import get_lan_ip
 from applib.log_lib import app_log
 info, debug, warn, error = app_log.info, app_log.debug, app_log.warning, app_log.error
+
+
+# http://stackoverflow.com/questions/7088672/pyaudio-working-but-spits-out-error-messages-each-time
+ERROR_HANDLER_FUNC = CFUNCTYPE(None, c_char_p, c_int, c_char_p, c_int, c_char_p)
+
+
+def py_error_handler(filename, line, function, err, fmt):
+    pass
+
+c_error_handler = ERROR_HANDLER_FUNC(py_error_handler)
+
+
+@contextmanager
+def noalsaerr():
+    asound = cdll.LoadLibrary('libasound.so')
+    asound.snd_lib_error_set_handler(c_error_handler)
+    yield
+    asound.snd_lib_error_set_handler(None)
 
 
 def server_manager(address, authkey):
@@ -95,9 +115,14 @@ class PlaySound(object):
             pcm.write(audio_data)
             del pcm
         if tp == 'pyaudio':
-            p = pyaudio.PyAudio()
+            with noalsaerr():
+                p = pyaudio.PyAudio()
             stream = p.open(format=p.get_format_from_width(2), channels=1, rate=16000, output=True)
             stream.write(audio_data)
+            sleep(0.5)  # wait steam play done
+            stream.stop_stream()
+            stream.close()
+            p.terminate()
 
     def playAudioFile(self, audio_file, tp='pyaudio'):
         assert os.path.exists(audio_file)
