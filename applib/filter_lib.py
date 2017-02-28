@@ -45,23 +45,25 @@ class FilterTitle(object):
 
     def cutWordJieba(self, s):
         l_word = list(filter(None, map(lambda x: x.strip(self.jieba_strip_word), jieba.cut(s, cut_all=False))))
-        warn('%s <= %s', '/'.join(l_word), s)
+#-#        warn('%s <= %s', '/'.join(l_word), s)
         return l_word
 
     def matchFilter(self, **kwargs):
         """
-        'SKIP', '<SKIP_WORD>'
-        'NOTIFY', '<NOTIFY_WORD>'
-        'NORMAL', ''
+        'SKIP', '<SKIP_WORD>', extra_data
+        'NOTIFY', '<NOTIFY_WORD>', extra_data
+        'NORMAL', '', extra_data
         """
-        action, word = '', ''
+        action, word, extra_data = '', '', {}
         title = kwargs.get('title', '')
         # reload modified filter data
         if self.event_notify is not None and self.event_notify.is_set():
             self._loadIncludeExcludeData(force_reload=True)
             self.event_notify.clear()
 
-        st_word = set(self.cutWordJieba(title))
+        l_word = self.cutWordJieba(title)
+        extra_data['cut_word'] = l_word
+        st_word = set(l_word)
         if self.st_exclude & st_word:
             action, word = 'SKIP', '/'.join(self.st_exclude & st_word)
         elif self.st_include & st_word:
@@ -69,5 +71,5 @@ class FilterTitle(object):
         else:
             action = 'NORMAL'
 
-        return action, word
+        return action, word, extra_data
 

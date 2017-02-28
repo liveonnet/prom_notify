@@ -118,10 +118,10 @@ class PlaySound(object):
             self.playAudio(open(audio_file, 'rb').read(), tp=tp)
             subprocess.Popen('cmus-remote -u', shell=True).wait()
 
-    def playTextAsync(self, text, tp='pyaudio'):
+    def playTextAsync(self, text, extra_data, tp='pyaudio'):
         """async support
         """
-        self.executor_t2s.submit(text2AudioAsync, self.conf_path, text, tp, self.q_audio)
+        self.executor_t2s.submit(text2AudioAsync, self.conf_path, text, tp, extra_data, self.q_audio)
 
     def playAudioFromQ(self, q_audio, event_exit):
         """async support
@@ -130,7 +130,7 @@ class PlaySound(object):
         debug('wait for audio to play')
         while 1:
             try:
-                text, audio_data, tp = q_audio.get()
+                text, audio_data, tp, extra_data = q_audio.get()
             except KeyboardInterrupt:
                 warn('got KeyboardInterrupt when playing, exit!')
                 break
@@ -141,7 +141,7 @@ class PlaySound(object):
                 if not text and not audio_data:
                     info('break !!!')
                     break
-                warn('(%s left)got audio data for %s', q_audio.qsize(), text)
+                warn('(%s left) [%s] %s (%s) %s --> %s', q_audio.qsize(), extra_data['from_title'], text, '/'.join(extra_data['cut_word']), extra_data['item_url'], extra_data['real_url'])
                 try:
                     self.playAudio(audio_data, tp)
                 except KeyboardInterrupt:
@@ -161,7 +161,7 @@ class PlaySound(object):
             self.proc_play.join()
 
 
-def text2AudioAsync(conf_path, text, tp, q_audio):
+def text2AudioAsync(conf_path, text, tp, extra_data, q_audio):
     """text data => audio data
     """
     setproctitle('text_2_audio')
@@ -171,5 +171,5 @@ def text2AudioAsync(conf_path, text, tp, q_audio):
     # call tts
     audio_data = Text2Speech(conf_path).short_t2s(from_text=text.encode('utf8'))
     # to audio queue
-    q_audio.put([text, audio_data, tp])
+    q_audio.put([text, audio_data, tp, extra_data])
 

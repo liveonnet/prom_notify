@@ -130,7 +130,15 @@ class PromNotify(object):
             list(map(lambda x, k=kwargs: k.get(x, ''), ('slience', 'title', 'real_url', 'pic', 'sbr_time', 'item_url', 'from_title')))
 
         if not slience:
-            action, word = self.filter.matchFilter(**kwargs)
+            action, word, extra_data = self.filter.matchFilter(**kwargs)
+
+            # enhance
+            if extra_data is None:
+                extra_data = {}
+            extra_data['from_title'] = from_title
+            extra_data['item_url'] = item_url
+            extra_data['real_url'] = real_url
+
             if action == 'NOTIFY':
                 action, ret_data = '', word
                 # open browser
@@ -141,10 +149,10 @@ class PromNotify(object):
                 info('ACCEPT open url for word %s in %s', word, title)
                 pic_path = await self._getPic(pic)
                 webbrowser.get('firefox').open_new_tab('file:///%s' % QrCode.getQrCode(real_url, pic=pic_path))
-                self.ps.playTextAsync(title)
+                self.ps.playTextAsync(title, extra_data)
             elif action == 'NORMAL':
                 action, ret_data = '', ''
-                self.ps.playTextAsync(title)
+                self.ps.playTextAsync(title, extra_data)
             elif action == 'SKIP':
                 ret_data = word
 
@@ -253,7 +261,7 @@ class PromNotify(object):
                     raw_url = url
                     nr_redirect = 0
                     while url.find('manmanbuy') != -1 and urlparse(url).path:
-                        r, _, ok = await self._getData(url, timeout=5, my_str_encoding='gb18030')
+                        r, _, ok = await self._getData(url, timeout=5, my_fmt='bytes')
                         nr_redirect += 1
                         if ok:
                             if r.status == 200:
