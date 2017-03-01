@@ -163,6 +163,10 @@ class PlaySound(object):
                 warn('got exception when playing, exit! %s', e)
                 break
             else:
+                if not audio_data:
+                    info('(no audio data to play) [%s] %s (%s) %s --> %s', extra_data['from_title'], text, '/'.join(extra_data['cut_word']), extra_data['item_url'], extra_data['real_url'])
+                    continue
+
                 if not text and not audio_data:
                     info('break !!!')
                     break
