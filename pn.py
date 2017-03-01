@@ -12,6 +12,7 @@ import asyncio
 import aiohttp
 import configparser
 import codecs
+from difflib import SequenceMatcher
 from aiohttp.errors import ClientTimeoutError
 from aiohttp.errors import ClientConnectionError
 #-#from aiohttp.errors import ClientDisconnectedError
@@ -129,6 +130,21 @@ class PromNotify(object):
 
         return ret
 
+    async def _checkDup(self, from_title, title):
+        ret = False
+        seconds_ago = datetime.now() + timedelta(seconds=-120)
+        d_tmp = {'慢慢买': 'mmb',
+                 '什么值得买': 'smzdm',
+                 }
+        for _item in Item.select().where((Item.ctime > seconds_ago) & (Item.source != d_tmp[from_title])):
+            s = SequenceMatcher(None, _item.show_title, title)
+            if s.ratio() > 0.8:
+                warn('found dup title in %s %s @%s (ratio %s)', _item.source, _item.show_title, _item.ctime, s.ratio())
+                ret = True
+                break
+
+        return ret
+
     async def _notify(self, **kwargs):
         action, ret_data = 'SKIP', 'IGNORE'
         slience, title, real_url, pic, sbr_time, item_url, from_title = \
@@ -143,6 +159,10 @@ class PromNotify(object):
             extra_data['from_title'] = from_title
             extra_data['item_url'] = item_url
             extra_data['real_url'] = real_url
+
+            if action != 'SKIP' and await self._checkDup(from_title, title):
+                action, ret_data = '', ''
+                return action, ret_data
 
             if action == 'NOTIFY':
                 action, ret_data = '', word
