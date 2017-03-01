@@ -30,6 +30,13 @@ class FilterTitle(object):
         conf = getConf(self.filter_path, force_reload=force_reload)
         self.st_include, self.st_exclude = set(conf['l_include']), set(conf['l_exclude'])
         debug('include/exlude item(s) loaded. %s/%s ', len(self.st_include), len(self.st_exclude))
+        if force_reload:
+            self._addUserWord()
+
+    def _addUserWord(self):
+        l_dynamic_word = sorted(self.st_include | self.st_exclude, key=lambda x: len(x), reverse=True)
+        list(map(lambda w: jieba.add_word(w, freq=None, tag=None), l_dynamic_word))
+        debug('added %s include/exclude word(s) to jieba', len(l_dynamic_word))
 
     def _initJieba(self):
         jieba.dt.tmp_dir = self.conf.get('jieba_tmp_dir', '')
@@ -38,9 +45,7 @@ class FilterTitle(object):
             self.jieba_userdict = jieba.load_userdict(self.jieba_userdict_path)
         else:
             self.jieba_userdict = None
-        l_dynamic_word = sorted(self.st_include | self.st_exclude, key=lambda x: len(x), reverse=True)
-        list(map(lambda w: jieba.add_word(w, freq=None, tag=None), l_dynamic_word))
-        debug('added %s include/exclude word to jieba', len(l_dynamic_word))
+        self._addUserWord()
         self.jieba_strip_word = self.conf['jieba_strip_word']
 
     def cutWordJieba(self, s):
