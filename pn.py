@@ -32,8 +32,9 @@ from applib.audio_lib import PlaySound
 from applib.qrcode_lib import QrCode
 from applib.watch_lib import startWatchConf, stopWatchConf
 from applib.filter_lib import FilterTitle
-from applib.db_lib import HistoryDB
-from applib.db_lib import Item
+#-#from applib.db_lib import HistoryDB
+#-#from applib.db_lib import Item
+from applib.orm_lib import HistoryDB
 from applib.tools_lib import htmlentitydecode
 from applib.tools_lib import pcformat
 from applib.log_lib import app_log
@@ -132,14 +133,20 @@ class PromNotify(object):
 
     async def _checkDup(self, from_title, title):
         ret = False
-        seconds_ago = datetime.now() + timedelta(seconds=-120)
+        seconds_ago = datetime.now() + timedelta(seconds=-180)
         d_tmp = {'慢慢买': 'mmb',
                  '什么值得买': 'smzdm',
                  }
-        for _item in Item.select().where((Item.ctime > seconds_ago) & (Item.source != d_tmp[from_title])):
-            s = SequenceMatcher(None, _item.show_title, title)
-            if s.ratio() > 0.8:
-                warn('found dup title in %s %s @%s (ratio %s)', _item.source, _item.show_title, _item.ctime, s.ratio())
+#-#        for _item in Item.select().where((Item.ctime > seconds_ago) & (Item.source != d_tmp[from_title])):
+#-#            s = SequenceMatcher(None, _item.show_title, title)
+#-#            if s.ratio() > 0.8:
+#-#                warn('found dup title in %s %s @%s (ratio %s)', _item.source, _item.show_title, _item.ctime, s.ratio())
+#-#                ret = True
+#-#                break
+        for _source, _show_title, _ctime in self.his.getRecentItems(d_tmp[from_title], seconds_ago):
+            s = SequenceMatcher(None, _show_title, title)
+            if s.ratio() >= 0.8:
+                warn('found dup title in %s %s @%s (ratio %s)', _source, _show_title, _ctime, s.ratio())
                 ret = True
                 break
 
@@ -268,7 +275,8 @@ class PromNotify(object):
                     error('_id contain space char! %s|', _id)
                     _id = _id.strip()
 
-                if Item.select().where((Item.source == 'mmb') & (Item.sid == _id)).exists():
+#-#                if Item.select().where((Item.source == 'mmb') & (Item.sid == _id)).exists():
+                if self.his.existsItem('mmb', _id):
 #-#                    info('SKIP EXISTING item mmb %s', _id)
                     continue
                 title = x.xpath('./div[@class="tit"]/a/text()')[0][:].strip()
@@ -326,7 +334,8 @@ class PromNotify(object):
                 pic = pic.replace('////', '//')
                 action, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=tim, item_url=item_url, from_title='慢慢买')
                 debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', tim, show_title, item_url, real_url)
-                Item.create(source='mmb', sid=_id, show_title=show_title, item_url=item_url, real_url=real_url, pic_url=pic, get_time=tim)
+#-#                Item.create(source='mmb', sid=_id, show_title=show_title, item_url=item_url, real_url=real_url, pic_url=pic, get_time=tim)
+                self.his.createItem(source='mmb', sid=_id, show_title=show_title, item_url=item_url, real_url=real_url, pic_url=pic, get_time=tim)
         except:
             error('error ', exc_info=True)
 
@@ -374,7 +383,8 @@ class PromNotify(object):
                         min_time = timesort
                     if max_time is None or timesort > max_time:
                         max_time = timesort
-                    if not Item.select().where((Item.source == 'smzdm') & (Item.sid == _id)).exists():
+#-#                    if not Item.select().where((Item.source == 'smzdm') & (Item.sid == _id)).exists():
+                    if not self.his.existsItem('smzdm', _id):
                         nr_new += 1
                         # get real url
                         real_url = None
@@ -402,7 +412,8 @@ class PromNotify(object):
 
                         action, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=sbr_time, item_url=url, from_title='什么值得买')
                         debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
-                        Item.create(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
+#-#                        Item.create(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
+                        self.his.createItem(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
 #-#                    else:
 #-#                        info('SKIP EXISTING item smzdm %s', _id)
             else:
@@ -439,7 +450,8 @@ class PromNotify(object):
                         min_time = timesort
                     if max_time is None or max_time < timesort:
                         max_time = timesort
-                    if not Item.select().where((Item.source == 'smzdm') & (Item.sid == _id)).exists():
+#-#                    if not Item.select().where((Item.source == 'smzdm') & (Item.sid == _id)).exists():
+                    if not self.his.existsItem('smzdm', _id):
                         nr_new += 1
                         # get real url
                         real_url = None
@@ -463,9 +475,10 @@ class PromNotify(object):
                         if len(x['article_link_list']) > 0:
                             (info if not action else debug)('have more url:\n%s', '\n'.join('%s %s %s' % (_url['name'], _url['buy_btn_domain'], _url['link']) for _url in x['article_link_list']))
 
-                        Item.create(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
-#-#                    else:
-#-#                        info('SKIP EXISTING item smzdm %s', _id)
+#-#                        Item.create(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
+                        self.his.createItem(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
+                    else:
+                        info('SKIP EXISTING item smzdm %s', _id)
             else:
                 info('return code = %d !!!', r.status)
 

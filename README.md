@@ -17,4 +17,5 @@ promotion notify for smzdm and manmanbuy
     pip3 install colorlog
     pip3 install jieba
     pip3 install peewee
+    pip3 install sqlalchemy
 
