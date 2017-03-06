@@ -477,8 +477,8 @@ class PromNotify(object):
 
 #-#                        Item.create(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
                         self.his.createItem(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
-                    else:
-                        info('SKIP EXISTING item smzdm %s', _id)
+#-#                    else:
+#-#                        info('SKIP EXISTING item smzdm %s', _id)
             else:
                 info('return code = %d !!!', r.status)
 
