@@ -19,6 +19,7 @@ from aiohttp.errors import ClientConnectionError
 from aiohttp.errors import ClientError
 from aiohttp.errors import HttpBadRequest
 from aiohttp.errors import ClientHttpProcessingError
+from aiohttp.resolver import AsyncResolver
 from setproctitle import setproctitle
 import subprocess
 import concurrent
@@ -71,8 +72,12 @@ class PromNotify(object):
         # session
         self.loop = loop
         self.sess = None
+        resolver = AsyncResolver(nameservers=['8.8.8.8', '8.8.4.4'])
+        conn = aiohttp.TCPConnector(resolver=resolver, limit=10)
         if self.loop:
-            self.sess = aiohttp.ClientSession(headers={'User-Agent': self.conf['user_agent']}, loop=self.loop)
+            self.sess = aiohttp.ClientSession(connector=conn, headers={'User-Agent': self.conf['user_agent']}, loop=self.loop)
+        else:
+            self.sess = aiohttp.ClientSession(connector=conn, headers={'User-Agent': self.conf['user_agent']}, loop=self.loop)
         # audio module
         self.ps = PlaySound(self.conf_file_path)
         # history data
