@@ -172,9 +172,9 @@ class PlaySound(object):
                     break
                 info('(%s left) [%s] %s (%s) %s --> %s', q_audio.qsize(), extra_data['from_title'], text, '/'.join(extra_data['cut_word']), extra_data['item_url'], extra_data['real_url'])
                 try:
-                    subprocess.Popen('cmus-remote -u', shell=True).wait()
+                    subprocess.Popen('cmus-remote -u', stderr=subprocess.DEVNULL, shell=True).wait()
                     self.playAudio(audio_data, tp)
-                    subprocess.Popen('cmus-remote -u', shell=True).wait()
+                    subprocess.Popen('cmus-remote -u', stderr=subprocess.DEVNULL, shell=True).wait()
                 except KeyboardInterrupt:
                     warn('got KeyboardInterrupt when playing, exit!')
                     break
