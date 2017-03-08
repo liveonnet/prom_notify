@@ -31,9 +31,11 @@ class QrCode(object):
             icon = Image.open(BytesIO(initial_bytes=pic_data))
 
         if img.format != 'PNG':
-            convert_path = '/tmp/fxx_tmp_icon_convert_png.png'
-            icon.save(convert_path)
-            icon = Image.open(convert_path)
+#-#            convert_path = '/tmp/fxx_tmp_icon_convert_png.png'
+            convert_tmp = BytesIO()
+            icon.save(convert_tmp, format='PNG')
+            convert_tmp.seek(0)
+            icon = Image.open(convert_tmp)
 #-#                info('icon %s %s %s', icon.format, icon.mode, convert_path)
         img_w, img_h = img.size
         factor = 4
