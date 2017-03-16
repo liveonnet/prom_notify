@@ -48,6 +48,12 @@ def server_manager(address, authkey):
     debug('manager server stopped.')
 
 
+def noop_func(x):
+#-#    pass
+    sleep(1)
+    setproctitle('text_2_audio_noop')
+
+
 class PlaySound(object):
     def __init__(self, conf_path='config/pn_conf.yaml'):
         # input param
@@ -72,6 +78,8 @@ class PlaySound(object):
         self.proc_play = multiprocessing.Process(target=self.playAudioFromQ, args=(self.q_audio, self.event_exit))
         self.proc_play.start()
 #-#        debug('play background proc start. %s', self.proc_play)
+        # 触发进程池worker进程创建, 貌似提前创建的占用内存小些
+        self.executor_t2s.map(noop_func, (None, None))
 
     def _text2Audio(self, text):
         """text data => audio data

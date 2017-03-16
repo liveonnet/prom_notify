@@ -69,6 +69,8 @@ class PromNotify(object):
         self.conf = self.all_conf['prom_notify']
         # proc title
         setproctitle(self.all_conf['proc_title'])
+        # audio module 提前创建是为了使子进程占用内存小一点
+        self.ps = PlaySound(self.conf_file_path)
         # session
         self.loop = loop
         self.sess = None
@@ -77,9 +79,7 @@ class PromNotify(object):
         if self.loop:
             self.sess = aiohttp.ClientSession(connector=conn, headers={'User-Agent': self.conf['user_agent']}, loop=self.loop)
         else:
-            self.sess = aiohttp.ClientSession(connector=conn, headers={'User-Agent': self.conf['user_agent']}, loop=self.loop)
-        # audio module
-        self.ps = PlaySound(self.conf_file_path)
+            self.sess = aiohttp.ClientSession(connector=conn, headers={'User-Agent': self.conf['user_agent']})
         # history data
         self.his = HistoryDB(self.conf_file_path)
         # progress data
@@ -283,7 +283,8 @@ class PromNotify(object):
 #-#                if Item.select().where((Item.source == 'mmb') & (Item.sid == _id)).exists():
                 if self.his.existsItem('mmb', _id):
 #-#                    info('SKIP EXISTING item mmb %s', _id)
-                    continue
+#-#                    continue
+                    break
                 title = x.xpath('./div[@class="tit"]/a/text()')[0][:].strip()
                 price = x.xpath('./div[@class="price"]/text()')[0][:].strip()
                 show_title = ' '.join((title, price))
@@ -324,6 +325,8 @@ class PromNotify(object):
                                     if url[0] == 's':  # https
                                         url = url[1:]
 #-#                                    debug('url from bad url: %s -> %s', raw_url, url)
+                                elif r.url.startswith(('http://detail.tmall.com/', 'https://detail.tmall.com/')):
+                                    url = r.url
                                 else:
                                     info('real url not found %s %s %s', r.status, raw_url, r.url)
                                 break
@@ -419,7 +422,8 @@ class PromNotify(object):
                         debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
 #-#                        Item.create(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
                         self.his.createItem(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
-#-#                    else:
+                    else:
+                        break
 #-#                        info('SKIP EXISTING item smzdm %s', _id)
             else:
                 info('return code = %d !!!', r.status)
@@ -482,7 +486,8 @@ class PromNotify(object):
 
 #-#                        Item.create(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
                         self.his.createItem(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
-#-#                    else:
+                    else:
+                        break
 #-#                        info('SKIP EXISTING item smzdm %s', _id)
             else:
                 info('return code = %d !!!', r.status)
