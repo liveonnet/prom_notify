@@ -104,6 +104,7 @@ class PromNotify(object):
                 new_pic = urljoin('http://', pic)
                 warn('pic %s -> %s', pic, new_pic)
                 pic = new_pic
+            picr = None
             try:
                 picr = await self.sess.get(pic, timeout=5)
             except ClientTimeoutError:
