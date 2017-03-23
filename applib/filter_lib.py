@@ -27,6 +27,8 @@ class FilterTitle(object):
         self._initJieba()
 
     def _loadIncludeExcludeData(self, force_reload=False):
+        """重新从配置文件读取关注/排除词, 作为自定义词组添加到结巴
+        """
         conf = getConf(self.filter_path, force_reload=force_reload)
         self.st_include, self.st_exclude = set(conf['l_include']), set(conf['l_exclude'])
         debug('include/exlude item(s) loaded. %s/%s ', len(self.st_include), len(self.st_exclude))
@@ -34,11 +36,15 @@ class FilterTitle(object):
             self._addUserWord()
 
     def _addUserWord(self):
+        """添加自定义词组
+        """
         l_dynamic_word = sorted(self.st_include | self.st_exclude, key=lambda x: len(x), reverse=True)
         list(map(lambda w: jieba.add_word(w, freq=None, tag=None), l_dynamic_word))
         debug('added %s include/exclude word(s) to jieba', len(l_dynamic_word))
 
     def _initJieba(self):
+        """初始化结巴分词
+        """
         jieba.dt.tmp_dir = self.conf.get('jieba_tmp_dir', '')
         self.jieba_userdict_path = os.path.abspath(self.conf['jieba_userdict_path'])
         if self.jieba_userdict_path and os.path.exists(self.jieba_userdict_path):
@@ -49,12 +55,15 @@ class FilterTitle(object):
         self.jieba_strip_word = self.conf['jieba_strip_word']
 
     def cutWordJieba(self, s):
+        """分词
+        """
         l_word = list(filter(None, map(lambda x: x.strip(self.jieba_strip_word), jieba.cut(s, cut_all=False))))
 #-#        warn('%s <= %s', '/'.join(l_word), s)
         return l_word
 
     def matchFilter(self, **kwargs):
-        """
+        """根据分词结果给出不同的动作建议(附带关注/排除词匹配结果和额外的分词细节)
+
         'SKIP', '<SKIP_WORD>', extra_data
         'NOTIFY', '<NOTIFY_WORD>', extra_data
         'NORMAL', '', extra_data
