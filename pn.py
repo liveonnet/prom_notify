@@ -87,6 +87,8 @@ class PromNotify(object):
         # filter module
         self.filter = FilterTitle(self.conf_file_path, event_notify)
 
+        self.p_price = re.compile(r'\s*([0-9\.]+)')
+
     async def init(self):
         if self.sess is None:
             self.sess = aiohttp.ClientSession(headers={'User-Agent': self.conf['user_agent']})
@@ -138,6 +140,8 @@ class PromNotify(object):
         return ret
 
     async def _checkDup(self, from_title, title):
+        """跨网站查询最近是否有近似的标题内容
+        """
         ret = False
         seconds_ago = datetime.now() + timedelta(seconds=-180)
         d_tmp = {'慢慢买': 'mmb',
@@ -152,16 +156,18 @@ class PromNotify(object):
         for _source, _show_title, _ctime in self.his.getRecentItems(d_tmp[from_title], seconds_ago):
             s = SequenceMatcher(None, _show_title, title)
             if s.ratio() >= 0.8:
-                warn('found dup title in %s %s @%s (ratio %s)', _source, _show_title, _ctime, s.ratio())
+                debug('found dup title in %s %s @%s (ratio %s)', _source, _show_title, _ctime, s.ratio())
                 ret = True
                 break
 
         return ret
 
     async def _notify(self, **kwargs):
+        """做根据价格、标题关键字过滤，决定是否做出语音提示
+        """
         action, ret_data = 'SKIP', 'IGNORE'
-        slience, title, real_url, pic, sbr_time, item_url, from_title = \
-            list(map(lambda x, k=kwargs: k.get(x, ''), ('slience', 'title', 'real_url', 'pic', 'sbr_time', 'item_url', 'from_title')))
+        slience, title, real_url, pic, sbr_time, item_url, from_title, price = \
+            list(map(lambda x, k=kwargs: k.get(x, ''), ('slience', 'title', 'real_url', 'pic', 'sbr_time', 'item_url', 'from_title', 'price')))
 
         if not slience:
             action, word, extra_data = self.filter.matchFilter(**kwargs)
@@ -191,15 +197,30 @@ class PromNotify(object):
                 webbrowser.get('firefox').open_new_tab('file:///%s' % QrCode.getQrCode(real_url, pic_data=pic_data))
                 self.ps.playTextAsync(title, extra_data)
             elif action == 'NORMAL':
-                action, ret_data = '', ''
-                self.ps.playTextAsync(title, extra_data)
+                if self.price_check(title, price, extra_data):
+                    action, ret_data = '', ''
+                    self.ps.playTextAsync(title, extra_data)
             elif action == 'SKIP':
                 ret_data = word
 
         return action, ret_data
 
-    async def _getData(self, url, *args, **kwargs):
+    def price_check(self, title, price, extra_data):
+        """过滤不关注的价格区间的商品
         """
+        m = self.p_price.match(price)
+        if m:
+            v = float(m.group(0))
+            if self.conf['ignore_high_price'] and v >= self.conf['ignore_high_price']:
+                info('ignore high price: %s for %s %s', v, title, price)
+                return False
+        else:
+            warn('price not found: %s|%s', price, title)
+        return True
+
+    async def _getData(self, url, *args, **kwargs):
+        """封装网络请求
+
         my_fmt:
             str:
                 my_str_encoding
@@ -229,6 +250,9 @@ class PromNotify(object):
                     data = await resp.text(encoding=str_encoding)
                 elif fmt == 'json':
                     data = await resp.json(encoding=json_encoding, loads=json_loads)
+#-#                    if not data:
+#-#                    if 'json' not in resp.headers.get('content-type', ''):
+#-#                        warn('data not in json? %s', resp.headers.get('content-type', ''))
                 elif fmt == 'bytes':
                     data = await resp.read()
                 elif fmt == 'stream':
@@ -303,7 +327,7 @@ class PromNotify(object):
                     raw_url = url
                     nr_redirect = 0
                     while url.find('manmanbuy') != -1 and urlparse(url).path:
-                        r, _, ok = await self._getData(url, timeout=5, my_fmt='bytes')
+                        r, _, ok = await self._getData(url, timeout=7, my_fmt='bytes', my_retry=2)
                         nr_redirect += 1
                         if ok:
                             if r.status == 200:
@@ -335,13 +359,16 @@ class PromNotify(object):
                                 warn('too many redirect %s', real_url)
                                 break
                             if url.endswith('404.html'):
-                                warn('no real url found for %s (only found %s)', real_url, url)
+                                warn('not found real url for %s (only found %s)', real_url, url)
                                 break
+                        else:
+#-#                            info('fetching url not ok %s', url)
+                            break
 
                     real_url = url
 
                 pic = pic.replace('////', '//')
-                action, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=tim, item_url=item_url, from_title='慢慢买')
+                action, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=tim, item_url=item_url, from_title='慢慢买', price=price)
                 debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', tim, show_title, item_url, real_url)
 #-#                Item.create(source='mmb', sid=_id, show_title=show_title, item_url=item_url, real_url=real_url, pic_url=pic, get_time=tim)
                 self.his.createItem(source='mmb', sid=_id, show_title=show_title, item_url=item_url, real_url=real_url, pic_url=pic, get_time=tim)
@@ -374,9 +401,10 @@ class PromNotify(object):
                     title = premovetag.sub('', htmlentitydecode(etree.tostring(x.xpath('./div[@class="listTitle"]//h2[@class="itemName"]/a')[0]).decode('utf8')))
                     title_price = x.xpath('./div[@class="listTitle"]//h2[@class="itemName"]/a/span[@class="red"]/text()')
                     if title_price:
+                        title_price = title_price[0][:]
                         title_noprice = premovetag.sub('', x.xpath('./div[@class="listTitle"]//h2[@class="itemName"]/a/text()')[0][:])
     #-#                    info('title_noprice: %s', title_noprice)
-                        show_title = title_noprice + ' ' + title_price[0][:]
+                        show_title = title_noprice + ' ' + title_price
                     else:
                         show_title = title
 
@@ -419,7 +447,7 @@ class PromNotify(object):
                         if pic[0] == '/':
                             pic = 'http://www.smzdm.com%s' % pic
 
-                        action, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=sbr_time, item_url=url, from_title='什么值得买')
+                        action, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=sbr_time, item_url=url, from_title='什么值得买', price=title_price)
                         debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
 #-#                        Item.create(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
                         self.his.createItem(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
@@ -440,7 +468,7 @@ class PromNotify(object):
         r, text, ok = await self._getData(base_url, params={'timesort': str(process_time)}, timeout=10, my_fmt='json')
         if ok:
             if r.status == 200:
-                info('url %s', r.url)
+                debug('url %s', r.url)
                 l_item = text
                 for x in l_item:
                     if event_exit.is_set():
@@ -448,7 +476,8 @@ class PromNotify(object):
                         break
                     url = x['article_url']
                     direct_url = x['article_link']
-                    show_title = ' '.join((x['article_title'], x['article_price']))
+                    price = x['article_price']
+                    show_title = ' '.join((x['article_title'], price))
                     sbr_time = datetime.fromtimestamp(x['timesort'])
                     pic = x['article_pic']
                     _id = x['article_id']
@@ -480,7 +509,7 @@ class PromNotify(object):
                                     else:
                                         warn('can\'t find real_url')
 
-                        action, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=sbr_time, item_url=url, from_title='什么值得买')
+                        action, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=sbr_time, item_url=url, from_title='什么值得买', price=price)
                         debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
                         if len(x['article_link_list']) > 0:
                             (info if not action else debug)('have more url:\n%s', '\n'.join('%s %s %s' % (_url['name'], _url['buy_btn_domain'], _url['link']) for _url in x['article_link_list']))
@@ -526,6 +555,10 @@ class PromNotify(object):
                     min_process_time_sec = process_time_sec
                     await asyncio.sleep(5)
                     continue
+
+                if not nr_new:
+                    debug('got %s new item', nr_new)
+                    break
                 info('getmore nr_new %d min_sec %d(%s)', nr_new, min_process_time_sec, datetime.fromtimestamp(min_process_time_sec))
 
             process_time_sec = max_process_time_sec
