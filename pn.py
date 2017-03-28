@@ -87,7 +87,7 @@ class PromNotify(object):
         # filter module
         self.filter = FilterTitle(self.conf_file_path, event_notify)
 
-        self.p_price = re.compile(r'\s*([0-9\.]+)')
+        self.p_price = re.compile(r'\s*￥?([0-9\.]+)')
 
     async def init(self):
         if self.sess is None:
@@ -109,6 +109,10 @@ class PromNotify(object):
             picr = None
             try:
                 picr = await self.sess.get(pic, timeout=5)
+            except asyncio.TimeoutErro:
+                error('Timeout pic get error %s', pic)
+                await asyncio.sleep(1)
+                nr_try -= 1
             except ClientTimeoutError:
                 error('ReadTimeout pic get error %s', pic)
                 await asyncio.sleep(1)
@@ -353,13 +357,13 @@ class PromNotify(object):
                                 elif r.url.startswith(('http://detail.tmall.com/', 'https://detail.tmall.com/')):
                                     url = r.url
                                 else:
-                                    info('real url not found %s %s %s', r.status, raw_url, r.url)
+                                    info('real url not found: code %s %s %s', r.status, raw_url, r.url)
                                 break
                             if nr_redirect > 5:
                                 warn('too many redirect %s', real_url)
                                 break
                             if url.endswith('404.html'):
-                                warn('not found real url for %s (only found %s)', real_url, url)
+                                warn('real url not found: %s (only found %s)', real_url, url)
                                 break
                         else:
 #-#                            info('fetching url not ok %s', url)

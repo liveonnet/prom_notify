@@ -64,6 +64,8 @@ class FilterTitle(object):
     def matchFilter(self, **kwargs):
         """根据分词结果给出不同的动作建议(附带关注/排除词匹配结果和额外的分词细节)
 
+        排除优先
+
         'SKIP', '<SKIP_WORD>', extra_data
         'NOTIFY', '<NOTIFY_WORD>', extra_data
         'NORMAL', '', extra_data
