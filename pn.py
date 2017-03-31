@@ -109,7 +109,7 @@ class PromNotify(object):
             picr = None
             try:
                 picr = await self.sess.get(pic, timeout=5)
-            except asyncio.TimeoutErro:
+            except asyncio.TimeoutError:
                 error('Timeout pic get error %s', pic)
                 await asyncio.sleep(1)
                 nr_try -= 1
@@ -214,7 +214,7 @@ class PromNotify(object):
         """
         m = self.p_price.match(price)
         if m:
-            v = float(m.group(0))
+            v = float(m.group(1))
             if self.conf['ignore_high_price'] and v >= self.conf['ignore_high_price']:
                 info('ignore high price: %s for %s %s', v, title, price)
                 return False
