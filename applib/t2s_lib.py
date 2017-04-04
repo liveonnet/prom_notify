@@ -2,21 +2,248 @@ import ctypes
 import ctypes.util
 import argparse
 import os
+import json
 from io import BytesIO
 import sys
 import time
 import codecs
+import asyncio
+import aiohttp
+from aiohttp.resolver import AsyncResolver
+from aiohttp.errors import ClientTimeoutError
+from aiohttp.errors import ClientConnectionError
+from aiohttp.errors import ClientError
+from aiohttp.errors import HttpBadRequest
+from aiohttp.errors import ClientHttpProcessingError
 if __name__ == '__main__':
     sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
-#-#from applib.tools_lib import pcformat
+from applib.tools_lib import pcformat
 from applib.conf_lib import getConf
 from applib.log_lib import app_log
 info, debug, warn, error = app_log.info, app_log.debug, app_log.warning, app_log.error
 
 TTS_FLAG_DATA_END = 2
 
-
 class Text2Speech(object):
+    def __init__(self, conf_path='config/pn_conf.yaml'):
+        # input param
+        self.conf_path = conf_path
+        self.from_text = None  # 保存短小的待转换文字
+        self.from_file = None
+        self.to_file = None
+        self.only_print_result = None
+        self.short_mode = None
+        self.loop = None
+        self.conf = getConf(self.conf_path, root_key='t2s')
+        if __name__ == '__main__':
+            self.getArgs()
+
+        # interval use
+        self.dl = None  # msc handler
+
+    def getArgs(self):
+        '''获取输入的参数
+        '''
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--version', action='version', version='%(prog)s 20170221')
+        parser.add_argument('-l', '--print_only', dest='only_print_result', action='store_true', help='don\'t update db, just print stat result')
+        parser.add_argument('-f', '--from', dest='from_file', help='input file', default=None)
+        parser.add_argument('-t', '--to', dest='to_file', help='output file', default=None)
+        parser.add_argument('-s', '--short', dest='short_mode', action='store_true', help='in short text mode')
+        options = parser.parse_args()
+        if not options.from_file or not options.to_file:
+            parser.print_usage()
+            sys.exit(-1)
+
+        if not os.path.exists(options.from_file):
+            info('input file doesn\'t exists!')
+            sys.exit(-2)
+
+        self.from_file = options.from_file
+        self.to_file = options.to_file
+        self.only_print_result = options.only_print_result
+        self.short_mode = options.short_mode
+
+    def _init(self):
+        '''
+        '''
+        resolver = AsyncResolver(nameservers=['8.8.8.8', '8.8.4.4'])
+        conn = aiohttp.TCPConnector(resolver=resolver, limit=10)
+        if self.loop:
+            self.sess = aiohttp.ClientSession(connector=conn, headers={'User-Agent': self.conf['user_agent']}, loop=self.loop)
+        else:
+            self.sess = aiohttp.ClientSession(connector=conn, headers={'User-Agent': self.conf['user_agent']})
+
+    def _fini(self):
+        '''
+        '''
+        return
+
+    async def doWork(self):
+        '''工作入口函数 单独使用本模块时使用
+        '''
+        try:
+            self._init()
+            if self.short_mode:
+                await self.process_short()
+            else:
+                self.process()
+        except KeyboardInterrupt:
+            pass
+        finally:
+            self._fini()
+
+    async def short_t2s(self, from_text=None, from_file=None, to_file=None):
+        """以模块方式调用时的入口
+        """
+        ret = None
+        try:
+            self._init()
+            self.from_file = from_file
+            self.from_text = from_text
+            self.to_file = to_file
+            ret = await self.process_short()
+        except KeyboardInterrupt:
+            pass
+        finally:
+            self._fini()
+
+        return ret
+
+    async def _process_each(self, text_in):
+        """获取一段文字的语音合成数据
+        """
+        ok = True
+        s = None
+        access_token = None
+        access_token = self.conf['baidu_access_token']
+#-#        resp = None
+#-#        try:
+#-#            url = 'https://openapi.baidu.com/oauth/2.0/token'
+#-#            args = {'grant_type': 'client_credentials',
+#-#                    'client_id': self.conf['baidu_api_key'],
+#-#                    'client_secret': self.conf['baidu_secret_key'],
+#-#                    }
+#-#            info('query access token ...')
+#-#            resp = await self.sess.post(url, data=args, timeout=30)
+#-#        except asyncio.TimeoutError:
+#-#            info('TimeoutError %s %s', url, pcformat(args))
+#-#        except ClientConnectionError:
+#-#            error('ConnectionError %s %s', url, pcformat(args))
+#-#        except ClientHttpProcessingError:
+#-#            error('ClientHttpProcessingError %s %s', url, pcformat(args), exc_info=True)
+#-#        except ClientTimeoutError:
+#-#            error('ClientTimeoutError %s %s', url, pcformat(args))
+#-#        except ClientError:
+#-#            error('ClientError %s %s', url, pcformat(args), exc_info=True)
+#-#        except UnicodeDecodeError as e:
+#-#            error('UnicodeDecodeError %s %s %s %s\n%s', url, pcformat(args), pcformat(resp.headers), await resp.read(), exc_info=True)
+#-#            raise e
+#-#        else:
+#-#            data = await resp.json()
+#-#            if 'access_token' in data:
+#-#                access_token = data['access_token']
+#-#                info('data: %s', pcformat(data))
+#-#                info('access token: %s', access_token)
+#-#            else:
+#-#                error('%s: %s', data['error'], data['error_description'])
+#-#        finally:
+#-#            if resp:
+#-#                resp.release()
+#-#
+        if access_token:
+            resp = None
+            try:
+                url = 'http://tsn.baidu.com/text2audio'
+                args = {'tex': text_in.decode('utf8'),
+                        'lan': 'zh',
+                        'tok': access_token,
+                        'ctp': '1',
+                        'cuid': '00000000',
+                        'spd': '6',
+                        'pit': '5',
+                        'vol': '6',
+                        'per': '0',
+                        }
+#-#                resp = await self.sess.post(url, data=json.dumps(args), timeout=15)
+                resp = await self.sess.post(url, data=args, timeout=15)
+            except asyncio.TimeoutError:
+                info('TimeoutError %s %s', url, pcformat(args))
+            except ClientConnectionError:
+                error('ConnectionError %s %s', url, pcformat(args))
+            except ClientHttpProcessingError:
+                error('ClientHttpProcessingError %s %s', url, pcformat(args), exc_info=True)
+            except ClientTimeoutError:
+                error('ClientTimeoutError %s %s', url, pcformat(args))
+            except ClientError:
+                error('ClientError %s %s', url, pcformat(args), exc_info=True)
+            except UnicodeDecodeError as e:
+                error('UnicodeDecodeError %s %s %s %s\n%s', url, pcformat(args), pcformat(resp.headers), await resp.read(), exc_info=True)
+                raise e
+            else:
+                info('headers: %s', pcformat(resp.headers))
+                if resp.headers['Content-Type'] == 'audio/mp3':
+                    data = await resp.read()
+                    s = data
+                elif resp.headers['Content-Type'] == 'application/json':
+                    data = await resp.json()
+                    error('%s: %s', data['err_no'], data['err_msg'])
+            finally:
+                if resp:
+                    resp.release()
+
+        return s, ok
+
+    async def process_short(self):
+        '''处理小段文本文件
+        '''
+        if not self.from_text:
+            assert os.path.exists(self.from_file)
+            tmp_text = open(self.from_file).read().encode('utf8')
+        else:
+            tmp_text = self.from_text
+        s, ok = await self._process_each(tmp_text)
+        if ok and s:
+            if self.to_file:
+                with open(self.to_file, 'wb') as out_file:
+                    out_file.write(s)
+                    info('audio file saved %s', self.to_file)
+#-#            debug('audio data returned. %s bytes', format(len(s), ','))
+            return s
+        else:
+            warn('t2s failed !!!')
+
+    async def process(self):
+        '''处理大段文本文件
+        '''
+        # open output file
+        out_file = open(self.to_file, 'wb')
+
+        flag_ok = True  # indicate error in loop
+        cnt = 0
+        size_per_call = 1000
+
+        # get part text from input content
+        p = CParagraphText(self.from_file)
+        total_bytes = p.readFile()
+        cur_bytes = 0
+        tmp_text = p.getPartText('utf-8', size_per_call)
+        while flag_ok and tmp_text != '':
+            cnt += 1
+            cur_bytes += len(tmp_text)
+            info('#%d %d byte(s) sent. %d/%d %.2f%%', cnt, len(tmp_text), cur_bytes, total_bytes, 100.0 * cur_bytes / total_bytes)
+            tmp_text = p.getPartText('utf-8', size_per_call)
+            s, flag_ok = await self._process_each(tmp_text)
+            if not flag_ok:
+                info('break at progress = %d', p.getProgress())
+                break
+            if s:
+                out_file.write(s)
+        out_file.close()
+        info('done.')
+
+
+class Text2SpeechOld(object):
 
     def __init__(self, conf_path='config/pn_conf.yaml'):
         # input param
@@ -300,13 +527,26 @@ class CParagraphText(object):
 
 
 if __name__ == '__main__':
+    loop = asyncio.get_event_loop()
 
-    t2s = Text2Speech()
-    t2s.getArgs()
-    t2s.doWork()
+    try:
+        t2s = Text2Speech()
+        t2s.getArgs()
+#-#        await t2s.doWork()
+        task = asyncio.ensure_future(t2s.doWork())
+        loop.run_until_complete(task)
+    except KeyboardInterrupt:
+        info('cancel on KeyboardInterrupt..')
+        task.cancel()
+        loop.run_forever()
+        task.exception()
+    finally:
+        loop.stop()
     sys.exit(0)
 
-    t = CParagraphText('/home/kevin/qqts-5-20.txt')
+
+
+    #t = CParagraphText('/home/kevin/qqts-5-20.txt')
     t = CParagraphText('/tmp/t2s_input.txt')
     total = t.readFile()
     cur = 0
