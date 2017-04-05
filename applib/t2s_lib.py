@@ -2,7 +2,7 @@ import ctypes
 import ctypes.util
 import argparse
 import os
-import json
+#-#import json
 from io import BytesIO
 import sys
 import time
@@ -13,7 +13,7 @@ from aiohttp.resolver import AsyncResolver
 from aiohttp.errors import ClientTimeoutError
 from aiohttp.errors import ClientConnectionError
 from aiohttp.errors import ClientError
-from aiohttp.errors import HttpBadRequest
+#-#from aiohttp.errors import HttpBadRequest
 from aiohttp.errors import ClientHttpProcessingError
 if __name__ == '__main__':
     sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
@@ -24,7 +24,10 @@ info, debug, warn, error = app_log.info, app_log.debug, app_log.warning, app_log
 
 TTS_FLAG_DATA_END = 2
 
-class Text2Speech(object):
+
+class Text2SpeechBaidu(object):
+    """调用百度云语音完成语音合成
+    """
     def __init__(self, conf_path='config/pn_conf.yaml'):
         # input param
         self.conf_path = conf_path
@@ -77,6 +80,8 @@ class Text2Speech(object):
     def _fini(self):
         '''
         '''
+        if self.sess:
+            self.sess.close()
         return
 
     async def doWork(self):
@@ -87,13 +92,13 @@ class Text2Speech(object):
             if self.short_mode:
                 await self.process_short()
             else:
-                self.process()
+                await self.process()
         except KeyboardInterrupt:
             pass
         finally:
             self._fini()
 
-    async def short_t2s(self, from_text=None, from_file=None, to_file=None):
+    async def short_t2s(self, from_text=None, from_file=None, to_file=None, fut=None):
         """以模块方式调用时的入口
         """
         ret = None
@@ -107,6 +112,8 @@ class Text2Speech(object):
             pass
         finally:
             self._fini()
+        if fut:
+            fut.set_result(ret)
 
         return ret
 
@@ -154,6 +161,7 @@ class Text2Speech(object):
         if access_token:
             resp = None
             try:
+#-#                info('getting audio data ...')
                 url = 'http://tsn.baidu.com/text2audio'
                 args = {'tex': text_in.decode('utf8'),
                         'lan': 'zh',
@@ -162,11 +170,11 @@ class Text2Speech(object):
                         'cuid': '00000000',
                         'spd': '6',
                         'pit': '5',
-                        'vol': '6',
+                        'vol': '9',
                         'per': '0',
                         }
 #-#                resp = await self.sess.post(url, data=json.dumps(args), timeout=15)
-                resp = await self.sess.post(url, data=args, timeout=15)
+                resp = await self.sess.post(url, data=args, timeout=20)
             except asyncio.TimeoutError:
                 info('TimeoutError %s %s', url, pcformat(args))
             except ClientConnectionError:
@@ -181,13 +189,15 @@ class Text2Speech(object):
                 error('UnicodeDecodeError %s %s %s %s\n%s', url, pcformat(args), pcformat(resp.headers), await resp.read(), exc_info=True)
                 raise e
             else:
-                info('headers: %s', pcformat(resp.headers))
+#-#                info('headers: %s', pcformat(resp.headers))
                 if resp.headers['Content-Type'] == 'audio/mp3':
                     data = await resp.read()
                     s = data
                 elif resp.headers['Content-Type'] == 'application/json':
                     data = await resp.json()
                     error('%s: %s', data['err_no'], data['err_msg'])
+                else:
+                    error('未知头 %s', pcformat(resp.headers))
             finally:
                 if resp:
                     resp.release()
@@ -243,8 +253,9 @@ class Text2Speech(object):
         info('done.')
 
 
-class Text2SpeechOld(object):
-
+class Text2SpeechXunFei(object):
+    """调用讯飞完成语音合成
+    """
     def __init__(self, conf_path='config/pn_conf.yaml'):
         # input param
         self.conf_path = conf_path
@@ -527,10 +538,10 @@ class CParagraphText(object):
 
 
 if __name__ == '__main__':
+    # >> python applib/t2s_lib.py -f /tmp/t.txt -t /tmp/out.mp3 -s
     loop = asyncio.get_event_loop()
-
     try:
-        t2s = Text2Speech()
+        t2s = Text2SpeechBaidu()
         t2s.getArgs()
 #-#        await t2s.doWork()
         task = asyncio.ensure_future(t2s.doWork())
@@ -543,8 +554,6 @@ if __name__ == '__main__':
     finally:
         loop.stop()
     sys.exit(0)
-
-
 
     #t = CParagraphText('/home/kevin/qqts-5-20.txt')
     t = CParagraphText('/tmp/t2s_input.txt')

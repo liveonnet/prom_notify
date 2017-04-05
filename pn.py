@@ -110,6 +110,13 @@ class PromNotify(object):
             try:
                 picr = await self.sess.get(pic, timeout=5)
             except asyncio.TimeoutError:
+                # 简单处理中间跳转页
+                if pic.startswith('http://cacheimg.manmanbuy.com/r_img/cacheimg.aspx?') and 'imgurl=' in pic:
+                    tmp_pic = pic
+                    idx = pic.find('imgurl=')
+                    pic = 'http://cacheimg.manmanbuy.com/r_img/cacheimg/' + pic[idx + 7:]
+                    info('pic 中间跳转页 %s -> %s', tmp_pic, pic)
+                    continue
                 error('Timeout pic get error %s', pic)
                 await asyncio.sleep(1)
                 nr_try -= 1

@@ -11,11 +11,13 @@ from contextlib import contextmanager
 import shlex
 import pyaudio
 import subprocess
+import asyncio
 if __name__ == '__main__':
     sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
 #-#from applib.tools_lib import pcformat
 from applib.conf_lib import getConf
-from applib.t2s_lib import Text2Speech
+from applib.t2s_lib import Text2SpeechXunFei
+from applib.t2s_lib import Text2SpeechBaidu
 from applib.log_lib import get_lan_ip
 from applib.log_lib import app_log
 info, debug, warn, error = app_log.info, app_log.debug, app_log.warning, app_log.error
@@ -59,7 +61,10 @@ class PlaySound(object):
         # input param
         self.conf_path = conf_path
         self.conf = getConf(self.conf_path, root_key='audio')
-        self.t2s = Text2Speech(self.conf_path)  # sync
+        if self.conf['target'] == 'pi':
+            self.t2s = Text2SpeechBaidu(self.conf_path)  # sync
+        else:
+            self.t2s = Text2SpeechXunFei(self.conf_path)  # sync
         self.executor_t2s = concurrent.futures.ProcessPoolExecutor(2)  # async
         if self.conf['use_custom_manager']:
             # start remote manager
@@ -88,7 +93,16 @@ class PlaySound(object):
         if new_text != text:
             info('%s -> %s', text, new_text)
         # call tts
-        audio_data = self.t2s.short_t2s(from_text=text.encode('utf8'))
+        if self.conf['target'] == 'pi':
+            loop = asyncio.get_event_loop()
+#-#            future = asyncio.Future()
+#-#            asyncio.ensure_future(Text2SpeechBaidu(self.conf_path).short_t2s(from_text=new_text.encode('utf8'), fut=future))
+#-#            audio_data = loop.run_until_complete(Text2SpeechBaidu(self.conf_path).short_t2s(from_text=new_text.encode('utf8')))
+            audio_data = loop.run_until_complete(self.short_t2s(from_text=new_text.encode('utf8')))
+#-#            audio_data = future.result()
+            loop.close()
+        else:
+            audio_data = self.t2s.short_t2s(from_text=new_text.encode('utf8'))
         return audio_data
 
     def playText(self, text, tp='pyaudio'):
@@ -98,8 +112,22 @@ class PlaySound(object):
     def playTextFile(self, text_file_path, tp='pyaudio'):
         self.playText(open(text_file_path).read().encode('utf8'))
 
-    def playAudio(self, audio_data, tp='pyaudio'):
-        if tp == 'mplayer':
+    def playAudio(self, audio_data, tp='mplayer_mp3'):
+        if tp == 'mplayer_mp3':
+            cmd = 'mplayer -novideo -nolirc -cache 1024 -really-quiet -'
+            cmd = shlex.split(cmd)
+            debug('EXEC_CMD< %s ...', cmd)
+            proc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
+            try:
+                outs, errs = proc.communicate(audio_data, timeout=30)
+                proc.kill()
+                outs, errs = proc.communicate()
+                proc.terminate()
+            except subprocess.TimeoutExpired:
+                warn('kill timeout proc %s', proc)
+                proc.kill()
+                outs, errs = proc.communicate()
+        elif tp == 'mplayer':
             cmd = 'mplayer -demuxer rawaudio -rawaudio channels=1:rate=16000:bitrate=16  -novideo -really-quiet -noconsolecontrols -nolirc -'
             cmd = shlex.split(cmd)
             debug('EXEC_CMD< %s ...', cmd)
@@ -125,7 +153,8 @@ class PlaySound(object):
         if tp == 'pyaudio':
             with noalsaerr():
                 p = pyaudio.PyAudio()
-            stream = p.open(format=p.get_format_from_width(2), channels=1, rate=16000, output=True)
+#-#            stream = p.open(format=p.get_format_from_width(2), channels=2, rate=16000, output=True)
+            stream = p.open(format=pyaudio.paInt16, channels=1, rate=16000, output=True)
             stream.write(audio_data)
             sleep(0.5)  # wait steam play done
             stream.stop_stream()
@@ -151,10 +180,10 @@ class PlaySound(object):
             self.playAudio(open(audio_file, 'rb').read(), tp=tp)
             subprocess.Popen('cmus-remote -u', shell=True).wait()
 
-    def playTextAsync(self, text, extra_data, tp='pyaudio'):
+    def playTextAsync(self, text, extra_data, tp='mplayer_mp3'):
         """async support
         """
-        self.executor_t2s.submit(text2AudioAsync, self.conf_path, text, tp, extra_data, self.q_audio)
+        self.executor_t2s.submit(text2AudioAsync, self.conf['target'], self.conf_path, text, tp, extra_data, self.q_audio)
 
     def playAudioFromQ(self, q_audio, event_exit):
         """async support
@@ -194,6 +223,7 @@ class PlaySound(object):
                     break
 
     def clean(self):
+        info('audio closing ...')
         if self.executor_t2s:
             self.executor_t2s.shutdown()
         if self.proc_play and self.proc_play.is_alive():
@@ -201,15 +231,37 @@ class PlaySound(object):
         info('audio closed.')
 
 
-def text2AudioAsync(conf_path, text, tp, extra_data, q_audio):
+def text2AudioAsync(target, conf_path, text, tp, extra_data, q_audio):
     """text data => audio data
     """
     setproctitle('text_2_audio')
     new_text = re.sub('(\d+-\d+)', lambda x: x.group(1).replace('-', '减'), text, re.U)
+    new_text = re.sub('\d+[个|g]+/袋', lambda x: x.group(0).replace('/', '每'), new_text, re.U)
+
 #-#    if new_text != text:
 #-#        debug('%s -> %s', text, new_text)
     # call tts
-    audio_data = Text2Speech(conf_path).short_t2s(from_text=new_text.encode('utf8'))
+    if target == 'pi':
+        loop = asyncio.get_event_loop()
+#-#        future = asyncio.Future()
+#-#        asyncio.ensure_future(Text2SpeechBaidu(conf_path).short_t2s(from_text=new_text.encode('utf8'), fut=future))
+        audio_data = loop.run_until_complete(Text2SpeechBaidu(conf_path).short_t2s(from_text=new_text.encode('utf8')))
+#-#        audio_data = future.result()
+#-#        loop.close()
+        tp = 'mplayer_mp3'
+    else:
+        audio_data = Text2SpeechXunFei(conf_path).short_t2s(from_text=new_text.encode('utf8'))
+        tp = 'pyaudio'
     # to audio queue
     q_audio.put([text, audio_data, tp, extra_data])
 
+
+if __name__ == '__main__':
+    ps = PlaySound()
+    extra_data = {}
+    extra_data['from_title'] = '测试标题'
+    extra_data['item_url'] = '测试url'
+    extra_data['real_url'] = '真实url'
+    extra_data['cut_word'] = ['这是', '一个', '测试']
+    ps.playTextAsync('测试信息, 开始看的人, 有个', extra_data)
+    ps.clean()
