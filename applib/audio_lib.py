@@ -116,7 +116,7 @@ class PlaySound(object):
         if tp == 'mplayer_mp3':
             cmd = 'mplayer -novideo -nolirc -cache 1024 -really-quiet -'
             cmd = shlex.split(cmd)
-            debug('EXEC_CMD< %s ...', cmd)
+#-#            debug('EXEC_CMD< %s ...', cmd)
             proc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
             try:
                 outs, errs = proc.communicate(audio_data, timeout=30)
@@ -235,11 +235,12 @@ def text2AudioAsync(target, conf_path, text, tp, extra_data, q_audio):
     """text data => audio data
     """
     setproctitle('text_2_audio')
-    new_text = re.sub('(\d+-\d+)', lambda x: x.group(1).replace('-', '减'), text, re.U)
-    new_text = re.sub('\d+[个|g]+/袋', lambda x: x.group(0).replace('/', '每'), new_text, re.U)
+    new_text = text.replace('*', '乘')
+    new_text = re.sub('(?:[0-9\.]+-\d+)券', lambda x: x.group(0).replace('-', '减'), new_text, re.U)
+    new_text = re.sub('\d+?(?:个|元|g)?/(?:件|袋|个|包|块)?', lambda x: x.group(0).replace('/', '每'), new_text, re.U)
 
-#-#    if new_text != text:
-#-#        debug('%s -> %s', text, new_text)
+    if new_text != text:
+        debug('%s -> %s', text, new_text)
     # call tts
     if target == 'pi':
         loop = asyncio.get_event_loop()
