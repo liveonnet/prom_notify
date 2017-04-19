@@ -223,7 +223,7 @@ class PromNotify(object):
         if m:
             v = float(m.group(1))
             if self.conf['ignore_high_price'] and v >= self.conf['ignore_high_price']:
-                info('ignore high price: %s for %s %s', v, title, price)
+                debug('ignore high price: %s for %s %s', v, title, price)
                 return False
         else:
             warn('price not found: %s|%s', price, title)
