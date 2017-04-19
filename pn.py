@@ -4,6 +4,7 @@ from datetime import datetime
 from datetime import timedelta
 import time
 import os
+from getpass import getuser
 from urllib.parse import urlparse
 from urllib.parse import urljoin
 from urllib.parse import parse_qs
@@ -196,6 +197,8 @@ class PromNotify(object):
 
             if action == 'NOTIFY':
                 action, ret_data = '', word
+                if getuser() == 'pi':
+                    return action, ret_data  # for pi
                 # open browser
                 cmd = 'notify-send  "%s" "%s at %s"' % (from_title, title.replace('$', '\$').replace('&', '＆'), sbr_time.strftime('%H:%M:%S'))
 #-#                    debug('EXEC_CMD< %s ...\n%s %s', cmd, item_url, real_url)
@@ -210,6 +213,8 @@ class PromNotify(object):
             elif action == 'NORMAL':
                 if self.price_check(title, price, extra_data):
                     action, ret_data = '', ''
+                    if getuser() == 'pi':
+                        return action, ret_data  # for pi
                     self.ps.playTextAsync(title, extra_data)
             elif action == 'SKIP':
                 ret_data = word
@@ -274,6 +279,8 @@ class PromNotify(object):
                         streaming_cb(url, chunk)
                 ok = True
                 break
+            except aiohttp.errors.ServerDisconnectedError:
+                info('%sServerDisconnectedError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
             except asyncio.TimeoutError:
                 info('%sTimeoutError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
             except ClientConnectionError:
@@ -286,7 +293,7 @@ class PromNotify(object):
                 error('%sClientError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs), exc_info=True)
             except UnicodeDecodeError as e:
                 error('%sUnicodeDecodeError %s %s %s %s\n%s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs), pcformat(resp.headers), await resp.read(), exc_info=True)
-                raise e
+#-#                raise e
             finally:
                 if resp:
                     resp.release()
@@ -380,7 +387,10 @@ class PromNotify(object):
 
                 pic = pic.replace('////', '//')
                 action, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=tim, item_url=item_url, from_title='慢慢买', price=price)
-                debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', tim, show_title, item_url, real_url)
+                if getuser() == 'pi' and action in ('NOTIFY', 'NORMAL', ''):
+                    info('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', tim, show_title, item_url, real_url)
+                else:
+                    debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', tim, show_title, item_url, real_url)
 #-#                Item.create(source='mmb', sid=_id, show_title=show_title, item_url=item_url, real_url=real_url, pic_url=pic, get_time=tim)
                 self.his.createItem(source='mmb', sid=_id, show_title=show_title, item_url=item_url, real_url=real_url, pic_url=pic, get_time=tim)
         except:
@@ -459,7 +469,11 @@ class PromNotify(object):
                             pic = 'http://www.smzdm.com%s' % pic
 
                         action, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=sbr_time, item_url=url, from_title='什么值得买', price=title_price)
-                        debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
+
+                        if getuser() == 'pi' and action in ('NOTIFY', 'NORMAL', ''):
+                            info('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
+                        else:
+                            debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
 #-#                        Item.create(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
                         self.his.createItem(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
                     else:
@@ -521,7 +535,10 @@ class PromNotify(object):
                                         warn('can\'t find real_url')
 
                         action, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=sbr_time, item_url=url, from_title='什么值得买', price=price)
-                        debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
+                        if getuser() == 'pi' and action in ('NOTIFY', 'NORMAL', ''):
+                            info('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
+                        else:
+                            debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
                         if len(x['article_link_list']) > 0:
                             (info if not action else debug)('have more url:\n%s', '\n'.join('%s %s %s' % (_url['name'], _url['buy_btn_domain'], _url['link']) for _url in x['article_link_list']))
 
