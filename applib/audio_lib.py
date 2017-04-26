@@ -237,6 +237,7 @@ def text2AudioAsync(target, conf_path, text, tp, extra_data, q_audio):
     setproctitle('text_2_audio')
     new_text = text.replace('*', '乘')
     new_text = re.sub('(?:[0-9\.]+-\d+)券', lambda x: x.group(0).replace('-', '减'), new_text, re.U)
+    new_text = re.sub('满(?:[0-9\.]+-\d+)元', lambda x: x.group(0).replace('-', '减'), new_text, re.U)
     new_text = re.sub('\d+?(?:个|元|g)?/(?:件|袋|个|包|块)?', lambda x: x.group(0).replace('/', '每'), new_text, re.U)
 
     if new_text != text:

@@ -208,7 +208,8 @@ class PromNotify(object):
 #-#                pic_path = await self._getPic(pic)
 #-#                webbrowser.get('firefox').open_new_tab('file:///%s' % QrCode.getQrCode(real_url, pic=pic_path))
                 pic_data = await self._getPic(pic, raw_data=True)
-                webbrowser.get('firefox').open_new_tab('file:///%s' % QrCode.getQrCode(real_url, pic_data=pic_data))
+                if pic_data:
+                    webbrowser.get('firefox').open_new_tab('file:///%s' % QrCode.getQrCode(real_url, pic_data=pic_data))
                 self.ps.playTextAsync(title, extra_data)
             elif action == 'NORMAL':
                 if self.price_check(title, price, extra_data):
@@ -224,7 +225,7 @@ class PromNotify(object):
     def price_check(self, title, price, extra_data):
         """过滤不关注的价格区间的商品
         """
-        m = self.p_price.match(price)
+        m = self.p_price.match(str(price))
         if m:
             v = float(m.group(1))
             if self.conf['ignore_high_price'] and v >= self.conf['ignore_high_price']:
@@ -291,7 +292,7 @@ class PromNotify(object):
                 error('%sClientTimeoutError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
             except ClientError:
                 error('%sClientError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs), exc_info=True)
-            except UnicodeDecodeError as e:
+            except UnicodeDecodeError:
                 error('%sUnicodeDecodeError %s %s %s %s\n%s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs), pcformat(resp.headers), await resp.read(), exc_info=True)
 #-#                raise e
             finally:
