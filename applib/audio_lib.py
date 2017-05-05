@@ -114,7 +114,7 @@ class PlaySound(object):
 
     def playAudio(self, audio_data, tp='mplayer_mp3'):
         if tp == 'mplayer_mp3':
-            cmd = 'mplayer -novideo -nolirc -cache 1024 -really-quiet -'
+            cmd = 'mplayer -novideo -nolirc -cache 1024 -really-quiet -softvol -volume 100 -'
             cmd = shlex.split(cmd)
 #-#            debug('EXEC_CMD< %s ...', cmd)
             proc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
