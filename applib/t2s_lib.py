@@ -123,41 +123,42 @@ class Text2SpeechBaidu(object):
         ok = True
         s = None
         access_token = None
-        access_token = self.conf['baidu_access_token']
-#-#        resp = None
-#-#        try:
-#-#            url = 'https://openapi.baidu.com/oauth/2.0/token'
-#-#            args = {'grant_type': 'client_credentials',
-#-#                    'client_id': self.conf['baidu_api_key'],
-#-#                    'client_secret': self.conf['baidu_secret_key'],
-#-#                    }
+#-#        access_token = self.conf['baidu_access_token']
+        resp = None
+        try:
+            url = 'https://openapi.baidu.com/oauth/2.0/token'
+            args = {'grant_type': 'client_credentials',
+                    'client_id': self.conf['baidu_api_key'],
+                    'client_secret': self.conf['baidu_secret_key'],
+                    }
 #-#            info('query access token ...')
-#-#            resp = await self.sess.post(url, data=args, timeout=30)
-#-#        except asyncio.TimeoutError:
-#-#            info('TimeoutError %s %s', url, pcformat(args))
-#-#        except ClientConnectionError:
-#-#            error('ConnectionError %s %s', url, pcformat(args))
-#-#        except ClientHttpProcessingError:
-#-#            error('ClientHttpProcessingError %s %s', url, pcformat(args), exc_info=True)
-#-#        except ClientTimeoutError:
-#-#            error('ClientTimeoutError %s %s', url, pcformat(args))
-#-#        except ClientError:
-#-#            error('ClientError %s %s', url, pcformat(args), exc_info=True)
-#-#        except UnicodeDecodeError as e:
-#-#            error('UnicodeDecodeError %s %s %s %s\n%s', url, pcformat(args), pcformat(resp.headers), await resp.read(), exc_info=True)
-#-#            raise e
-#-#        else:
-#-#            data = await resp.json()
-#-#            if 'access_token' in data:
-#-#                access_token = data['access_token']
+            resp = await self.sess.post(url, data=args, timeout=30)
+        except asyncio.TimeoutError:
+            info('TimeoutError %s %s', url, pcformat(args))
+        except ClientConnectionError:
+            error('ConnectionError %s %s', url, pcformat(args))
+        except ClientHttpProcessingError:
+            error('ClientHttpProcessingError %s %s', url, pcformat(args), exc_info=True)
+        except ClientTimeoutError:
+            error('ClientTimeoutError %s %s', url, pcformat(args))
+        except ClientError:
+            error('ClientError %s %s', url, pcformat(args), exc_info=True)
+        except UnicodeDecodeError as e:
+            error('UnicodeDecodeError %s %s %s %s\n%s', url, pcformat(args), pcformat(resp.headers), await resp.read(), exc_info=True)
+            raise e
+        else:
+            data = await resp.json()
+            if 'access_token' in data:
+                access_token = data['access_token']
 #-#                info('data: %s', pcformat(data))
 #-#                info('access token: %s', access_token)
-#-#            else:
-#-#                error('%s: %s', data['error'], data['error_description'])
-#-#        finally:
-#-#            if resp:
-#-#                resp.release()
-#-#
+            else:
+                error('%s: %s', data['error'], data['error_description'])
+        finally:
+            if resp:
+                resp.release()
+
+        assert access_token
         if access_token:
             resp = None
             try:

@@ -197,8 +197,8 @@ class PromNotify(object):
 
             if action == 'NOTIFY':
                 action, ret_data = '', word
-                if getuser() == 'pi':
-                    return action, ret_data  # for pi
+#-#                if getuser() == 'pi':
+#-#                    return action, ret_data  # for pi
                 # open browser
                 cmd = 'notify-send  "%s" "%s at %s"' % (from_title, title.replace('$', '\$').replace('&', '＆'), sbr_time.strftime('%H:%M:%S'))
 #-#                    debug('EXEC_CMD< %s ...\n%s %s', cmd, item_url, real_url)
@@ -214,8 +214,8 @@ class PromNotify(object):
             elif action == 'NORMAL':
                 if self.price_check(title, price, extra_data):
                     action, ret_data = '', ''
-                    if getuser() == 'pi':
-                        return action, ret_data  # for pi
+#-#                    if getuser() == 'pi':
+#-#                        return action, ret_data  # for pi
                     self.ps.playTextAsync(title, extra_data)
             elif action == 'SKIP':
                 ret_data = word

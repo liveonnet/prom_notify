@@ -120,13 +120,26 @@ class PlaySound(object):
             proc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
             try:
                 outs, errs = proc.communicate(audio_data, timeout=30)
-                proc.kill()
+                proc.kill()  # TODO useless ?
                 outs, errs = proc.communicate()
                 proc.terminate()
             except subprocess.TimeoutExpired:
                 warn('kill timeout proc %s', proc)
                 proc.kill()
                 outs, errs = proc.communicate()
+        elif tp == 'play':
+            cmd = 'play -t mp3 - -q gain -b -l 10'
+            cmd = shlex.split(cmd)
+#-#            debug('EXEC_CMD< %s ...', cmd)
+            porc = None
+            try:
+                proc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
+                outs, errs = proc.communicate(audio_data, timeout=30)
+            except subprocess.TimeoutExpired:
+                if proc:
+                    warn('kill timeout proc %s', proc)
+                    proc.kill()
+                    outs, errs = proc.communicate()
         elif tp == 'mplayer':
             cmd = 'mplayer -demuxer rawaudio -rawaudio channels=1:rate=16000:bitrate=16  -novideo -really-quiet -noconsolecontrols -nolirc -'
             cmd = shlex.split(cmd)
@@ -209,9 +222,11 @@ class PlaySound(object):
                     break
                 info('(%s left) [%s] %s (%s) %s --> %s', q_audio.qsize(), extra_data['from_title'], text, '/'.join(extra_data['cut_word']), extra_data['item_url'], extra_data['real_url'])
                 try:
-                    subprocess.Popen('cmus-remote -u', stderr=subprocess.DEVNULL, shell=True).wait()
+                    if 'playing' in subprocess.run('cmus-remote -Q | grep status', check=True, universal_newlines=True, stdout=subprocess.PIPE, shell=True).stdout:
+                        subprocess.Popen('cmus-remote -u', stderr=subprocess.DEVNULL, shell=True).wait()
                     self.playAudio(audio_data, tp)
-                    subprocess.Popen('cmus-remote -u', stderr=subprocess.DEVNULL, shell=True).wait()
+                    if q_audio.qsize() == 0 and 'paused' in subprocess.run('cmus-remote -Q | grep status', check=True, universal_newlines=True, stdout=subprocess.PIPE, shell=True).stdout:
+                        subprocess.Popen('cmus-remote -u', stderr=subprocess.DEVNULL, shell=True).wait()
                 except KeyboardInterrupt:
                     warn('got KeyboardInterrupt when playing, exit!')
                     break
@@ -250,7 +265,8 @@ def text2AudioAsync(target, conf_path, text, tp, extra_data, q_audio):
         audio_data = loop.run_until_complete(Text2SpeechBaidu(conf_path).short_t2s(from_text=new_text.encode('utf8')))
 #-#        audio_data = future.result()
 #-#        loop.close()
-        tp = 'mplayer_mp3'
+#-#        tp = 'mplayer_mp3'
+        tp = 'play'
     else:
         audio_data = Text2SpeechXunFei(conf_path).short_t2s(from_text=new_text.encode('utf8'))
         tp = 'pyaudio'
