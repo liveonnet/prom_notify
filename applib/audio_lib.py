@@ -203,6 +203,7 @@ class PlaySound(object):
         """
         setproctitle('audio_play')
         debug('audio play process started.')
+        we_pause = False  # 记录是否是我们在播放音频前pause cmus的播放的，如果不是则我们也不会在播放音频后play它
         while 1:
             try:
                 text, audio_data, tp, extra_data = q_audio.get()
@@ -224,9 +225,11 @@ class PlaySound(object):
                 try:
                     if 'playing' in subprocess.run('cmus-remote -Q | grep status', universal_newlines=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, shell=True).stdout:
                         subprocess.Popen('cmus-remote -u', stderr=subprocess.DEVNULL, shell=True).wait()
+                        we_pause = True
                     self.playAudio(audio_data, tp)
-                    if q_audio.qsize() == 0 and 'paused' in subprocess.run('cmus-remote -Q | grep status', universal_newlines=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, shell=True).stdout:
+                    if we_pause and q_audio.qsize() == 0 and 'paused' in subprocess.run('cmus-remote -Q | grep status', universal_newlines=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, shell=True).stdout:
                         subprocess.Popen('cmus-remote -u', stderr=subprocess.DEVNULL, shell=True).wait()
+                        we_pause = False
                 except KeyboardInterrupt:
                     warn('got KeyboardInterrupt when playing, exit!')
                     break
