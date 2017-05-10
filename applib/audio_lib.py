@@ -131,7 +131,7 @@ class PlaySound(object):
             cmd = 'play -t mp3 - -q gain -b -l 10'
             cmd = shlex.split(cmd)
 #-#            debug('EXEC_CMD< %s ...', cmd)
-            porc = None
+            proc = None
             try:
                 proc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
                 outs, errs = proc.communicate(audio_data, timeout=30)
@@ -222,10 +222,10 @@ class PlaySound(object):
                     break
                 info('(%s left) [%s] %s (%s) %s --> %s', q_audio.qsize(), extra_data['from_title'], text, '/'.join(extra_data['cut_word']), extra_data['item_url'], extra_data['real_url'])
                 try:
-                    if 'playing' in subprocess.run('cmus-remote -Q | grep status', check=True, universal_newlines=True, stdout=subprocess.PIPE, shell=True).stdout:
+                    if 'playing' in subprocess.run('cmus-remote -Q | grep status', universal_newlines=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, shell=True).stdout:
                         subprocess.Popen('cmus-remote -u', stderr=subprocess.DEVNULL, shell=True).wait()
                     self.playAudio(audio_data, tp)
-                    if q_audio.qsize() == 0 and 'paused' in subprocess.run('cmus-remote -Q | grep status', check=True, universal_newlines=True, stdout=subprocess.PIPE, shell=True).stdout:
+                    if q_audio.qsize() == 0 and 'paused' in subprocess.run('cmus-remote -Q | grep status', universal_newlines=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, shell=True).stdout:
                         subprocess.Popen('cmus-remote -u', stderr=subprocess.DEVNULL, shell=True).wait()
                 except KeyboardInterrupt:
                     warn('got KeyboardInterrupt when playing, exit!')
