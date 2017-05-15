@@ -264,7 +264,12 @@ class PromNotify(object):
 #-#                debug('url %s %s %s', url, pcformat(args), pcformat(kwargs))
                 resp = await self.sess.get(url, *args, **kwargs)
                 if fmt == 'str':
-                    data = await resp.text(encoding=str_encoding)
+                    try:
+                        data = await resp.text(encoding=str_encoding)
+                    except UnicodeDecodeError:
+                        txt = await resp.read()
+                        data = txt.decode(str_encoding, 'ignore')
+#-#                        warn('ignore decode error from %s', url)
                 elif fmt == 'json':
                     data = await resp.json(encoding=json_encoding, loads=json_loads)
 #-#                    if not data:
