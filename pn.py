@@ -307,7 +307,8 @@ class PromNotify(object):
         return resp, data, ok
 
     async def check_main_page_mmb(self):
-        r, text, ok = await self._getData('http://cu.manmanbuy.com/cx_0_0_wytj_Default_1.aspx', timeout=10, my_str_encoding='gbk')
+#-#        r, text, ok = await self._getData('http://cu.manmanbuy.com/cx_0_0_wytj_Default_1.aspx', timeout=10, my_str_encoding='gbk')
+        r, text, ok = await self._getData('http://zhekou.manmanbuy.com/', timeout=10, my_str_encoding='gbk')
         if not ok:
             return
 
