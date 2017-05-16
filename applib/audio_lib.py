@@ -264,12 +264,17 @@ def text2AudioAsync(target, conf_path, text, tp, extra_data, q_audio):
         debug('%s -> %s', text, new_text)
     # call tts
     if target == 'pi':
+        # http://stackoverflow.com/questions/29703620/asyncio-event-loop-per-python-process-aioprocessing-multiple-event-loops
+        # 不加如下两行则会导致主进程cpu占用100%
+        policy = asyncio.get_event_loop_policy()
+        policy.set_event_loop(policy.new_event_loop())
         loop = asyncio.get_event_loop()
 #-#        future = asyncio.Future()
 #-#        asyncio.ensure_future(Text2SpeechBaidu(conf_path).short_t2s(from_text=new_text.encode('utf8'), fut=future))
         audio_data = loop.run_until_complete(Text2SpeechBaidu(conf_path).short_t2s(from_text=new_text.encode('utf8')))
 #-#        audio_data = future.result()
-#-#        loop.close()
+        loop.stop()
+        loop.close()
 #-#        tp = 'mplayer_mp3'
         tp = 'play'
     else:

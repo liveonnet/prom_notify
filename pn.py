@@ -307,8 +307,8 @@ class PromNotify(object):
         return resp, data, ok
 
     async def check_main_page_mmb(self):
-#-#        r, text, ok = await self._getData('http://cu.manmanbuy.com/cx_0_0_wytj_Default_1.aspx', timeout=10, my_str_encoding='gbk')
-        r, text, ok = await self._getData('http://zhekou.manmanbuy.com/', timeout=10, my_str_encoding='gbk')
+        r, text, ok = await self._getData('http://cu.manmanbuy.com/cx_0_0_wytj_Default_1.aspx', timeout=10, my_str_encoding='gbk')
+#-#        r, text, ok = await self._getData('http://zhekou.manmanbuy.com/', timeout=10, my_str_encoding='gbk')
         if not ok:
             return
 
@@ -611,6 +611,8 @@ class PromNotify(object):
                 await asyncio.wait_for(event_exit.wait(), interval)
             except concurrent.futures._base.TimeoutError:
                 pass
+            else:
+                info('what\' wrong ?')
             if event_exit.is_set():
                 info('got exit flag, exit~')
                 break
@@ -629,6 +631,8 @@ class PromNotify(object):
                 await asyncio.wait_for(event_exit.wait(), interval)
             except concurrent.futures._base.TimeoutError:
                 pass
+            else:
+                info('what\' wrong ?')
             if event_exit.is_set():
                 info('got exit flag, exit~')
                 break
