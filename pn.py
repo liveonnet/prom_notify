@@ -384,7 +384,22 @@ class PromNotify(object):
                                 warn('too many redirect %s', real_url)
                                 break
                             if url.endswith('404.html'):
-                                warn('real url not found: %s (only found %s)', real_url, url)
+                                if r.history:  # 从历史url中找
+                                    if 'url=' in r.history[-1].url:  # found 'url=' or 'tourl='
+                                        up = urlparse(r.history[-1].url)
+                                        d_p = parse_qs(up.query)
+                                        for _k in ('url', 'tourl'):
+                                            try:
+                                                if _k in d_p:
+                                                    url = d_p[_k][0]
+                                                    break
+                                            except UnicodeDecodeError as e:
+                                                warn('d_p %s %s', pcformat(d_p))
+                                                raise e
+                                    else:
+                                        warn('real url not found: %s (history %s)', real_url, r.history[-1].url)
+                                else:
+                                    warn('real url not found: %s (only found %s)', real_url, url)
                                 break
                         else:
 #-#                            info('fetching url not ok %s', url)
