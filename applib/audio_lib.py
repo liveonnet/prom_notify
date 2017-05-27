@@ -208,10 +208,10 @@ class PlaySound(object):
             try:
                 text, audio_data, tp, extra_data = q_audio.get()
             except KeyboardInterrupt:
-                warn('got KeyboardInterrupt when playing, exit!')
+                warn('got KeyboardInterrupt when waiting for play, exit!')
                 break
             except Exception as e:
-                warn('got exception when playing, exit! %s', e)
+                warn('got exception when waiting for play, exit! %s', e)
                 break
             else:
                 if not audio_data:

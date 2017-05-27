@@ -286,19 +286,19 @@ class PromNotify(object):
                 ok = True
                 break
             except aiohttp.errors.ServerDisconnectedError:
-                info('%sServerDisconnectedError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
+                debug('%sServerDisconnectedError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
             except asyncio.TimeoutError:
-                info('%sTimeoutError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
+                debug('%sTimeoutError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
             except ClientConnectionError:
-                error('%sConnectionError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
+                debug('%sConnectionError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
             except ClientHttpProcessingError:
-                error('%sClientHttpProcessingError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs), exc_info=True)
+                debug('%sClientHttpProcessingError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs), exc_info=True)
             except ClientTimeoutError:
-                error('%sClientTimeoutError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
+                debug('%sClientTimeoutError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
             except ClientError:
-                error('%sClientError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs), exc_info=True)
+                debug('%sClientError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs), exc_info=True)
             except UnicodeDecodeError:
-                error('%sUnicodeDecodeError %s %s %s %s\n%s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs), pcformat(resp.headers), await resp.read(), exc_info=True)
+                debug('%sUnicodeDecodeError %s %s %s %s\n%s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs), pcformat(resp.headers), await resp.read(), exc_info=True)
 #-#                raise e
             finally:
                 if resp:
@@ -406,6 +406,7 @@ class PromNotify(object):
                             break
 
                     real_url = url
+                real_url = self.get_from_linkstars(real_url, source='mmb')
 
                 pic = pic.replace('////', '//')
                 action, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=tim, item_url=item_url, from_title='慢慢买', price=price)
@@ -418,6 +419,25 @@ class PromNotify(object):
                 self.his.createItem(source='mmb', sid=_id, show_title=show_title, item_url=item_url, real_url=real_url, pic_url=pic, get_time=tim)
         except:
             error('error ', exc_info=True)
+
+    def get_from_linkstars(self, url, source=''):
+        real_url = url
+        if url and url.startswith('https://www.linkstars.com/click.php?'):
+#-#            debug('%s%slinkstars url found %s', source, ' ' if source else '', url)
+            up = urlparse(url)
+            d_p = parse_qs(up.query)
+            for _k in ('to', ):
+                try:
+                    if _k in d_p:
+                        real_url = d_p[_k][0]
+                        break
+                except UnicodeDecodeError as e:
+                    warn('d_p %s %s', pcformat(d_p))
+                    raise e
+
+#-#        if real_url != url:
+#-#            debug('%s%sfound url from linkstars %s', source, ' ' if source else '', real_url)
+        return real_url
 
     async def check_main_page(self):
         nr_new = 0
@@ -487,6 +507,7 @@ class PromNotify(object):
                                         info('can\'t find real_url')
                             else:
                                 real_url = direct_url[:]
+                        real_url = self.get_from_linkstars(real_url, source='smzdm')
 
                         if pic[0] == '/':
                             pic = 'http://www.smzdm.com%s' % pic
@@ -512,12 +533,12 @@ class PromNotify(object):
         nr_new = 0
         max_time, min_time = None, None
         base_url = '''http://www.smzdm.com/youhui/json_more'''
-        debug('base_url = %s', base_url)
+#-#        debug('base_url = %s', base_url)
         real_url = None
         r, text, ok = await self._getData(base_url, params={'timesort': str(process_time)}, timeout=10, my_fmt='json')
         if ok:
             if r.status == 200:
-                debug('url %s', r.url)
+#-#                debug('url %s', r.url)
                 l_item = text
                 for x in l_item:
                     if event_exit.is_set():
@@ -546,7 +567,7 @@ class PromNotify(object):
                         if direct_url is not None:
                             real_url = None
                             if direct_url.find('/go.smzdm.com/') != -1:
-                                debug('getting real_url for %s ...', direct_url)
+#-#                                debug('getting real_url for %s ...', direct_url)
                                 rr, rr_text, ok = await self._getData(direct_url, timeout=5)
                                 if ok and rr.status == 200:
                                     s_js = re.search(r'eval\((.+?)\)\s+\</script\>', rr_text, re.DOTALL | re.IGNORECASE | re.MULTILINE | re.UNICODE).group(1)
@@ -555,8 +576,12 @@ class PromNotify(object):
                                     m = re.search(r'''%s='(?P<real_url>.+?)';''' % (s_key,), s_rs, re.DOTALL | re.IGNORECASE | re.MULTILINE | re.UNICODE)
                                     if m:
                                         real_url = m.group('real_url')
+#-#                                        debug('%s -> %s', direct_url, real_url)
                                     else:
                                         warn('can\'t find real_url')
+                            else:
+                                real_url = direct_url[:]
+                            real_url = self.get_from_linkstars(real_url, source='smzdm')
 
                         action, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=sbr_time, item_url=url, from_title='什么值得买', price=price)
                         if getuser() == 'pi' and action in ('NOTIFY', 'NORMAL', ''):

@@ -299,7 +299,13 @@ class Text2SpeechXunFei(object):
         '''载入libmsc.so, 并调用初始化函数
         '''
         if not self.dl:
-            self.dl = ctypes.CDLL('libmsc.so')
+            try:
+                self.dl = ctypes.CDLL('libmsc.so')
+            except OSError as e:
+                error('loading libmsc.so failed ! %s', e)
+
+        if not self.dl:
+            error('no libmsc.so found !')
 
         ret = self.dl.MSPLogin(self.conf['username'].encode('utf-8'), self.conf['password'].encode('utf-8'), ('appid = %s, work_dir = %s' % (self.conf['appid'], self.conf['workdir'])).encode('utf-8'))
         if ret != 0:

@@ -18,8 +18,9 @@ class QrCode(object):
         pic_data = kwargs.get('pic_data')
         if pic is None:
             assert pic_data
-        f_name = '/tmp/fxx_tmp_qrcode.png'
+        f_name = kwargs.get('f_name', '/tmp/fxx_tmp_qrcode.png')
         qr = qrcode.QRCode(version=None, error_correction=qrcode.constants.ERROR_CORRECT_H if pic else qrcode.constants.ERROR_CORRECT_L, box_size=10, border=4)
+        info('url %s', url)
         qr.add_data(url)
         qr.make(True)
         img = qr.make_image()
@@ -30,7 +31,7 @@ class QrCode(object):
         else:
             icon = Image.open(BytesIO(initial_bytes=pic_data))
 
-        if img.format != 'PNG':
+        if icon.format != 'PNG':
 #-#            convert_path = '/tmp/fxx_tmp_icon_convert_png.png'
             convert_tmp = BytesIO()
             icon.save(convert_tmp, format='PNG')
@@ -52,4 +53,9 @@ class QrCode(object):
         img.paste(icon, (w, h))
         img.save(f_name)
         return f_name
+
+
+if __name__ == '__main__':
+#-#    QrCode.getQrCode('http://www.baidu.com', pic='/home/kevin/13141_13141_Catch72E6(11-19-14-39-16).jpg')
+    QrCode.getQrCode('https://www.linkstars.com/click.php?feedback=73_0_184__ca_aa_yh_95_857&to=http%3A%2F%2Fitem.yhd.com%2Fitem%2F57853963', pic='/tmp/1.jpg', f_name='/tmp/test.png')
 

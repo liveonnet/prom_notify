@@ -38,8 +38,8 @@ class FilterTitle(object):
     def _addUserWord(self):
         """添加自定义词组
         """
-        l_dynamic_word = sorted(self.st_include | self.st_exclude, key=lambda x: len(x), reverse=True)
-        list(map(lambda w: jieba.add_word(w, freq=None, tag=None), l_dynamic_word))
+        l_dynamic_word = sorted(self.st_include | self.st_exclude, key=lambda x: len(x) if x else 0, reverse=True)
+        list(map(lambda w: jieba.add_word(w, freq=None, tag=None) if w else 0, l_dynamic_word))
         debug('added %s include/exclude word(s) to jieba', len(l_dynamic_word))
 
     def _initJieba(self):
