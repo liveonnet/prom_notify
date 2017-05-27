@@ -208,7 +208,7 @@ class PromNotify(object):
 #-#                pic_path = await self._getPic(pic)
 #-#                webbrowser.get('firefox').open_new_tab('file:///%s' % QrCode.getQrCode(real_url, pic=pic_path))
                 pic_data = await self._getPic(pic, raw_data=True)
-                if pic_data:
+                if pic_data and getuser() != 'pi':
                     webbrowser.get('firefox').open_new_tab('file:///%s' % QrCode.getQrCode(real_url, pic_data=pic_data))
                 self.ps.playTextAsync(title, extra_data)
             elif action == 'NORMAL':

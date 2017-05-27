@@ -19,7 +19,8 @@ class QrCode(object):
         if pic is None:
             assert pic_data
         f_name = kwargs.get('f_name', '/tmp/fxx_tmp_qrcode.png')
-        qr = qrcode.QRCode(version=None, error_correction=qrcode.constants.ERROR_CORRECT_H if pic else qrcode.constants.ERROR_CORRECT_L, box_size=10, border=4)
+#-#        qr = qrcode.QRCode(version=None, error_correction=qrcode.constants.ERROR_CORRECT_H if pic else qrcode.constants.ERROR_CORRECT_L, box_size=10, border=4)
+        qr = qrcode.QRCode(version=None, error_correction=qrcode.constants.ERROR_CORRECT_H, box_size=10, border=4)
         info('url %s', url)
         qr.add_data(url)
         qr.make(True)
@@ -57,5 +58,5 @@ class QrCode(object):
 
 if __name__ == '__main__':
 #-#    QrCode.getQrCode('http://www.baidu.com', pic='/home/kevin/13141_13141_Catch72E6(11-19-14-39-16).jpg')
-    QrCode.getQrCode('https://www.linkstars.com/click.php?feedback=73_0_184__ca_aa_yh_95_857&to=http%3A%2F%2Fitem.yhd.com%2Fitem%2F57853963', pic='/tmp/1.jpg', f_name='/tmp/test.png')
+        QrCode.getQrCode('http://item.jd.com/11294381247.html?cu=true&abt=3', pic='/tmp/1.jpg', f_name='/tmp/test.png')
 
