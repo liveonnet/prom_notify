@@ -128,7 +128,8 @@ class PlaySound(object):
                 proc.kill()
                 outs, errs = proc.communicate()
         elif tp == 'play':
-            cmd = 'play -t mp3 - -q gain -b -l 10'
+#-#            cmd = 'play -t mp3 - -q gain -b -l 10'
+            cmd = 'play -t mp3 - -q'
             cmd = shlex.split(cmd)
 #-#            debug('EXEC_CMD< %s ...', cmd)
             proc = None
@@ -226,11 +227,11 @@ class PlaySound(object):
                     if 'playing' in subprocess.run('cmus-remote -Q | grep status', universal_newlines=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, shell=True).stdout:
                         subprocess.Popen('cmus-remote -u', stderr=subprocess.DEVNULL, shell=True).wait()
                         we_pause = True
-                        sleep(0.5)  # wait for music really pause
+#-#                        sleep(0.5)  # wait for music really pause
                     self.playAudio(audio_data, tp)
                     if we_pause and q_audio.qsize() == 0 and 'paused' in subprocess.run('cmus-remote -Q | grep status', universal_newlines=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, shell=True).stdout:
                         subprocess.Popen('cmus-remote -u', stderr=subprocess.DEVNULL, shell=True).wait()
-                        subprocess.Popen('cmus-remote -k +1', stderr=subprocess.DEVNULL, shell=True).wait()
+#-#                        subprocess.Popen('cmus-remote -k +1', stderr=subprocess.DEVNULL, shell=True).wait()
                         we_pause = False
                 except KeyboardInterrupt:
                     warn('got KeyboardInterrupt when playing, exit!')
