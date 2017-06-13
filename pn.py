@@ -82,7 +82,7 @@ class PromNotify(object):
         else:
             self.sess = aiohttp.ClientSession(connector=conn, headers={'User-Agent': self.conf['user_agent']})
         # history data
-        self.his = HistoryDB(self.conf_file_path)
+#-#        self.his = HistoryDB(self.conf_file_path)
         # progress data
         self.progress = ProgressData(os.path.abspath(self.conf['progress_file']))
         # filter module
@@ -151,7 +151,7 @@ class PromNotify(object):
 
         return ret
 
-    async def _checkDup(self, from_title, title):
+    async def _checkDup(self, from_title, title, his):
         """跨网站查询最近是否有近似的标题内容
         """
         ret = False
@@ -165,7 +165,7 @@ class PromNotify(object):
 #-#                warn('found dup title in %s %s @%s (ratio %s)', _item.source, _item.show_title, _item.ctime, s.ratio())
 #-#                ret = True
 #-#                break
-        for _source, _show_title, _ctime in self.his.getRecentItems(d_tmp[from_title], seconds_ago):
+        for _source, _show_title, _ctime in his.getRecentItems(d_tmp[from_title], seconds_ago):
             s = SequenceMatcher(None, _show_title, title)
             if s.ratio() >= 0.8:
                 debug('found dup title in %s %s @%s (ratio %s)', _source, _show_title, _ctime, s.ratio())
@@ -178,8 +178,8 @@ class PromNotify(object):
         """做根据价格、标题关键字过滤，决定是否做出语音提示
         """
         action, ret_data = 'SKIP', 'IGNORE'
-        slience, title, real_url, pic, sbr_time, item_url, from_title, price = \
-            list(map(lambda x, k=kwargs: k.get(x, ''), ('slience', 'title', 'real_url', 'pic', 'sbr_time', 'item_url', 'from_title', 'price')))
+        slience, title, real_url, pic, sbr_time, item_url, from_title, price, his = \
+            list(map(lambda x, k=kwargs: k.get(x, ''), ('slience', 'title', 'real_url', 'pic', 'sbr_time', 'item_url', 'from_title', 'price', 'db_his')))
 
         if not slience:
             action, word, extra_data = self.filter.matchFilter(**kwargs)
@@ -191,7 +191,7 @@ class PromNotify(object):
             extra_data['item_url'] = item_url
             extra_data['real_url'] = real_url
 
-            if action != 'SKIP' and await self._checkDup(from_title, title):
+            if action != 'SKIP' and await self._checkDup(from_title, title, his):
                 action, ret_data = '', ''
                 return action, ret_data
 
@@ -309,6 +309,7 @@ class PromNotify(object):
         return resp, data, ok
 
     async def check_main_page_mmb(self):
+        his = HistoryDB(self.conf_file_path)
         r, text, ok = await self._getData('http://cu.manmanbuy.com/cx_0_0_wytj_Default_1.aspx', timeout=10, my_str_encoding='gbk')
 #-#        r, text, ok = await self._getData('http://zhekou.manmanbuy.com/', timeout=10, my_str_encoding='gbk')
         if not ok:
@@ -333,7 +334,7 @@ class PromNotify(object):
                     _id = _id.strip()
 
 #-#                if Item.select().where((Item.source == 'mmb') & (Item.sid == _id)).exists():
-                if self.his.existsItem('mmb', _id):
+                if his.existsItem('mmb', _id):
 #-#                    info('SKIP EXISTING item mmb %s', _id)
 #-#                    continue
                     break
@@ -411,16 +412,17 @@ class PromNotify(object):
                 real_url = self.get_from_linkstars(real_url, source='mmb')
 
                 pic = pic.replace('////', '//')
-                action, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=tim, item_url=item_url, from_title='慢慢买', price=price)
+                action, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=tim, item_url=item_url, from_title='慢慢买', price=price, db_his=his)
                 if getuser() == 'pi' and action in ('NOTIFY', 'NORMAL', ''):
                     info('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', tim, show_title, item_url, real_url)
                 else:
                     pass
 #-#                    debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', tim, show_title, item_url, real_url)
 #-#                Item.create(source='mmb', sid=_id, show_title=show_title, item_url=item_url, real_url=real_url, pic_url=pic, get_time=tim)
-                self.his.createItem(source='mmb', sid=_id, show_title=show_title, item_url=item_url, real_url=real_url, pic_url=pic, get_time=tim)
+                his.createItem(source='mmb', sid=_id, show_title=show_title, item_url=item_url, real_url=real_url, pic_url=pic, get_time=tim)
         except:
             error('error ', exc_info=True)
+            his.clean()
 
     def get_from_linkstars(self, url, source=''):
         real_url = url
@@ -444,6 +446,7 @@ class PromNotify(object):
     async def check_main_page(self):
         nr_new = 0
         max_time, min_time = time.time(), time.time()
+        his = HistoryDB(self.conf_file_path)
 
         base_url = '''http://www.smzdm.com/youhui/'''
     #-#    debug('base_url = %s', base_url)
@@ -487,7 +490,7 @@ class PromNotify(object):
                     if max_time is None or timesort > max_time:
                         max_time = timesort
 #-#                    if not Item.select().where((Item.source == 'smzdm') & (Item.sid == _id)).exists():
-                    if not self.his.existsItem('smzdm', _id):
+                    if not his.existsItem('smzdm', _id):
                         nr_new += 1
                         # get real url
                         real_url = None
@@ -514,7 +517,7 @@ class PromNotify(object):
                         if pic[0] == '/':
                             pic = 'http://www.smzdm.com%s' % pic
 
-                        action, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=sbr_time, item_url=url, from_title='什么值得买', price=title_price)
+                        action, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=sbr_time, item_url=url, from_title='什么值得买', price=title_price, db_his=his)
 
                         if getuser() == 'pi' and action in ('NOTIFY', 'NORMAL', ''):
                             info('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
@@ -522,13 +525,14 @@ class PromNotify(object):
                             pass
 #-#                            debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
 #-#                        Item.create(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
-                        self.his.createItem(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
+                        his.createItem(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
                     else:
                         break
 #-#                        info('SKIP EXISTING item smzdm %s', _id)
             else:
                 info('return code = %d !!!', r.status)
 
+        his.clean()
         return nr_new, max_time, min_time
 
     async def check_main_page_getmore(self, process_time):
@@ -537,6 +541,7 @@ class PromNotify(object):
         base_url = '''http://www.smzdm.com/youhui/json_more'''
 #-#        debug('base_url = %s', base_url)
         real_url = None
+        his = HistoryDB(self.conf_file_path)
         r, text, ok = await self._getData(base_url, params={'timesort': str(process_time)}, timeout=10, my_fmt='json')
         if ok:
             if r.status == 200:
@@ -562,7 +567,7 @@ class PromNotify(object):
                     if max_time is None or max_time < timesort:
                         max_time = timesort
 #-#                    if not Item.select().where((Item.source == 'smzdm') & (Item.sid == _id)).exists():
-                    if not self.his.existsItem('smzdm', _id):
+                    if not his.existsItem('smzdm', _id):
                         nr_new += 1
                         # get real url
                         real_url = None
@@ -585,7 +590,7 @@ class PromNotify(object):
                                 real_url = direct_url[:]
                             real_url = self.get_from_linkstars(real_url, source='smzdm')
 
-                        action, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=sbr_time, item_url=url, from_title='什么值得买', price=price)
+                        action, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=sbr_time, item_url=url, from_title='什么值得买', price=price, db_his=his)
                         if getuser() == 'pi' and action in ('NOTIFY', 'NORMAL', ''):
                             info('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
                         else:
@@ -595,13 +600,14 @@ class PromNotify(object):
 #-#                            (info if not action else debug)('have more url:\n%s', '\n'.join('%s %s %s' % (_url['name'], _url['buy_btn_domain'], _url['link']) for _url in x['article_link_list']))
 
 #-#                        Item.create(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
-                        self.his.createItem(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
+                        his.createItem(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
                     else:
                         break
 #-#                        info('SKIP EXISTING item smzdm %s', _id)
             else:
                 info('return code = %d !!!', r.status)
 
+        his.clean()
         return nr_new, max_time, min_time
 
     def clean(self):
@@ -612,8 +618,8 @@ class PromNotify(object):
             self.filter.clean()
         if self.ps:
             self.ps.clean()
-        if self.his:
-            self.his.clean()
+#-#        if self.his:
+#-#            self.his.clean()
 
     async def do_work_smzdm(self):
         global event_exit

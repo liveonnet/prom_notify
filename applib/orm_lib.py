@@ -2,7 +2,7 @@ import sys
 import os
 from datetime import datetime
 from datetime import timedelta
-from sqlalchemy.orm import scoped_session
+#-#from sqlalchemy.orm import scoped_session
 from sqlalchemy import create_engine
 from sqlalchemy import and_
 from sqlalchemy.orm import sessionmaker
@@ -79,11 +79,11 @@ class HistoryDB(object):
         self.conf_path = os.path.abspath(conf_path)
         self.conf = getConf(self.conf_path, root_key='orm')
         self.sess_factory = SessionMaker.getSessMaker(self.conf['conn_str'], self.conf['echo'])
-        self.sess_factory = SessionMaker.getSessMaker(self.conf['conn_str'], self.conf['echo'])
 
     def getSess(self):
 #-#        return self.sess_factory()
-        return scoped_session(self.sess_factory)
+#-#        return scoped_session(self.sess_factory)
+        return self.sess_factory()
 
     def getRecentItems(self, source, seconds_ago, sess=None):
         if not sess:
@@ -106,10 +106,13 @@ class HistoryDB(object):
             map(lambda x, d=kwargs: d.get(x, ''), ('source', 'sid', 'show_title', 'item_url', 'real_url', 'pic_url', 'get_time', 'sess'))
         if not sess:
             sess = self.getSess()
-        item = Item(source=source, sid=sid, show_title=show_title, item_url=item_url, real_url=real_url, pic_url=pic_url, get_time=get_time)
-        sess.add(item)
-        sess.commit()
-        sess.close()
+        try:
+            item = Item(source=source, sid=sid, show_title=show_title, item_url=item_url, real_url=real_url, pic_url=pic_url, get_time=get_time)
+            sess.add(item)
+            sess.commit()
+            sess.close()
+        except:
+            error('create item error', exc_info=True)
 
     def clean(self):
         info('closed.')
