@@ -27,3 +27,5 @@ class Item(models.Model):
     class Meta:
         managed = False
         db_table = 'item'
+        verbose_name = '优惠信息'
+        verbose_name_plural = '优惠信息'
