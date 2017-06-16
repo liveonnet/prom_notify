@@ -138,7 +138,13 @@ class PromNotify(object):
             else:
                 if picr.status == 200:
                     if raw_data:
-                        ret = await picr.read()
+                        try:
+                            ret = await picr.read()
+                        except asyncio.TimeoutError:
+                            error('Timeout pic read error %s', pic)
+                            await asyncio.sleep(1)
+                            nr_try -= 1
+                            continue
                     else:
                         ret = '/tmp/fxx_tmp_icon.jpg'  # 可能被其他协程覆盖，尽量不用这种模式
                         open(ret, 'wb').write(await picr.read())
@@ -441,7 +447,7 @@ class PromNotify(object):
 
 #-#        if real_url != url:
 #-#            debug('%s%sfound url from linkstars %s', source, ' ' if source else '', real_url)
-        return real_url
+        return real_url or ''
 
     async def check_main_page(self):
         nr_new = 0

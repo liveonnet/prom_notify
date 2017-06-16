@@ -60,17 +60,17 @@ class SessionMaker():
             # TODO 加锁
             engine = SessionMaker._engine.get(conn_str)
             if not engine:
-#-#                info('create engine for %s echo %s', conn_str, echo)
+                info('create engine for %s echo %s', conn_str, echo)
                 engine = create_engine(conn_str, echo=echo)
                 SessionMaker._engine[conn_str] = engine
             else:
                 info('using cached engine for %s', conn_str)
 
-#-#            info('create sessionmaker for %s', conn_str)
+            info('create sessionmaker for %s', conn_str)
             sf = sessionmaker(bind=engine)
             SessionMaker._sess_factory[conn_str] = sf
-        else:
-            info('using cached sessionmaker for %s', conn_str)
+#-#        else:
+#-#            info('using cached sessionmaker for %s', conn_str)
         return sf
 
 
@@ -115,7 +115,8 @@ class HistoryDB(object):
             error('create item error', exc_info=True)
 
     def clean(self):
-        info('closed.')
+        pass
+#-#        info('closed.')
 
 
 if __name__ == '__main__':
