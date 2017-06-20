@@ -1,6 +1,6 @@
-#-#from datetime import datetime
 from django.utils import timezone
-from datetime import timedelta
+from django.utils.timezone import timedelta
+from django.utils.datetime_safe import datetime
 from django.contrib import admin
 from django.http import HttpResponse
 from django.core import serializers
@@ -17,10 +17,14 @@ class CTimeListFilter(admin.SimpleListFilter):
 
     def lookups(self, request, model_admin):
         return (('5m', '过去5分钟'),
+                ('10m', '过去10分钟'),
                 ('30m', '过去30分钟'),
                 ('1h', '过去1小时'),
+                ('4h', '过去4小时'),
                 ('6h', '过去6小时'),
                 ('12h', '过去12小时'),
+                ('today', '今天'),
+                ('24h', '过去24小时'),
                 )
 
     def queryset(self, request, queryset):
@@ -29,14 +33,22 @@ class CTimeListFilter(admin.SimpleListFilter):
         print('now ', now)
         if self.value() == '5m':
             param = timedelta(minutes=-5)
+        elif self.value() == '10m':
+            param = timedelta(minutes=-10)
         elif self.value() == '30m':
             param = timedelta(minutes=-30)
         elif self.value() == '1h':
             param = timedelta(hours=-1)
+        elif self.value() == '4h':
+            param = timedelta(hours=-4)
         elif self.value() == '6h':
             param = timedelta(hours=-6)
         elif self.value() == '12h':
             param = timedelta(hours=-12)
+        elif self.value() == 'today':
+            param = datetime(year=now.year, month=now.month, day=now.day) - now
+        elif self.value() == '24h':
+            param = timedelta(hours=-24)
 
         print('param ', param)
         if param:
@@ -47,7 +59,7 @@ class CTimeListFilter(admin.SimpleListFilter):
 
 # Register your models here.
 class ItemAdmin(admin.ModelAdmin):
-    list_filter = ('ctime', 'source', CTimeListFilter)
+    list_filter = ('source', CTimeListFilter)
     list_display = ('id', 'show_title', 'item_url_click', 'real_url_click', 'ctime_show')
     list_display_links = ('show_title', )
     list_select_related = True
