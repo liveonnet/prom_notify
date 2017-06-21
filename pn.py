@@ -316,8 +316,10 @@ class PromNotify(object):
 
     async def check_main_page_mmb(self):
         his = HistoryDB(self.conf_file_path)
-        r, text, ok = await self._getData('http://cu.manmanbuy.com/cx_0_0_wytj_Default_1.aspx', timeout=10, my_str_encoding='gbk')
+#-#        r, text, ok = await self._getData('http://cu.manmanbuy.com/cx_0_0_wytj_Default_1.aspx', timeout=10, my_str_encoding='gbk')
 #-#        r, text, ok = await self._getData('http://zhekou.manmanbuy.com/', timeout=10, my_str_encoding='gbk')
+        r, text, ok = await self._getData('http://zhekou.manmanbuy.com/DefaultSharelist.aspx', timeout=10, my_str_encoding='gbk')
+
         if not ok:
             return
 
@@ -326,7 +328,7 @@ class PromNotify(object):
             return
         pr = etree.HTMLParser()
         tree = etree.fromstring(text, pr)
-        l_item = tree.xpath('//ul[@id="lilist"]/li')
+        l_item = tree.xpath('//ul[@id="lilist_datu"]/li')
     #-#    info('got %s item(s)', len(l_item))
 
         try:
