@@ -60,7 +60,7 @@ class CTimeListFilter(admin.SimpleListFilter):
 # Register your models here.
 class ItemAdmin(admin.ModelAdmin):
     list_filter = ('source', CTimeListFilter)
-    list_display = ('id', 'show_title', 'item_url_click', 'real_url_click', 'ctime_show')
+    list_display = ('id', 'pic_url_show', 'show_title', 'item_url_click', 'real_url_click', 'ctime_show')
     list_display_links = ('show_title', )
     list_select_related = True
     list_per_page = 20
@@ -89,6 +89,10 @@ class ItemAdmin(admin.ModelAdmin):
 #-#        # prefix: django/contrib/admin/static/admin/ + {STATIC_URL}
 #-#        css = {'all': ('admin/css/my_styles.css', ),  # /home/kevin/data_bk/work/p3_project/lib/python3.5/site-packages/django/contrib/admin/static/
 #-#               }
+
+    def pic_url_show(self, obj):
+        return format_html('<a target="_blank" href="{real_url}"><img src="{pic_url}" width="80" height="80"></img></a>', pic_url=obj.pic_url, real_url=obj.real_url)
+    pic_url_show.short_description = '配图'
 
     def item_url_click(self, obj):
         return format_html('<a href="{url}">{url}</a>', url=obj.item_url)
