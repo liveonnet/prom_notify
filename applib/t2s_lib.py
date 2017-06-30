@@ -386,6 +386,7 @@ class Text2SpeechXunFei(object):
             else:
                 print('=', end='', file=sys.stderr, flush=True)
                 time.sleep(0.8)
+        print('', file=sys.stderr, flush=True)
         # sess end
         rslt = self.dl.QTTSSessionEnd(sess_id, b"success")
         if rslt != 0:
