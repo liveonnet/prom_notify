@@ -107,7 +107,7 @@ class HistoryDB(object):
         if not sess:
             sess = self.getSess()
         try:
-            item = Item(source=source, sid=sid, show_title=show_title, item_url=item_url, real_url=real_url, pic_url=pic_url, get_time=get_time)
+            item = Item(source=source, sid=sid, show_title=show_title, item_url=item_url, real_url=real_url[:1024], pic_url=pic_url, get_time=get_time)
             sess.add(item)
             sess.commit()
             sess.close()
