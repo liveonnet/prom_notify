@@ -97,7 +97,11 @@ class HistoryDB(object):
     def existsItem(self, source, sid, sess=None):
         if not sess:
             sess = self.getSess()
-        x = sess.query(Item.ctime).filter(and_(Item.source == source, Item.sid == sid)).first()
+        try:
+            x = sess.query(Item.ctime).filter(and_(Item.source == source, Item.sid == sid)).first()
+        except:
+            error('got error', exc_info=True)
+            x = None
         sess.close()
         return True if x else False
 

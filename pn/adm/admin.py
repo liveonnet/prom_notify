@@ -33,6 +33,8 @@ class CTimeListFilter(admin.SimpleListFilter):
                 ('12h', '过去12小时'),
                 ('today', '今天'),
                 ('24h', '过去24小时'),
+                ('48h', '过去48小时'),
+                ('72h', '过去72小时'),
                 )
 
     def queryset(self, request, queryset):
@@ -57,6 +59,10 @@ class CTimeListFilter(admin.SimpleListFilter):
             param = datetime(year=now.year, month=now.month, day=now.day) - now
         elif self.value() == '24h':
             param = timedelta(hours=-24)
+        elif self.value() == '48h':
+            param = timedelta(hours=-48)
+        elif self.value() == '72h':
+            param = timedelta(hours=-72)
 
         print('param ', param)
         if param:
