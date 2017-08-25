@@ -318,7 +318,7 @@ class PromNotify(object):
         his = HistoryDB(self.conf_file_path)
 #-#        r, text, ok = await self._getData('http://cu.manmanbuy.com/cx_0_0_wytj_Default_1.aspx', timeout=10, my_str_encoding='gbk')
 #-#        r, text, ok = await self._getData('http://zhekou.manmanbuy.com/', timeout=10, my_str_encoding='gbk')
-        r, text, ok = await self._getData('http://zhekou.manmanbuy.com/DefaultSharelist.aspx', timeout=10, my_str_encoding='gbk')
+        r, text, ok = await self._getData('http://zhekou.manmanbuy.com/DefaultSharelist.aspx?d=k', timeout=10, my_str_encoding='gbk')
 
         if not ok:
             return
