@@ -91,3 +91,13 @@ class FilterTitle(object):
 
     def clean(self):
         info('filter closed.')
+
+
+if __name__ == '__main__':
+    from applib.tools_lib import pcformat
+    t = FilterTitle()
+#-#    x = t.cutWordJieba('傅雷译·约翰·克利斯朵夫')
+#-#    x = t.cutWordJieba('连脚裤袜')
+    x = t.cutWordJieba('短毛绒汽车坐垫全包')
+    info(pcformat(x))
+

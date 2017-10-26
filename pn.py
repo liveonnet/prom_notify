@@ -17,6 +17,7 @@ from difflib import SequenceMatcher
 from aiohttp.errors import ClientTimeoutError
 from aiohttp.errors import ClientConnectionError
 #-#from aiohttp.errors import ClientDisconnectedError
+from aiohttp.errors import ContentEncodingError
 from aiohttp.errors import ClientError
 from aiohttp.errors import HttpBadRequest
 from aiohttp.errors import ClientHttpProcessingError
@@ -89,6 +90,7 @@ class PromNotify(object):
         self.filter = FilterTitle(self.conf_file_path, event_notify)
 
         self.p_price = re.compile(r'\s*￥?([0-9\.]+)')
+        self.p_chinese = re.compile('[\u4e00-\u9fa5]+')
 
     async def init(self):
         if self.sess is None:
@@ -159,6 +161,8 @@ class PromNotify(object):
 
     async def _checkDup(self, from_title, title, his):
         """跨网站查询最近是否有近似的标题内容
+
+        如果有重复返回True, 否则返回False
         """
         ret = False
         seconds_ago = datetime.now() + timedelta(seconds=-180)
@@ -177,6 +181,19 @@ class PromNotify(object):
                 debug('found dup title in %s %s @%s (ratio %s)', _source, _show_title, _ctime, s.ratio())
                 ret = True
                 break
+
+        return ret
+
+    async def _checkChinese(self, from_title, title):
+        """判断标题中是否包含中文
+
+        如果包含则返回True，否则返回False
+        """
+        ret = False
+        if self.p_chinese.search(title):
+            ret = True
+        else:
+            debug('%s no chinese found in title: %s', from_title, title)
 
         return ret
 
@@ -276,6 +293,8 @@ class PromNotify(object):
                         txt = await resp.read()
                         data = txt.decode(str_encoding, 'ignore')
 #-#                        warn('ignore decode error from %s', url)
+                    except ContentEncodingError:
+                        warn('ignore content encoding error from %s', url)
                 elif fmt == 'json':
                     data = await resp.json(encoding=json_encoding, loads=json_loads)
 #-#                    if not data:
@@ -348,6 +367,8 @@ class PromNotify(object):
                     break
                 title = x.xpath('./div[@class="tit"]/a/text()')[0][:].strip()
                 price = x.xpath('./div[@class="price"]/text()')[0][:].strip()
+                if not await self._checkChinese('慢慢买', title):
+                    continue
                 show_title = ' '.join((title, price))
     #-#            pic = x.xpath('./div[@class="pic"]/a/img/@src')[0][:]
                 pic = x.xpath('./div[@class="pic"]/a/img/@original')[0][:]
@@ -379,8 +400,31 @@ class PromNotify(object):
                                         except UnicodeDecodeError as e:
                                             warn('d_p %s %s', pcformat(d_p))
                                             raise e
+                            elif r.status == 400:
+                                url = r.url
+                                if 'url=' in url:  # found 'url=' or 'tourl='
+                                    up = urlparse(url)
+                                    d_p = parse_qs(up.query)
+                                    for _k in ('url', 'tourl'):
+                                        try:
+                                            if _k in d_p:
+                                                url = d_p[_k][0]
+                                                break
+                                        except UnicodeDecodeError as e:
+                                            warn('d_p %s %s', pcformat(d_p))
+                                            raise e
+                                elif url.count('http') > 1:
+                                    for x in ('http://cu.manmanbuy.com/http', ):
+                                        if url.startswith(x):
+                                            url = raw_url[len(x) - 4:]
+                                            if url[0] == 's':  # https
+                                                url = url[1:]
+                                                info('got %s from ', url, r.url)
+                                else:
+                                    info('real url not found: code %s %s %s', r.status, raw_url, r.url)
                             else:
                                 x = 'http://cu.manmanbuy.com/http'
+                                y = '.manmanbuy.com/redirectUrl.aspx?'
                                 if x in raw_url:
                                     url = raw_url[len(x) - 4:]
                                     if url[0] == 's':  # https
@@ -388,6 +432,20 @@ class PromNotify(object):
 #-#                                    debug('url from bad url: %s -> %s', raw_url, url)
                                 elif r.url.startswith(('http://detail.tmall.com/', 'https://detail.tmall.com/')):
                                     url = r.url
+                                elif y in raw_url:
+                                    up = urlparse(raw_url)
+                                    d_p = parse_qs(up.query)
+                                    for _k in ('tourl', ):
+                                        try:
+                                            if _k in d_p:
+                                                url = d_p[_k][0]
+                                                info('found url from %s', d_p)
+                                                break
+                                        except UnicodeDecodeError as e:
+                                            warn('d_p %s %s', pcformat(d_p))
+                                            raise e
+                                    if url:
+                                        break
                                 else:
                                     info('real url not found: code %s %s %s', r.status, raw_url, r.url)
                                 break
@@ -476,6 +534,8 @@ class PromNotify(object):
                     except IndexError:
                         pass
                     title = premovetag.sub('', htmlentitydecode(etree.tostring(x.xpath('./div[@class="listTitle"]//h2[@class="itemName"]/a')[0]).decode('utf8')))
+                    if not await self._checkChinese('什么值得买', title):
+                        continue
                     title_price = x.xpath('./div[@class="listTitle"]//h2[@class="itemName"]/a/span[@class="red"]/text()')
                     if title_price:
                         title_price = title_price[0][:]
@@ -562,6 +622,8 @@ class PromNotify(object):
                     url = x['article_url']
                     direct_url = x['article_link']
                     price = x['article_price']
+                    if not await self._checkChinese('什么值得买', x['article_title']):
+                        continue
                     show_title = ' '.join((x['article_title'], price))
                     sbr_time = datetime.fromtimestamp(x['timesort'])
                     pic = x['article_pic']
