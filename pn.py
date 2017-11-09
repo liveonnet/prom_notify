@@ -4,10 +4,13 @@ from datetime import datetime
 from datetime import timedelta
 import time
 import os
+import random
+import redis
 from getpass import getuser
 from urllib.parse import urlparse
 from urllib.parse import urljoin
 from urllib.parse import parse_qs
+from urllib.parse import quote
 from lxml import etree
 import asyncio
 import aiohttp
@@ -30,6 +33,8 @@ import re
 import multiprocessing
 import execjs
 import webbrowser
+from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException
 from applib.conf_lib import getConf
 from applib.audio_lib import PlaySound
 from applib.qrcode_lib import QrCode
@@ -292,7 +297,7 @@ class PromNotify(object):
                     except UnicodeDecodeError:
                         txt = await resp.read()
                         data = txt.decode(str_encoding, 'ignore')
-#-#                        warn('ignore decode error from %s', url)
+                        warn('ignore decode error from %s', url)
                     except ContentEncodingError:
                         warn('ignore content encoding error from %s', url)
                 elif fmt == 'json':
@@ -327,6 +332,8 @@ class PromNotify(object):
             except UnicodeDecodeError:
                 debug('%sUnicodeDecodeError %s %s %s %s\n%s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs), pcformat(resp.headers), await resp.read(), exc_info=True)
 #-#                raise e
+            except json.decoder.JSONDecodeError:
+                debug('%sJSONDecodeError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs), exc_info=True)
             finally:
                 if resp:
                     resp.release()
@@ -680,6 +687,141 @@ class PromNotify(object):
         his.clean()
         return nr_new, max_time, min_time
 
+    async def check_jd_coupon(self):
+        nr_total, nr_ignore = 0, 0
+        num = None
+        rds, k_jd_coupon = redis.Redis(), 'jd_coupon'
+        for _ in range(1, 20):
+            cb, page, t = 'jQuery%s' % random.randint(1000000, 9999999), _, int(time.time() * 1000)
+            headers = {'Accept': 'text/javascript, application/javascript, application/ecmascript, application/x-ecmascript, */*; q=0.01',
+                       'Referer': 'https://a.jd.com/?cateId=0',
+                       'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:54.0) Gecko/20100101 Firefox/54.0',
+                       'X-Requested-With': 'XMLHttpRequest',
+                       }
+            url = 'https://a.jd.com/indexAjax/getCouponListByCatalogId.html?callback=%s&catalogId=0&page=%s&pageSize=9&_=%s' % (cb, page, t)
+            r, text, ok = await self._getData(url, timeout=10, my_str_encoding='utf8', headers=headers, my_fmt='str')
+            if not ok:
+                return
+            if r.status != 200:
+                info('got code %s for %s', r.status, r.url)
+                return
+#-#            info('url %s', url)
+
+            text = text[len(cb) + 1: -1]
+#-#            info('text %s %s', text[:5], text[-10:])
+            try:
+                j_data = json.loads(text)
+            except:
+                error('got except loading json data', exc_info=True)
+            else:
+                if j_data.get('resultCode') != '200' or j_data.get('success') is not True:
+                    error('error result')
+                else:
+                    if num is None:
+                        num = j_data['totalNum']
+                    if 'couponList' not in j_data:
+#-#                        info('no couponList\n%s', pcformat(j_data))
+                        break
+                    for _item in j_data['couponList']:
+                        nr_total += 1
+                        if _item['receiveFlag'] == 1:  # 已经领取
+                            continue
+                        if _item['rate'] == 100:  # 已经抢光
+                            continue
+                        if rds.hexists(k_jd_coupon, str(_item['roleId'])):
+                            nr_ignore += 1
+                            continue
+                        else:
+                            rds.hset(k_jd_coupon, str(_item['roleId']), _item['receiveUrl'])
+                        action, word, _ = self.filter.matchFilterCoupon(title=_item['limitStr'])
+                        if action == 'SKIP':
+                            debug('跳过 %s keyword: %s', _item['limitStr'], word)
+                            nr_ignore += 1
+                            continue
+
+                        # url补全
+                        if not _item['receiveUrl'].startswith('http'):
+                            if _item['receiveUrl'].startswith('//'):
+                                _item['receiveUrl'] = 'http:' + _item['receiveUrl']
+                            else:
+                                warn('bad url %s', _item['receiveUrl'])
+
+                        if action == 'NORMAL' or action == 'NOTIFY':
+#-#                            info('券 %s %s %s[%s-%s][%s, %s] %s', _item['successLabel'], _item['limitStr'] or'', 'Plus' if _item['ynPlus'] else '', _item['quota'], _item['denomination'], _item['startTime'], _item['endTime'], _item['receiveUrl'])
+                            extra_data = {'from_title': 'jd',
+                                          'cut_word': '',
+                                          'item_url': '',
+                                          'real_url': _item['receiveUrl']}
+                            title = '优惠券 %s %s %s%s%s%s' % (_item['successLabel'] or '', _item['limitStr'] or '', '满' if _item['quota'].isdigit() else '', _item['quota'], '减' if _item['denomination'].isdigit() else '', _item['denomination'])
+                            if _item['quota'] is not None and _item['quota'].isdigit() and int(_item['quota']) > 1500:
+                                info('%s 面额太高 %s，略过 [%s, %s]', title, _item['quota'], _item['startTime'], _item['endTime'])
+                                continue
+                            if _item['leftTime'] is not None and int(_item['leftTime']) > 0:
+#-#                                debug('%s 没到领取时间? %s [%s, %s]', title, _item['leftTime'], _item['startTime'], _item['endTime'])
+                                rds.hdel(k_jd_coupon, str(_item['roleId']))
+                                continue
+
+#-#                            info('FAKE 自动领取 %s', title)
+#-#                            continue
+
+                            self.ps.playTextAsync(title, extra_data)
+
+                            # 自动领取尝试
+                            if self.conf['geckodriver'] not in sys.path:
+                                sys.path.append(self.conf['geckodriver'])
+                            ff = webdriver.Firefox()
+                            try:
+                                # 登录京东
+                                if 'm.jd.com' in _item['receiveUrl']:
+                                    ff.get('https://plogin.m.jd.com/user/login.action?appid=100&kpkey=&returnurl=%s' % quote(_item['receiveUrl']))
+                                    ff.find_element_by_id('username').send_keys(self.conf['jd_user'])
+                                    ff.find_element_by_id('password').send_keys(self.conf['jd_password'])
+                                    ff.find_element_by_id('loginBtn').click()
+                                else:
+                                    ff.get('https://passport.jd.com/new/login.aspx?ReturnUrl=%s' % quote(_item['receiveUrl']))
+                                    ff.find_element_by_link_text('账户登录').click()
+                                    await asyncio.sleep(0.5)
+                                    ff.find_element_by_name('loginname').send_keys(self.conf['jd_user'])
+                                    ff.find_element_by_name('nloginpwd').send_keys(self.conf['jd_password'])
+                                    ff.find_element_by_id('loginsubmit').click()
+                                await asyncio.sleep(2)
+                            except:
+                                info('登录京东时出错', exc_info=True)
+                            else:
+                                try:
+                                    info('尝试自动领取 ...\n%s', pcformat(_item))
+                                    try:
+                                        element = ff.find_element_by_id('btnSubmit')
+                                    except NoSuchElementException:
+                                        try:
+                                            element = ff.find_element_by_link_text('立即领取')
+                                            element.click()
+                                        except:
+                                            pass
+                                        else:
+                                            try:
+                                                element = ff.find_element_by_xpath("//div[class='coupon-result']/p[class='coupon-text']")
+                                                info('领取结果 %s', element)
+                                            except:
+                                                error('获取领取结果时出错', exc_info=True)
+                                    else:
+                                        element.click()
+                                        try:
+                                            element = ff.find_element_by_xpath("//div[class='coupon-result']//p[class='coupon-text']")
+                                            info('领取结果 %s', element)
+                                        except:
+                                            error('获取领取结果时出错', exc_info=True)
+                                except:
+                                    error('自动领取出错', exc_info=True)
+                                else:
+                                    info('自动领取完成')
+                                    await asyncio.sleep(2)
+                            finally:
+                                ff.quit()
+#-#        info('nr_total %s(%s) nr_ignore %s', nr_total, num, nr_ignore)
+
+        return
+
     def clean(self):
         info('cleaning ...')
         if self.sess:
@@ -755,6 +897,25 @@ class PromNotify(object):
                 info('got exit flag, exit~')
                 break
 
+    async def do_work_coupon(self):
+        global event_exit
+        interval = self.conf['interval'] * 3  # 检查时间放长
+        while True:
+            await self.check_jd_coupon()
+            print('+', end='', file=sys.stderr, flush=True)
+            if event_exit.is_set():
+                info('got exit flag, exit~')
+                break
+            try:
+                await asyncio.wait_for(event_exit.wait(), interval)
+            except concurrent.futures._base.TimeoutError:
+                pass
+            else:
+                info('what\' wrong ?')
+            if event_exit.is_set():
+                info('got exit flag, exit~')
+                break
+
     async def do_work_async(self):
         self.loop.add_signal_handler(signal.SIGINT, lambda: asyncio.ensure_future(signal_handler(signal.SIGINT)))
 
@@ -762,7 +923,7 @@ class PromNotify(object):
         wm, notifier, wdd = startWatchConf(self.all_conf['filter']['filter_path'], event_notify)
 
         debug('doing ...')
-        fut = [self.do_work_smzdm(), self.do_work_mmb()]
+        fut = [self.do_work_smzdm(), self.do_work_mmb(), self.do_work_coupon()]
         try:
             await asyncio.gather(*fut)
         except concurrent.futures._base.CancelledError:
