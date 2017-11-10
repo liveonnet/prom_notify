@@ -10,7 +10,6 @@ from getpass import getuser
 from urllib.parse import urlparse
 from urllib.parse import urljoin
 from urllib.parse import parse_qs
-from urllib.parse import quote
 from lxml import etree
 import asyncio
 import aiohttp
@@ -33,13 +32,12 @@ import re
 import multiprocessing
 import execjs
 import webbrowser
-from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException
 from applib.conf_lib import getConf
 from applib.audio_lib import PlaySound
 from applib.qrcode_lib import QrCode
 from applib.watch_lib import startWatchConf, stopWatchConf
 from applib.filter_lib import FilterTitle
+from applib.coupon_lib import CouponManager
 #-#from applib.db_lib import HistoryDB
 #-#from applib.db_lib import Item
 from applib.orm_lib import HistoryDB
@@ -93,6 +91,8 @@ class PromNotify(object):
         self.progress = ProgressData(os.path.abspath(self.conf['progress_file']))
         # filter module
         self.filter = FilterTitle(self.conf_file_path, event_notify)
+        # coupon module
+        self.coupon = CouponManager(self.conf_file_path, event_notify)
 
         self.p_price = re.compile(r'\s*￥?([0-9\.]+)')
         self.p_chinese = re.compile('[\u4e00-\u9fa5]+')
@@ -209,44 +209,45 @@ class PromNotify(object):
         slience, title, real_url, pic, sbr_time, item_url, from_title, price, his = \
             list(map(lambda x, k=kwargs: k.get(x, ''), ('slience', 'title', 'real_url', 'pic', 'sbr_time', 'item_url', 'from_title', 'price', 'db_his')))
 
-        if not slience:
-            action, word, extra_data = self.filter.matchFilter(**kwargs)
+        action, word, extra_data = self.filter.matchFilter(**kwargs)
 
-            # enhance
-            if extra_data is None:
-                extra_data = {}
-            extra_data['from_title'] = from_title
-            extra_data['item_url'] = item_url
-            extra_data['real_url'] = real_url
+        # enhance
+        if extra_data is None:
+            extra_data = {}
+        extra_data['from_title'] = from_title
+        extra_data['item_url'] = item_url
+        extra_data['real_url'] = real_url
 
-            if action != 'SKIP' and await self._checkDup(from_title, title, his):
-                action, ret_data = '', ''
-                return action, ret_data
+        if action != 'SKIP' and await self._checkDup(from_title, title, his):
+            action, ret_data = '', ''
+            return action, ret_data
 
-            if action == 'NOTIFY':
-                action, ret_data = '', word
+        if action == 'NOTIFY':
+            action, ret_data = '', word
 #-#                if getuser() == 'pi':
 #-#                    return action, ret_data  # for pi
-                # open browser
-                cmd = 'notify-send  "%s" "%s at %s"' % (from_title, title.replace('$', '\$').replace('&', '＆'), sbr_time.strftime('%H:%M:%S'))
+            # open browser
+            cmd = 'notify-send  "%s" "%s at %s"' % (from_title, title.replace('$', '\$').replace('&', '＆'), sbr_time.strftime('%H:%M:%S'))
 #-#                    debug('EXEC_CMD< %s ...\n%s %s', cmd, item_url, real_url)
-                subprocess.Popen(cmd, shell=True).wait()
+            subprocess.Popen(cmd, shell=True).wait()
 #-#                    # 禁掉open url
-                info('ACCEPT open url for word %s in %s', word, title)
+            info('ACCEPT open url for word %s in %s', word, title)
 #-#                pic_path = await self._getPic(pic)
 #-#                webbrowser.get('firefox').open_new_tab('file:///%s' % QrCode.getQrCode(real_url, pic=pic_path))
-                pic_data = await self._getPic(pic, raw_data=True)
-                if pic_data and getuser() != 'pi':
-                    webbrowser.get('firefox').open_new_tab('file:///%s' % QrCode.getQrCode(real_url, pic_data=pic_data))
+            pic_data = await self._getPic(pic, raw_data=True)
+            if pic_data and getuser() != 'pi':
+                webbrowser.get('firefox').open_new_tab('file:///%s' % QrCode.getQrCode(real_url, pic_data=pic_data))
+            if not slience:
                 self.ps.playTextAsync(title, extra_data)
-            elif action == 'NORMAL':
-                if self.price_check(title, price, extra_data):
-                    action, ret_data = '', ''
+        elif action == 'NORMAL':
+            if self.price_check(title, price, extra_data):
+                action, ret_data = '', ''
 #-#                    if getuser() == 'pi':
 #-#                        return action, ret_data  # for pi
+                if not slience:
                     self.ps.playTextAsync(title, extra_data)
-            elif action == 'SKIP':
-                ret_data = word
+        elif action == 'SKIP':
+            ret_data = word
 
         return action, ret_data
 
@@ -691,8 +692,8 @@ class PromNotify(object):
         nr_total, nr_ignore = 0, 0
         num = None
         rds, k_jd_coupon = redis.Redis(), 'jd_coupon'
-        for _ in range(1, 20):
-            cb, page, t = 'jQuery%s' % random.randint(1000000, 9999999), _, int(time.time() * 1000)
+        for _idx in range(1, 20):
+            cb, page, t = 'jQuery%s' % random.randint(1000000, 9999999), _idx, int(time.time() * 1000)
             headers = {'Accept': 'text/javascript, application/javascript, application/ecmascript, application/x-ecmascript, */*; q=0.01',
                        'Referer': 'https://a.jd.com/?cateId=0',
                        'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:54.0) Gecko/20100101 Firefox/54.0',
@@ -764,60 +765,14 @@ class PromNotify(object):
 #-#                            info('FAKE 自动领取 %s', title)
 #-#                            continue
 
-                            self.ps.playTextAsync(title, extra_data)
+                            if not self.conf['slience']:
+                                self.ps.playTextAsync(title, extra_data)
+                            else:
+                                info(title)
 
                             # 自动领取尝试
-                            if self.conf['geckodriver'] not in sys.path:
-                                sys.path.append(self.conf['geckodriver'])
-                            ff = webdriver.Firefox()
-                            try:
-                                # 登录京东
-                                if 'm.jd.com' in _item['receiveUrl']:
-                                    ff.get('https://plogin.m.jd.com/user/login.action?appid=100&kpkey=&returnurl=%s' % quote(_item['receiveUrl']))
-                                    ff.find_element_by_id('username').send_keys(self.conf['jd_user'])
-                                    ff.find_element_by_id('password').send_keys(self.conf['jd_password'])
-                                    ff.find_element_by_id('loginBtn').click()
-                                else:
-                                    ff.get('https://passport.jd.com/new/login.aspx?ReturnUrl=%s' % quote(_item['receiveUrl']))
-                                    ff.find_element_by_link_text('账户登录').click()
-                                    await asyncio.sleep(0.5)
-                                    ff.find_element_by_name('loginname').send_keys(self.conf['jd_user'])
-                                    ff.find_element_by_name('nloginpwd').send_keys(self.conf['jd_password'])
-                                    ff.find_element_by_id('loginsubmit').click()
-                                await asyncio.sleep(2)
-                            except:
-                                info('登录京东时出错', exc_info=True)
-                            else:
-                                try:
-                                    info('尝试自动领取 ...\n%s', pcformat(_item))
-                                    try:
-                                        element = ff.find_element_by_id('btnSubmit')
-                                    except NoSuchElementException:
-                                        try:
-                                            element = ff.find_element_by_link_text('立即领取')
-                                            element.click()
-                                        except:
-                                            pass
-                                        else:
-                                            try:
-                                                element = ff.find_element_by_xpath("//div[class='coupon-result']/p[class='coupon-text']")
-                                                info('领取结果 %s', element)
-                                            except:
-                                                error('获取领取结果时出错', exc_info=True)
-                                    else:
-                                        element.click()
-                                        try:
-                                            element = ff.find_element_by_xpath("//div[class='coupon-result']//p[class='coupon-text']")
-                                            info('领取结果 %s', element)
-                                        except:
-                                            error('获取领取结果时出错', exc_info=True)
-                                except:
-                                    error('自动领取出错', exc_info=True)
-                                else:
-                                    info('自动领取完成')
-                                    await asyncio.sleep(2)
-                            finally:
-                                ff.quit()
+#-#                            info('page %s', _idx)
+                            await self.coupon.GetJdCoupon(title, _item)
 #-#        info('nr_total %s(%s) nr_ignore %s', nr_total, num, nr_ignore)
 
         return
@@ -899,7 +854,7 @@ class PromNotify(object):
 
     async def do_work_coupon(self):
         global event_exit
-        interval = self.conf['interval'] * 3  # 检查时间放长
+        interval = self.conf['interval'] * 2  # 检查时间放长
         while True:
             await self.check_jd_coupon()
             print('+', end='', file=sys.stderr, flush=True)
