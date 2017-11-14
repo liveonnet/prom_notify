@@ -761,6 +761,9 @@ class PromNotify(object):
 #-#                                debug('%s 没到领取时间? %s [%s, %s]', title, _item['leftTime'], _item['startTime'], _item['endTime'])
                                 rds.hdel(k_jd_coupon, str(_item['roleId']))
                                 continue
+                            # 对全品类　按面值过滤
+                            if '全品类' in _item['limitStr'] and _item['quota'].isdigit() and int(_item['quota']) >= 500:
+                                info('跳过 %s', title)
 
 #-#                            info('FAKE 自动领取 %s', title)
 #-#                            continue

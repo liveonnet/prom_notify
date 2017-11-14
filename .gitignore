@@ -7,6 +7,13 @@ __pycache__/
 *.so
 
 *.swp
+*.swn
+*.swo
+*.ipynb
+*.sqlite
+*.db
+*.gz
+*.tgz
 *~
 msc/
 config/db.gz
@@ -14,6 +21,7 @@ config/fx_process.cfg
 config/pn_conf.yaml
 
 # Distribution / packaging
+.idea/
 .Python
 env/
 build/
