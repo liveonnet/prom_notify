@@ -764,6 +764,7 @@ class PromNotify(object):
                             # 对全品类　按面值过滤
                             if '全品类' in _item['limitStr'] and _item['quota'].isdigit() and int(_item['quota']) >= 500:
                                 info('跳过 %s', title)
+                                continue
 
 #-#                            info('FAKE 自动领取 %s', title)
 #-#                            continue

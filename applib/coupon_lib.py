@@ -28,6 +28,8 @@ class CouponManager(object):
 
     async def GetJdCoupon(self, title, item):
         """自动领取京东普通优惠券
+
+        参考 http://selenium-python.readthedocs.io/index.html
         """
         rslt, err = '', ''
         if self.conf['geckodriver'] not in sys.path:

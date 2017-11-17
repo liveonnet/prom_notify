@@ -33,8 +33,8 @@ class FilterTitle(object):
         """
         conf = getConf(self.filter_path, force_reload=force_reload)
         self.st_include, self.st_exclude = set(conf['l_include']), set(conf['l_exclude'])
-        self.l_include_coupon = conf['l_include_coupon']
-        self.l_exclude_coupon = conf['l_exclude_coupon']
+        self.l_include_coupon = conf['l_include_coupon'] or []
+        self.l_exclude_coupon = conf['l_exclude_coupon'] or []
         debug('include/exclude item(s) loaded. %s/%s ', len(self.st_include), len(self.st_exclude))
         debug('include/exclude coupon item(s) loaded. %s/%s ', len(self.l_include_coupon), len(self.l_exclude_coupon))
         if force_reload:
