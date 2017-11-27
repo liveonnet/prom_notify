@@ -713,7 +713,8 @@ class PromNotify(object):
             try:
                 j_data = json.loads(text)
             except:
-                error('got except loading json data', exc_info=True)
+#-#                error('got except loading json data', exc_info=True)
+                error('got except loading json data')
             else:
                 if j_data.get('resultCode') != '200' or j_data.get('success') is not True:
                     error('error result')
@@ -736,7 +737,7 @@ class PromNotify(object):
                             rds.hset(k_jd_coupon, str(_item['roleId']), _item['receiveUrl'])
                         action, word, _ = self.filter.matchFilterCoupon(title=_item['limitStr'])
                         if action == 'SKIP':
-                            debug('跳过 %s keyword: %s', _item['limitStr'], word)
+                            debug('跳过 %s keyword: %s %s', _item['limitStr'], word, _item['receiveUrl'])
                             nr_ignore += 1
                             continue
 
@@ -860,13 +861,14 @@ class PromNotify(object):
         global event_exit
         interval = self.conf['interval'] * 2  # 检查时间放长
         while True:
+#-#            info('check %s ...', datetime.now())
             await self.check_jd_coupon()
             print('+', end='', file=sys.stderr, flush=True)
             if event_exit.is_set():
                 info('got exit flag, exit~')
                 break
             try:
-                await asyncio.wait_for(event_exit.wait(), interval)
+                await asyncio.wait_for(event_exit.wait(), min(interval, 60 - float(datetime.now().strftime('%S.%f'))))  # 检查时长=min(指定时长, 距下一整分钟秒数), 保证整分钟时检查
             except concurrent.futures._base.TimeoutError:
                 pass
             else:

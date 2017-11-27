@@ -44,7 +44,7 @@ class FilterTitle(object):
         """添加自定义词组
         """
         l_dynamic_word = sorted(self.st_include | self.st_exclude, key=lambda x: len(x) if x else 0, reverse=True)
-        list(map(lambda w: jieba.add_word(w, freq=None, tag=None) if w else 0, l_dynamic_word))
+        list(map(lambda w: jieba.add_word(w, freq=1500, tag=None) if w else 0, l_dynamic_word))
         debug('added %s include/exclude word(s) to jieba', len(l_dynamic_word))
 
     def _initJieba(self):
@@ -135,6 +135,7 @@ if __name__ == '__main__':
     t = FilterTitle()
 #-#    x = t.cutWordJieba('傅雷译·约翰·克利斯朵夫')
 #-#    x = t.cutWordJieba('连脚裤袜')
-    x = t.cutWordJieba('短毛绒汽车坐垫全包')
+#-#    x = t.cutWordJieba('短毛绒汽车坐垫全包')
+    x = t.cutWordJieba('世界经典文学名著 全译本')
     info(pcformat(x))
 
