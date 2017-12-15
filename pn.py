@@ -324,6 +324,8 @@ class PromNotify(object):
                 debug('%sConnectionError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
             except ConnectionResetError:
                 debug('%sConnectionResetError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
+            except aiohttp.errors.ClientResponseError:
+                debug('%sClientResponseError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
             except ClientHttpProcessingError:
                 debug('%sClientHttpProcessingError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs), exc_info=True)
             except ClientTimeoutError:
@@ -756,7 +758,7 @@ class PromNotify(object):
                                           'real_url': _item['receiveUrl']}
                             title = '优惠券 %s %s %s%s%s%s' % (_item['successLabel'] or '', _item['limitStr'] or '', '满' if _item['quota'].isdigit() else '', _item['quota'], '减' if _item['denomination'].isdigit() else '', _item['denomination'])
                             if _item['quota'] is not None and _item['quota'].isdigit() and int(_item['quota']) > 1500:
-                                info('%s 面额太高 %s，略过 [%s, %s]', title, _item['quota'], _item['startTime'], _item['endTime'])
+                                debug('%s 面额太高 %s，略过 [%s, %s]', title, _item['quota'], _item['startTime'], _item['endTime'])
                                 continue
                             if _item['leftTime'] is not None and int(_item['leftTime']) > 0:
 #-#                                debug('%s 没到领取时间? %s [%s, %s]', title, _item['leftTime'], _item['startTime'], _item['endTime'])
@@ -859,6 +861,8 @@ class PromNotify(object):
 
     async def do_work_coupon(self):
         global event_exit
+        if getuser() == 'pi':  # orangepi 上不检查优惠券信息
+            return
         interval = self.conf['interval'] * 2  # 检查时间放长
         while True:
 #-#            info('check %s ...', datetime.now())
