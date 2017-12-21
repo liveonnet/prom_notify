@@ -54,6 +54,8 @@ premovetag = re.compile('(<.*?>)', re.M | re.S)
 #-#exclude_first_comment_tag = re.compile(r'\A<!-- .*?-->(.*?)<!-- .*?-->\Z', re.M | re.S)
 #-#exclude_first_a_tag = re.compile(r'\A<a.*?>\s*(.*?)\s*</a>\Z', re.M | re.S)
 
+redis = None  # 为了去掉vim里面警告才需要此行
+
 
 async def signal_handler(sig):
     if sig == signal.SIGINT:
@@ -245,6 +247,9 @@ class PromNotify(object):
 #-#                        return action, ret_data  # for pi
                 if not slience:
                     self.ps.playTextAsync(title, extra_data)
+                    if pic_data and getuser() != 'pi':
+                        cmd = 'notify-send  "%s" "%s at %s"' % (from_title, title.replace('$', '\$').replace('&', '＆'), sbr_time.strftime('%H:%M:%S'))
+                        subprocess.Popen(cmd, shell=True).wait()
         elif action == 'SKIP':
             ret_data = word
 
@@ -434,21 +439,21 @@ class PromNotify(object):
                             else:
                                 x = 'http://cu.manmanbuy.com/http'
                                 y = '.manmanbuy.com/redirectUrl.aspx?'
-                                if x in raw_url:
-                                    url = raw_url[len(x) - 4:]
+                                if x in r.url:
+                                    url = r.url[len(x) - 4:]
                                     if url[0] == 's':  # https
                                         url = url[1:]
 #-#                                    debug('url from bad url: %s -> %s', raw_url, url)
                                 elif r.url.startswith(('http://detail.tmall.com/', 'https://detail.tmall.com/')):
                                     url = r.url
-                                elif y in raw_url:
-                                    up = urlparse(raw_url)
+                                elif y in r.url:
+                                    up = urlparse(r.url)
                                     d_p = parse_qs(up.query)
                                     for _k in ('tourl', ):
                                         try:
                                             if _k in d_p:
                                                 url = d_p[_k][0]
-                                                info('found url from %s', d_p)
+#-#                                                info('found url from %s', d_p)
                                                 break
                                         except UnicodeDecodeError as e:
                                             warn('d_p %s %s', pcformat(d_p))
@@ -548,7 +553,11 @@ class PromNotify(object):
                     title_price = x.xpath('./div[@class="listTitle"]//h2[@class="itemName"]/a/span[@class="red"]/text()')
                     if title_price:
                         title_price = title_price[0][:]
-                        title_noprice = premovetag.sub('', x.xpath('./div[@class="listTitle"]//h2[@class="itemName"]/a/text()')[0][:])
+                        try:
+                            title_noprice = premovetag.sub('', x.xpath('./div[@class="listTitle"]//h2[@class="itemName"]/a/text()')[0][:])
+                        except:
+                            error('got except, %s', etree.tostring(x), exc_info=True)
+                            continue
     #-#                    info('title_noprice: %s', title_noprice)
                         show_title = title_noprice + ' ' + title_price
                     else:
@@ -756,16 +765,22 @@ class PromNotify(object):
                                           'item_url': '',
                                           'real_url': _item['receiveUrl']}
                             title = '优惠券 %s %s %s%s%s%s' % (_item['successLabel'] or '', _item['limitStr'] or '', '满' if _item['quota'].isdigit() else '', _item['quota'], '减' if _item['denomination'].isdigit() else '', _item['denomination'])
-                            if _item['quota'] is not None and _item['quota'].isdigit() and int(_item['quota']) > 1500:
-                                debug('%s 面额太高 %s，略过 [%s, %s]', title, _item['quota'], _item['startTime'], _item['endTime'])
-                                continue
+                            if _item['quota'] is not None and _item['quota'].isdigit():
+                                if int(_item['quota']) > 1500:
+                                    debug('%s 面额太高 %s，略过 [%s, %s]', title, _item['quota'], _item['startTime'], _item['endTime'])
+                                    continue
+                                if _item['denomination'] is not None and _item['denomination'].isdigit():
+                                    if '全品类' not in _item['limitStr'] and int(_item['denomination']) / float(_item['quota']) < 0.15:
+                                        info('跳过低比例非全品类优惠券 %s', title)
+                                        continue
+
                             if _item['leftTime'] is not None and int(_item['leftTime']) > 0:
 #-#                                debug('%s 没到领取时间? %s [%s, %s]', title, _item['leftTime'], _item['startTime'], _item['endTime'])
                                 rds.hdel(k_jd_coupon, str(_item['roleId']))
                                 continue
                             # 对全品类　按面值过滤
                             if '全品类' in _item['limitStr'] and _item['quota'].isdigit() and int(_item['quota']) >= 500:
-                                info('跳过 %s', title)
+                                info('跳过大面额 %s', title)
                                 continue
 
 #-#                            info('FAKE 自动领取 %s', title)
@@ -863,6 +878,7 @@ class PromNotify(object):
         if getuser() == 'pi':  # orangepi 上不检查优惠券信息
             return
         import redis
+        redis
         interval = self.conf['interval'] * 2  # 检查时间放长
         while True:
 #-#            info('check %s ...', datetime.now())
