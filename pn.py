@@ -4,6 +4,7 @@ from datetime import datetime
 from datetime import timedelta
 import time
 import os
+import redis
 import random
 from getpass import getuser
 from urllib.parse import urlparse
@@ -53,8 +54,6 @@ premovetag = re.compile('(<.*?>)', re.M | re.S)
 #-#exclude_first_td_tag = re.compile(r'\A<td.*?>\s*(.*?)\s*</td>\Z', re.M | re.S)
 #-#exclude_first_comment_tag = re.compile(r'\A<!-- .*?-->(.*?)<!-- .*?-->\Z', re.M | re.S)
 #-#exclude_first_a_tag = re.compile(r'\A<a.*?>\s*(.*?)\s*</a>\Z', re.M | re.S)
-
-redis = None  # 为了去掉vim里面警告才需要此行
 
 
 async def signal_handler(sig):
@@ -877,8 +876,6 @@ class PromNotify(object):
         global event_exit
         if getuser() == 'pi':  # orangepi 上不检查优惠券信息
             return
-        import redis
-        redis
         interval = self.conf['interval'] * 2  # 检查时间放长
         while True:
 #-#            info('check %s ...', datetime.now())
