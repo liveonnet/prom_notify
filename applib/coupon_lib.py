@@ -2,8 +2,13 @@ import sys
 import os
 from urllib.parse import quote
 import asyncio
-from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException
+from getpass import getuser
+if getuser() != 'pi':  # orangepi 上不检查优惠券信息
+    from selenium import webdriver
+    from selenium.common.exceptions import NoSuchElementException
+else:
+    webdriver = None
+    NoSuchElementException = None
 from IPython import embed
 embed
 if __name__ == '__main__':

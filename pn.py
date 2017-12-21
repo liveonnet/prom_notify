@@ -5,7 +5,6 @@ from datetime import timedelta
 import time
 import os
 import random
-import redis
 from getpass import getuser
 from urllib.parse import urlparse
 from urllib.parse import urljoin
@@ -863,6 +862,7 @@ class PromNotify(object):
         global event_exit
         if getuser() == 'pi':  # orangepi 上不检查优惠券信息
             return
+        import redis
         interval = self.conf['interval'] * 2  # 检查时间放长
         while True:
 #-#            info('check %s ...', datetime.now())
