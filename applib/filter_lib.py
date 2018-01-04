@@ -95,7 +95,7 @@ class FilterTitle(object):
         return action, word, extra_data
 
     def matchFilterCoupon(self, **kwargs):
-        """根据分词结果给出不同的动作建议(附带关注/排除词匹配结果和额外的分词细节)
+        """根据匹配结果给出不同的动作建议(附带关注/排除词匹配结果和额外的分词细节)
 
         排除优先
 

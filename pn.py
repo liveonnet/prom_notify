@@ -246,7 +246,7 @@ class PromNotify(object):
 #-#                        return action, ret_data  # for pi
                 if not slience:
                     self.ps.playTextAsync(title, extra_data)
-                    if pic_data and getuser() != 'pi':
+                    if getuser() != 'pi':
                         cmd = 'notify-send  "%s" "%s at %s"' % (from_title, title.replace('$', '\$').replace('&', '＆'), sbr_time.strftime('%H:%M:%S'))
                         subprocess.Popen(cmd, shell=True).wait()
         elif action == 'SKIP':
