@@ -769,7 +769,7 @@ class PromNotify(object):
                                     debug('%s 面额太高 %s，略过 [%s, %s]', title, _item['quota'], _item['startTime'], _item['endTime'])
                                     continue
                                 if _item['denomination'] is not None and _item['denomination'].isdigit():
-                                    if '全品类' not in _item['limitStr'] and int(_item['denomination']) / float(_item['quota']) < 0.15:
+                                    if '全品类' not in _item['limitStr'] and int(_item['denomination']) and int(_item['quota']) and int(_item['denomination']) / float(_item['quota']) < 0.15:
                                         info('跳过低比例非全品类优惠券 %s', title)
                                         continue
 
