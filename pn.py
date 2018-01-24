@@ -346,6 +346,106 @@ class PromNotify(object):
 
         return resp, data, ok
 
+    async def _get_real_url_4mmb(self, url):
+        real_url = url
+        if url is not None:
+            raw_url = url
+            nr_redirect = 0
+            while url.find('manmanbuy') != -1 and urlparse(url).path:
+                r, _, ok = await self._getData(url, timeout=7, my_fmt='bytes', my_retry=2)
+                nr_redirect += 1
+                if ok:
+                    if r.status == 200:
+                        url = r.url
+                        if 'url=' in url:  # found 'url=' or 'tourl='
+                            up = urlparse(url)
+                            d_p = parse_qs(up.query, encoding='gbk')
+                            for _k in ('url', 'tourl'):
+                                try:
+                                    if _k in d_p:
+                                        url = d_p[_k][0]
+                                        break
+                                except UnicodeDecodeError as e:
+                                    warn('d_p %s %s', pcformat(d_p))
+                                    raise e
+                    elif r.status == 400:
+                        url = r.url
+                        if 'url=' in url:  # found 'url=' or 'tourl='
+                            up = urlparse(url)
+                            d_p = parse_qs(up.query, encoding='gbk')
+                            for _k in ('url', 'tourl'):
+                                try:
+                                    if _k in d_p:
+                                        url = d_p[_k][0]
+                                        break
+                                except UnicodeDecodeError as e:
+                                    warn('d_p %s %s', pcformat(d_p))
+                                    raise e
+                        elif url.count('http') > 1:
+                            for x in ('http://cu.manmanbuy.com/http', ):
+                                if url.startswith(x):
+                                    url = raw_url[len(x) - 4:]
+                                    if url[0] == 's':  # https
+                                        url = url[1:]
+                                        info('got %s from ', url, r.url)
+                        else:
+                            info('real url not found: code %s %s %s', r.status, raw_url, r.url)
+                    else:
+                        x = 'http://cu.manmanbuy.com/http'
+                        y = '.manmanbuy.com/redirectUrl.aspx?'
+                        if x in r.url:
+                            url = r.url[len(x) - 4:]
+                            if url[0] == 's':  # https
+                                url = url[1:]
+#-#                                    debug('url from bad url: %s -> %s', raw_url, url)
+                        elif r.url.startswith(('http://detail.tmall.com/', 'https://detail.tmall.com/')):
+                            url = r.url
+                        elif y in r.url:
+                            up = urlparse(r.url)
+                            d_p = parse_qs(up.query, encoding='gbk')
+                            for _k in ('tourl', ):
+                                try:
+                                    if _k in d_p:
+                                        url = d_p[_k][0]
+#-#                                                info('found url from %s', d_p)
+                                        break
+                                except UnicodeDecodeError as e:
+                                    warn('d_p %s %s', pcformat(d_p))
+                                    raise e
+                            if url:
+                                break
+                        else:
+                            info('real url not found: code %s %s %s', r.status, raw_url, r.url)
+                        break
+                    if nr_redirect > 5:
+                        warn('too many redirect %s', real_url)
+                        break
+                    if url.endswith('404.html'):
+                        if r.history:  # 从历史url中找
+                            if 'url=' in r.history[-1].url:  # found 'url=' or 'tourl='
+                                up = urlparse(r.history[-1].url)
+                                d_p = parse_qs(up.query, encoding='gbk')
+                                for _k in ('url', 'tourl'):
+                                    try:
+                                        if _k in d_p:
+                                            url = d_p[_k][0]
+                                            break
+                                    except UnicodeDecodeError as e:
+                                        warn('d_p %s %s', pcformat(d_p))
+                                        raise e
+                            else:
+                                warn('real url not found: %s (history %s)', real_url, r.history[-1].url)
+                        else:
+                            warn('real url not found: %s (only found %s)', real_url, url)
+                        break
+                else:
+#-#                            info('fetching url not ok %s', url)
+                    break
+
+            real_url = url
+
+        return real_url
+
     async def check_main_page_mmb(self):
         his = HistoryDB(self.conf_file_path)
 #-#        r, text, ok = await self._getData('http://cu.manmanbuy.com/cx_0_0_wytj_Default_1.aspx', timeout=10, my_str_encoding='gbk')
@@ -391,103 +491,7 @@ class PromNotify(object):
                 url = x.xpath('./div[@class="golink"]/a/@href')[0][:]
                 url = 'http://cu.manmanbuy.com/%s' % (url, )
                 item_url = 'http://cu.manmanbuy.com/Sharedetailed_%s.aspx' % (_id, )
-                # TODO get real url
-                real_url = url
-                if url is not None:
-                    raw_url = url
-                    nr_redirect = 0
-                    while url.find('manmanbuy') != -1 and urlparse(url).path:
-                        r, _, ok = await self._getData(url, timeout=7, my_fmt='bytes', my_retry=2)
-                        nr_redirect += 1
-                        if ok:
-                            if r.status == 200:
-                                url = r.url
-                                if 'url=' in url:  # found 'url=' or 'tourl='
-                                    up = urlparse(url)
-                                    d_p = parse_qs(up.query)
-                                    for _k in ('url', 'tourl'):
-                                        try:
-                                            if _k in d_p:
-                                                url = d_p[_k][0]
-                                                break
-                                        except UnicodeDecodeError as e:
-                                            warn('d_p %s %s', pcformat(d_p))
-                                            raise e
-                            elif r.status == 400:
-                                url = r.url
-                                if 'url=' in url:  # found 'url=' or 'tourl='
-                                    up = urlparse(url)
-                                    d_p = parse_qs(up.query)
-                                    for _k in ('url', 'tourl'):
-                                        try:
-                                            if _k in d_p:
-                                                url = d_p[_k][0]
-                                                break
-                                        except UnicodeDecodeError as e:
-                                            warn('d_p %s %s', pcformat(d_p))
-                                            raise e
-                                elif url.count('http') > 1:
-                                    for x in ('http://cu.manmanbuy.com/http', ):
-                                        if url.startswith(x):
-                                            url = raw_url[len(x) - 4:]
-                                            if url[0] == 's':  # https
-                                                url = url[1:]
-                                                info('got %s from ', url, r.url)
-                                else:
-                                    info('real url not found: code %s %s %s', r.status, raw_url, r.url)
-                            else:
-                                x = 'http://cu.manmanbuy.com/http'
-                                y = '.manmanbuy.com/redirectUrl.aspx?'
-                                if x in r.url:
-                                    url = r.url[len(x) - 4:]
-                                    if url[0] == 's':  # https
-                                        url = url[1:]
-#-#                                    debug('url from bad url: %s -> %s', raw_url, url)
-                                elif r.url.startswith(('http://detail.tmall.com/', 'https://detail.tmall.com/')):
-                                    url = r.url
-                                elif y in r.url:
-                                    up = urlparse(r.url)
-                                    d_p = parse_qs(up.query)
-                                    for _k in ('tourl', ):
-                                        try:
-                                            if _k in d_p:
-                                                url = d_p[_k][0]
-#-#                                                info('found url from %s', d_p)
-                                                break
-                                        except UnicodeDecodeError as e:
-                                            warn('d_p %s %s', pcformat(d_p))
-                                            raise e
-                                    if url:
-                                        break
-                                else:
-                                    info('real url not found: code %s %s %s', r.status, raw_url, r.url)
-                                break
-                            if nr_redirect > 5:
-                                warn('too many redirect %s', real_url)
-                                break
-                            if url.endswith('404.html'):
-                                if r.history:  # 从历史url中找
-                                    if 'url=' in r.history[-1].url:  # found 'url=' or 'tourl='
-                                        up = urlparse(r.history[-1].url)
-                                        d_p = parse_qs(up.query)
-                                        for _k in ('url', 'tourl'):
-                                            try:
-                                                if _k in d_p:
-                                                    url = d_p[_k][0]
-                                                    break
-                                            except UnicodeDecodeError as e:
-                                                warn('d_p %s %s', pcformat(d_p))
-                                                raise e
-                                    else:
-                                        warn('real url not found: %s (history %s)', real_url, r.history[-1].url)
-                                else:
-                                    warn('real url not found: %s (only found %s)', real_url, url)
-                                break
-                        else:
-#-#                            info('fetching url not ok %s', url)
-                            break
-
-                    real_url = url
+                real_url = await self._get_real_url_4mmb(url)
                 real_url = self.get_from_linkstars(real_url, source='mmb')
 
                 pic = pic.replace('////', '//')
