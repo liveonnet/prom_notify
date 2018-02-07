@@ -84,6 +84,7 @@ class ItemAdmin(admin.ModelAdmin):
     list_select_related = True
     list_per_page = 20  # 每页显示item数
 
+#-#    search_fields = ('show_title', 'real_url')
     search_fields = ('show_title', )
     readonly_fields = ('id', 'sid', 'source', 'ctime', 'show_title', 'item_url', 'real_url', 'pic_url')
     fieldsets = [(None, {'fields': ('id', 'source', 'sid')}),

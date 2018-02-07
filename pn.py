@@ -648,7 +648,7 @@ class PromNotify(object):
                     show_title = ' '.join((x['article_title'], price))
                     sbr_time = datetime.fromtimestamp(x['timesort'])
                     pic = x['article_pic']
-                    _id = x['article_id']
+                    _id = str(x['article_id'])
                     if _id.strip() != _id:
                         error('_id contain space char! %s|', _id)
                         _id = _id.strip()
