@@ -260,6 +260,7 @@ class PromNotify(object):
         m = self.p_price.match(str(price))
         if m:
             v = float(m.group(1))
+#-#            info('got price %s from %s', v, price)
             if self.conf['ignore_high_price'] and v >= self.conf['ignore_high_price']:
                 debug('ignore high price: %s for %s %s', v, title, price)
                 return False
