@@ -704,7 +704,7 @@ class PromNotify(object):
     async def check_jd_coupon(self):
         nr_total, nr_ignore = 0, 0
         num = None
-        rds, k_jd_coupon = redis.Redis(), 'jd_coupon'
+        rds, k_jd_coupon = redis.Redis(host=self.all_conf['redis']['host'], port=self.all_conf['redis']['port'], db=self.all_conf['redis']['db'], password=self.all_conf['redis']['password']), 'jd_coupon'
         for _idx in range(1, 20):
             cb, page, t = 'jQuery%s' % random.randint(1000000, 9999999), _idx, int(time.time() * 1000)
             headers = {'Accept': 'text/javascript, application/javascript, application/ecmascript, application/x-ecmascript, */*; q=0.01',
