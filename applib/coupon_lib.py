@@ -52,7 +52,9 @@ class CouponManager(object):
                 ff.find_element_by_link_text('账户登录').click()
                 await asyncio.sleep(0.5)
                 ff.find_element_by_name('loginname').send_keys(self.jd_user)
+                await asyncio.sleep(0.5)
                 ff.find_element_by_name('nloginpwd').send_keys(self.jd_password)
+                await asyncio.sleep(0.5)
                 ff.find_element_by_id('loginsubmit').click()
             await asyncio.sleep(2)
         except:
@@ -87,6 +89,7 @@ class CouponManager(object):
                 info('自动领取完成')
                 await asyncio.sleep(2)
         finally:
+            pass
 #-#            embed()
             ff.quit()
 

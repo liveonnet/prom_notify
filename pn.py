@@ -94,7 +94,7 @@ class PromNotify(object):
         # coupon module
         self.coupon = CouponManager(self.conf_file_path, event_notify)
 
-        self.p_price = re.compile(r'\s*￥?([0-9\.]+)')
+        self.p_price = re.compile(r'\s*(?:￥|券后)?([0-9\.]+)')
         self.p_chinese = re.compile('[\u4e00-\u9fa5]+')
 
     async def init(self):
