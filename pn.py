@@ -466,46 +466,51 @@ class PromNotify(object):
 
         try:
             for x in l_item:
-                if event_exit.is_set():
-                    info('got exit flag, exit~')
-                    break
-                _id = x.xpath('./div[@class="action"]/div[@class="popbox"]/dl/dd[1]/a/@data-id')[0][:]
-                if _id.strip() != _id:
-                    error('_id contain space char! %s|', _id)
-                    _id = _id.strip()
+                try:
+                    if event_exit.is_set():
+                        info('got exit flag, exit~')
+                        break
+                    _id = x.xpath('./div[@class="action"]/div[@class="popbox"]/dl/dd[1]/a/@data-id')[0][:]
+                    if _id.strip() != _id:
+                        error('_id contain space char! %s|', _id)
+                        _id = _id.strip()
 
-#-#                if Item.select().where((Item.source == 'mmb') & (Item.sid == _id)).exists():
-                if his.existsItem('mmb', _id):
-#-#                    info('SKIP EXISTING item mmb %s', _id)
-#-#                    continue
-                    break
-                title = x.xpath('./div[@class="tit"]/a/text()')[0][:].strip()
-                price = x.xpath('./div[@class="price"]/text()')[0][:].strip()
-                if not await self._checkChinese('慢慢买', title):
+        #-#                if Item.select().where((Item.source == 'mmb') & (Item.sid == _id)).exists():
+                    if his.existsItem('mmb', _id):
+        #-#                    info('SKIP EXISTING item mmb %s', _id)
+        #-#                    continue
+                        break
+                    title = x.xpath('./div[@class="tit"]/a/text()')[0][:].strip()
+                    price = x.xpath('./div[@class="price"]/text()')[0][:].strip()
+                    if not await self._checkChinese('慢慢买', title):
+                        continue
+                    show_title = ' '.join((title, price))
+        #-#            pic = x.xpath('./div[@class="pic"]/a/img/@src')[0][:]
+                    pic = x.xpath('./div[@class="pic"]/a/img/@original')[0][:]
+                    tim = x.xpath('./div[@class="other"]/span[@class="t"]/text()')[0][:]
+                    year = datetime.now().year
+                    tim = datetime.strptime('%s-%s' % (year, tim), '%Y-%m-%d %H:%M')
+                    url = x.xpath('./div[@class="golink"]/a/@href')[0][:]
+                    url = 'http://cu.manmanbuy.com/%s' % (url, )
+                    item_url = 'http://cu.manmanbuy.com/Sharedetailed_%s.aspx' % (_id, )
+                    real_url = await self._get_real_url_4mmb(url)
+                    real_url = self.get_from_linkstars(real_url, source='mmb')
+
+                    pic = pic.replace('////', '//')
+                    action, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=tim, item_url=item_url, from_title='慢慢买', price=price, db_his=his)
+                    if getuser() == 'pi' and action in ('NOTIFY', 'NORMAL', ''):
+                        info('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', tim, show_title, item_url, real_url)
+                    else:
+                        pass
+        #-#                    debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', tim, show_title, item_url, real_url)
+        #-#                Item.create(source='mmb', sid=_id, show_title=show_title, item_url=item_url, real_url=real_url, pic_url=pic, get_time=tim)
+                    his.createItem(source='mmb', sid=_id, show_title=show_title, item_url=item_url, real_url=real_url, pic_url=pic, get_time=tim)
+                except (IndexError, ):
                     continue
-                show_title = ' '.join((title, price))
-    #-#            pic = x.xpath('./div[@class="pic"]/a/img/@src')[0][:]
-                pic = x.xpath('./div[@class="pic"]/a/img/@original')[0][:]
-                tim = x.xpath('./div[@class="other"]/span[@class="t"]/text()')[0][:]
-                year = datetime.now().year
-                tim = datetime.strptime('%s-%s' % (year, tim), '%Y-%m-%d %H:%M')
-                url = x.xpath('./div[@class="golink"]/a/@href')[0][:]
-                url = 'http://cu.manmanbuy.com/%s' % (url, )
-                item_url = 'http://cu.manmanbuy.com/Sharedetailed_%s.aspx' % (_id, )
-                real_url = await self._get_real_url_4mmb(url)
-                real_url = self.get_from_linkstars(real_url, source='mmb')
-
-                pic = pic.replace('////', '//')
-                action, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=tim, item_url=item_url, from_title='慢慢买', price=price, db_his=his)
-                if getuser() == 'pi' and action in ('NOTIFY', 'NORMAL', ''):
-                    info('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', tim, show_title, item_url, real_url)
-                else:
-                    pass
-#-#                    debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', tim, show_title, item_url, real_url)
-#-#                Item.create(source='mmb', sid=_id, show_title=show_title, item_url=item_url, real_url=real_url, pic_url=pic, get_time=tim)
-                his.createItem(source='mmb', sid=_id, show_title=show_title, item_url=item_url, real_url=real_url, pic_url=pic, get_time=tim)
-        except:
-            error('error ', exc_info=True)
+                    debug('IndexError')
+#-#        except:
+#-#            error('error ', exc_info=True)
+        finally:
             his.clean()
 
     def get_from_linkstars(self, url, source=''):
