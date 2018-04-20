@@ -31,3 +31,10 @@ def getConf(conf_path='./pn_conf.yaml', root_key=None, force_reload=False):
         conf = conf.get(root_key)
 
     return conf
+
+if __name__ == '__main__':
+    from applib.tools_lib import pcformat
+    conf = getConf('./config/pn_conf.yaml')
+    info(pcformat(conf))
+
+

@@ -8,22 +8,22 @@ import redis
 import random
 from getpass import getuser
 from urllib.parse import urlparse
-from urllib.parse import urljoin
+#-#from urllib.parse import urljoin
 from urllib.parse import parse_qs
 from lxml import etree
 import asyncio
-import aiohttp
+#-#import aiohttp
 import configparser
 import codecs
 from difflib import SequenceMatcher
-from aiohttp.errors import ClientTimeoutError
-from aiohttp.errors import ClientConnectionError
+#-#from aiohttp.errors import ClientTimeoutError
+#-#from aiohttp.errors import ClientConnectionError
 #-#from aiohttp.errors import ClientDisconnectedError
-from aiohttp.errors import ContentEncodingError
-from aiohttp.errors import ClientError
-from aiohttp.errors import HttpBadRequest
-from aiohttp.errors import ClientHttpProcessingError
-from aiohttp.resolver import AsyncResolver
+#-#from aiohttp.errors import ContentEncodingError
+#-#from aiohttp.errors import ClientError
+#-#from aiohttp.errors import HttpBadRequest
+#-#from aiohttp.errors import ClientHttpProcessingError
+#-#from aiohttp.resolver import AsyncResolver
 from setproctitle import setproctitle
 import subprocess
 import concurrent
@@ -33,6 +33,7 @@ import multiprocessing
 import execjs
 import webbrowser
 from applib.conf_lib import getConf
+from applib.net_lib import NetManager
 from applib.audio_lib import PlaySound
 from applib.qrcode_lib import QrCode
 from applib.watch_lib import startWatchConf, stopWatchConf
@@ -76,15 +77,16 @@ class PromNotify(object):
         setproctitle(self.all_conf['proc_title'])
         # audio module 提前创建是为了使子进程占用内存小一点
         self.ps = PlaySound(self.conf_file_path)
-        # session
         self.loop = loop
-        self.sess = None
-        resolver = AsyncResolver(nameservers=['8.8.8.8', '8.8.4.4'])
-        conn = aiohttp.TCPConnector(resolver=resolver, limit=10)
-        if self.loop:
-            self.sess = aiohttp.ClientSession(connector=conn, headers={'User-Agent': self.conf['user_agent']}, loop=self.loop)
-        else:
-            self.sess = aiohttp.ClientSession(connector=conn, headers={'User-Agent': self.conf['user_agent']})
+        self.net = NetManager(self.conf_file_path, self.loop, event_notify)
+        # session
+#-#        self.sess = None
+#-#        resolver = AsyncResolver(nameservers=['8.8.8.8', '8.8.4.4'])
+#-#        conn = aiohttp.TCPConnector(resolver=resolver, limit=10)
+#-#        if self.loop:
+#-#            self.sess = aiohttp.ClientSession(connector=conn, headers={'User-Agent': self.conf['user_agent']}, loop=self.loop)
+#-#        else:
+#-#            self.sess = aiohttp.ClientSession(connector=conn, headers={'User-Agent': self.conf['user_agent']})
         # history data
 #-#        self.his = HistoryDB(self.conf_file_path)
         # progress data
@@ -97,9 +99,9 @@ class PromNotify(object):
         self.p_price = re.compile(r'\s*(?:￥|券后)?([0-9\.]+)')
         self.p_chinese = re.compile('[\u4e00-\u9fa5]+')
 
-    async def init(self):
-        if self.sess is None:
-            self.sess = aiohttp.ClientSession(headers={'User-Agent': self.conf['user_agent']})
+#-#    async def init(self):
+#-#        if self.sess is None:
+#-#            self.sess = aiohttp.ClientSession(headers={'User-Agent': self.conf['user_agent']})
 
     async def _getPic(self, pic, raw_data=False):
         '''获取图片数据
@@ -107,62 +109,80 @@ class PromNotify(object):
         ``raw_data`` True 返回二进制图片数据  False 返回图片文件路径
         '''
         ret = None
-        nr_try = 5
-        while nr_try:
-            pr = urlparse(pic)
-            if not pr.scheme:
-                new_pic = urljoin('http://', pic)
-                warn('pic %s -> %s', pic, new_pic)
-                pic = new_pic
-            picr = None
-            try:
-                picr = await self.sess.get(pic, timeout=5)
-            except asyncio.TimeoutError:
-                # 简单处理中间跳转页
-                if pic.startswith('http://cacheimg.manmanbuy.com/r_img/cacheimg.aspx?') and 'imgurl=' in pic:
-                    tmp_pic = pic
-                    idx = pic.find('imgurl=')
-                    pic = 'http://cacheimg.manmanbuy.com/r_img/cacheimg/' + pic[idx + 7:]
-                    info('pic 中间跳转页 %s -> %s', tmp_pic, pic)
-                    continue
-                error('Timeout pic get error %s', pic)
-                await asyncio.sleep(1)
-                nr_try -= 1
-            except ClientTimeoutError:
-                error('ReadTimeout pic get error %s', pic)
-                await asyncio.sleep(1)
-                nr_try -= 1
-            except ClientConnectionError:
-                error('ConnectionError pic get error %s', pic)
-                await asyncio.sleep(1)
-                nr_try -= 1
-            except ClientError:
-                error('pic get error %s', pic)
-                break
-            except HttpBadRequest:
-                error('InvalidSchema pic get error %s', pic)
-                break
+        r, picr, ok = await self.net.getData(pic, timeout=5, my_fmt='bytes', my_retry=5)
+        if ok:
+            if raw_data:
+                ret = picr
             else:
-                if picr.status == 200:
-                    if raw_data:
-                        try:
-                            ret = await picr.read()
-                        except asyncio.TimeoutError:
-                            error('Timeout pic read error %s', pic)
-                            await asyncio.sleep(1)
-                            nr_try -= 1
-                            continue
-                    else:
-                        ret = '/tmp/fxx_tmp_icon.jpg'  # 可能被其他协程覆盖，尽量不用这种模式
-                        open(ret, 'wb').write(await picr.read())
-                else:
-                    warn('pic get status_code %s for %s', picr.status, pic)
-                break
-            finally:
-                if picr:
-                    await picr.release()
+                ret = '/tmp/fxx_tmp_icon.jpg'  # 可能被其他协程覆盖，尽量不用这种模式
+                open(ret, 'wb').write(await picr.read())
+        else:
+            warn('pic get status_code %s for %s', picr.status, pic)
 
         return ret
+
+#-#    async def _getPic(self, pic, raw_data=False):
+#-#        '''获取图片数据
+#-#
+#-#        ``raw_data`` True 返回二进制图片数据  False 返回图片文件路径
+#-#        '''
+#-#        ret = None
+#-#        nr_try = 5
+#-#        while nr_try:
+#-#            pr = urlparse(pic)
+#-#            if not pr.scheme:
+#-#                new_pic = urljoin('http://', pic)
+#-#                warn('pic %s -> %s', pic, new_pic)
+#-#                pic = new_pic
+#-#            picr = None
+#-#            try:
+#-#                picr = await self.sess.get(pic, timeout=5)
+#-#            except asyncio.TimeoutError:
+#-#                # 简单处理中间跳转页
+#-#                if pic.startswith('http://cacheimg.manmanbuy.com/r_img/cacheimg.aspx?') and 'imgurl=' in pic:
+#-#                    tmp_pic = pic
+#-#                    idx = pic.find('imgurl=')
+#-#                    pic = 'http://cacheimg.manmanbuy.com/r_img/cacheimg/' + pic[idx + 7:]
+#-#                    info('pic 中间跳转页 %s -> %s', tmp_pic, pic)
+#-#                    continue
+#-#                error('Timeout pic get error %s', pic)
+#-#                await asyncio.sleep(1)
+#-#                nr_try -= 1
+#-#            except ClientTimeoutError:
+#-#                error('ReadTimeout pic get error %s', pic)
+#-#                await asyncio.sleep(1)
+#-#                nr_try -= 1
+#-#            except ClientConnectionError:
+#-#                error('ConnectionError pic get error %s', pic)
+#-#                await asyncio.sleep(1)
+#-#                nr_try -= 1
+#-#            except ClientError:
+#-#                error('pic get error %s', pic)
+#-#                break
+#-#            except HttpBadRequest:
+#-#                error('InvalidSchema pic get error %s', pic)
+#-#                break
+#-#            else:
+#-#                if picr.status == 200:
+#-#                    if raw_data:
+#-#                        try:
+#-#                            ret = await picr.read()
+#-#                        except asyncio.TimeoutError:
+#-#                            error('Timeout pic read error %s', pic)
+#-#                            await asyncio.sleep(1)
+#-#                            nr_try -= 1
+#-#                            continue
+#-#                    else:
+#-#                        ret = '/tmp/fxx_tmp_icon.jpg'  # 可能被其他协程覆盖，尽量不用这种模式
+#-#                        open(ret, 'wb').write(await picr.read())
+#-#                else:
+#-#                    warn('pic get status_code %s for %s', picr.status, pic)
+#-#                break
+#-#            finally:
+#-#                if picr:
+#-#                    await picr.release()
+#-#
+#-#        return ret
 
     async def _checkDup(self, from_title, title, his):
         """跨网站查询最近是否有近似的标题内容
@@ -239,6 +259,8 @@ class PromNotify(object):
                 webbrowser.get('firefox').open_new_tab('file:///%s' % QrCode.getQrCode(real_url, pic_data=pic_data))
             if not slience:
                 self.ps.playTextAsync(title, extra_data)
+            else:
+                info('[%s] %s (%s) %s --> %s', from_title, title, '/'.join(extra_data['cut_word']), item_url, real_url)
         elif action == 'NORMAL':
             if self.price_check(title, price, extra_data):
                 action, ret_data = '', ''
@@ -249,6 +271,8 @@ class PromNotify(object):
                     if getuser() != 'pi':
                         cmd = 'notify-send  "%s" "%s at %s"' % (from_title, title.replace('$', '\$').replace('&', '＆'), sbr_time.strftime('%H:%M:%S'))
                         subprocess.Popen(cmd, shell=True).wait()
+                else:
+                    info('[%s] %s (%s) %s --> %s', from_title, title, '/'.join(extra_data['cut_word']), item_url, real_url)
         elif action == 'SKIP':
             ret_data = word
 
@@ -268,92 +292,13 @@ class PromNotify(object):
             warn('price not found: %s|%s', price, title)
         return True
 
-    async def _getData(self, url, *args, **kwargs):
-        """封装网络请求
-
-        my_fmt:
-            str:
-                my_str_encoding
-            json:
-                my_json_encoding
-                my_json_loads
-            bytes:
-                None
-            streaming:
-                my_streaming_chunk_size
-                my_streaming_cb
-        """
-        resp, data, ok = None, None, False
-        str_encoding = kwargs.pop('my_str_encoding', None)
-        fmt = kwargs.pop('my_fmt', 'str')
-        json_encoding = kwargs.pop('my_json_encoding', None)
-        json_loads = kwargs.pop('my_json_loads', json.loads)
-        streaming_chunk_size = kwargs.pop('my_streaming_chunk_size', 1024)
-        streaming_cb = kwargs.pop('my_streaming_cb', None)
-        max_try = kwargs.pop('my_retry', 1)
-
-        for nr_try in range(max_try):
-            try:
-#-#                debug('url %s %s %s', url, pcformat(args), pcformat(kwargs))
-                resp = await self.sess.get(url, *args, **kwargs)
-                if fmt == 'str':
-                    try:
-                        data = await resp.text(encoding=str_encoding)
-                    except UnicodeDecodeError:
-                        txt = await resp.read()
-                        data = txt.decode(str_encoding, 'ignore')
-                        warn('ignore decode error from %s', url)
-                    except ContentEncodingError:
-                        warn('ignore content encoding error from %s', url)
-                elif fmt == 'json':
-                    data = await resp.json(encoding=json_encoding, loads=json_loads)
-#-#                    if not data:
-#-#                    if 'json' not in resp.headers.get('content-type', ''):
-#-#                        warn('data not in json? %s', resp.headers.get('content-type', ''))
-                elif fmt == 'bytes':
-                    data = await resp.read()
-                elif fmt == 'stream':
-                    while 1:
-                        chunk = await resp.content.read(streaming_chunk_size)
-                        if not chunk:
-                            break
-                        streaming_cb(url, chunk)
-                ok = True
-                break
-            except aiohttp.errors.ServerDisconnectedError:
-                debug('%sServerDisconnectedError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
-            except asyncio.TimeoutError:
-                debug('%sTimeoutError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
-            except ClientConnectionError:
-                debug('%sConnectionError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
-            except ConnectionResetError:
-                debug('%sConnectionResetError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
-            except aiohttp.errors.ClientResponseError:
-                debug('%sClientResponseError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
-            except ClientHttpProcessingError:
-                debug('%sClientHttpProcessingError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs), exc_info=True)
-            except ClientTimeoutError:
-                debug('%sClientTimeoutError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
-            except ClientError:
-                debug('%sClientError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs), exc_info=True)
-            except UnicodeDecodeError:
-                debug('%sUnicodeDecodeError %s %s %s %s\n%s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs), pcformat(resp.headers), await resp.read(), exc_info=True)
-#-#                raise e
-            except json.decoder.JSONDecodeError:
-                debug('%sJSONDecodeError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs), exc_info=True)
-            finally:
-                if resp:
-                    resp.release()
-
-        return resp, data, ok
-
     async def _get_real_url_4mmb(self, url):
         real_url = url
         if url is not None:
             raw_url = url
             nr_redirect = 0
             while url.find('manmanbuy') != -1 and urlparse(url).path:
-                r, _, ok = await self._getData(url, timeout=7, my_fmt='bytes', my_retry=2)
+                r, _, ok = await self.net.getData(url, timeout=7, my_fmt='bytes', my_retry=2)
                 nr_redirect += 1
                 if ok:
                     if r.status == 200:
@@ -449,9 +394,9 @@ class PromNotify(object):
 
     async def check_main_page_mmb(self):
         his = HistoryDB(self.conf_file_path)
-#-#        r, text, ok = await self._getData('http://cu.manmanbuy.com/cx_0_0_wytj_Default_1.aspx', timeout=10, my_str_encoding='gbk')
-#-#        r, text, ok = await self._getData('http://zhekou.manmanbuy.com/', timeout=10, my_str_encoding='gbk')
-        r, text, ok = await self._getData('http://zhekou.manmanbuy.com/DefaultSharelist.aspx?d=k', timeout=10, my_str_encoding='gbk')
+#-#        r, text, ok = await self.net.getData('http://cu.manmanbuy.com/cx_0_0_wytj_Default_1.aspx', timeout=10, my_str_encoding='gbk')
+#-#        r, text, ok = await self.net.getData('http://zhekou.manmanbuy.com/', timeout=10, my_str_encoding='gbk')
+        r, text, ok = await self.net.getData('http://zhekou.manmanbuy.com/DefaultSharelist.aspx?d=k', timeout=10, my_str_encoding='gbk')
 
         if not ok:
             return
@@ -540,7 +485,7 @@ class PromNotify(object):
         base_url = '''http://www.smzdm.com/youhui/'''
     #-#    debug('base_url = %s', base_url)
         real_url = None
-        r, text, ok = await self._getData(base_url, timeout=5)
+        r, text, ok = await self.net.getData(base_url, timeout=5)
         if ok:
             if ok and r.status == 200:
                 pr = etree.HTMLParser()
@@ -592,7 +537,7 @@ class PromNotify(object):
                         if direct_url is not None:
                             if direct_url.find('/go.smzdm.com/') != -1:
     #-#                            debug('getting real_url for %s ...', direct_url)
-                                rr, rr_text, ok = await self._getData(direct_url, timeout=5)
+                                rr, rr_text, ok = await self.net.getData(direct_url, timeout=5)
                                 if ok and rr.status == 200:
                                     s_js = re.search(r'eval\((.+?)\)\s+\</script\>', rr_text, re.DOTALL | re.IGNORECASE | re.MULTILINE | re.UNICODE).group(1)
                                     s_rs = execjs.eval(s_js)
@@ -637,7 +582,7 @@ class PromNotify(object):
 #-#        debug('base_url = %s', base_url)
         real_url = None
         his = HistoryDB(self.conf_file_path)
-        r, text, ok = await self._getData(base_url, params={'timesort': str(process_time)}, timeout=10, my_fmt='json')
+        r, text, ok = await self.net.getData(base_url, params={'timesort': str(process_time)}, timeout=10, my_fmt='json')
         if ok:
             if r.status == 200:
 #-#                debug('url %s', r.url)
@@ -672,7 +617,7 @@ class PromNotify(object):
                             real_url = None
                             if direct_url.find('/go.smzdm.com/') != -1:
 #-#                                debug('getting real_url for %s ...', direct_url)
-                                rr, rr_text, ok = await self._getData(direct_url, timeout=5)
+                                rr, rr_text, ok = await self.net.getData(direct_url, timeout=5)
                                 if ok and rr.status == 200:
                                     s_js = re.search(r'eval\((.+?)\)\s+\</script\>', rr_text, re.DOTALL | re.IGNORECASE | re.MULTILINE | re.UNICODE).group(1)
                                     s_rs = execjs.eval(s_js)
@@ -719,7 +664,7 @@ class PromNotify(object):
                        'X-Requested-With': 'XMLHttpRequest',
                        }
             url = 'https://a.jd.com/indexAjax/getCouponListByCatalogId.html?callback=%s&catalogId=0&page=%s&pageSize=9&_=%s' % (cb, page, t)
-            r, text, ok = await self._getData(url, timeout=10, my_str_encoding='utf8', headers=headers, my_fmt='str')
+            r, text, ok = await self.net.getData(url, timeout=10, my_str_encoding='utf8', headers=headers, my_fmt='str')
             if not ok:
                 return
             if r.status != 200:
@@ -802,15 +747,17 @@ class PromNotify(object):
 
                             # 自动领取尝试
 #-#                            info('page %s', _idx)
-                            await self.coupon.GetJdCoupon(title, _item)
+                            await self.coupon.GetJdCouponWithCookie(title, _item)
 #-#        info('nr_total %s(%s) nr_ignore %s', nr_total, num, nr_ignore)
 
         return
 
-    def clean(self):
+    async def clean(self):
         info('cleaning ...')
-        if self.sess:
-            self.sess.close()
+#-#        if self.sess:
+#-#            self.sess.close()
+        if self.net:
+            await self.net.clean()
         if self.filter:
             self.filter.clean()
         if self.ps:
@@ -907,7 +854,7 @@ class PromNotify(object):
     async def do_work_async(self):
         self.loop.add_signal_handler(signal.SIGINT, lambda: asyncio.ensure_future(signal_handler(signal.SIGINT)))
 
-        await self.init()
+#-#        await self.init()
         wm, notifier, wdd = startWatchConf(self.all_conf['filter']['filter_path'], event_notify)
 
         debug('doing ...')
@@ -918,7 +865,7 @@ class PromNotify(object):
             info('Cancel after KeyboardInterrupt ? exit!')
 
         stopWatchConf(wm, notifier, wdd)
-        self.clean()
+        await self.clean()
         self.progress.saveCfg()
 
         info('done.')

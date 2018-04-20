@@ -236,7 +236,8 @@ def format(_obj, context, maxlevels, level):
             return (repr(_obj) or "''", False, False)
         else:
 #-#            return (repr(unquote(_obj).decode('unicode-escape').encode('utf8')) or "''", False, False)
-            return (("'" + unquote(_obj).decode('unicode-escape').encode('utf8') + "'") or "''", False, False)
+#-#            return (("'" + unquote(_obj).decode('unicode-escape').encode('utf8') + "'") or "''", False, False)
+            return (("'" + unquote(_obj) + "'") or "''", False, False)
     return pprint._safe_repr(_obj, context, maxlevels, level)
 pp = pprint.PrettyPrinter(width=160)
 pp.format = format
