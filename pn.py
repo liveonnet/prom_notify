@@ -79,14 +79,6 @@ class PromNotify(object):
         self.ps = PlaySound(self.conf_file_path)
         self.loop = loop
         self.net = NetManager(self.conf_file_path, self.loop, event_notify)
-        # session
-#-#        self.sess = None
-#-#        resolver = AsyncResolver(nameservers=['8.8.8.8', '8.8.4.4'])
-#-#        conn = aiohttp.TCPConnector(resolver=resolver, limit=10)
-#-#        if self.loop:
-#-#            self.sess = aiohttp.ClientSession(connector=conn, headers={'User-Agent': self.conf['user_agent']}, loop=self.loop)
-#-#        else:
-#-#            self.sess = aiohttp.ClientSession(connector=conn, headers={'User-Agent': self.conf['user_agent']})
         # history data
 #-#        self.his = HistoryDB(self.conf_file_path)
         # progress data
@@ -117,72 +109,9 @@ class PromNotify(object):
                 ret = '/tmp/fxx_tmp_icon.jpg'  # 可能被其他协程覆盖，尽量不用这种模式
                 open(ret, 'wb').write(await picr.read())
         else:
-            warn('pic get status_code %s for %s', picr.status, pic)
+            warn('pic get status_code %s for %s', picr.status if picr else None, pic)
 
         return ret
-
-#-#    async def _getPic(self, pic, raw_data=False):
-#-#        '''获取图片数据
-#-#
-#-#        ``raw_data`` True 返回二进制图片数据  False 返回图片文件路径
-#-#        '''
-#-#        ret = None
-#-#        nr_try = 5
-#-#        while nr_try:
-#-#            pr = urlparse(pic)
-#-#            if not pr.scheme:
-#-#                new_pic = urljoin('http://', pic)
-#-#                warn('pic %s -> %s', pic, new_pic)
-#-#                pic = new_pic
-#-#            picr = None
-#-#            try:
-#-#                picr = await self.sess.get(pic, timeout=5)
-#-#            except asyncio.TimeoutError:
-#-#                # 简单处理中间跳转页
-#-#                if pic.startswith('http://cacheimg.manmanbuy.com/r_img/cacheimg.aspx?') and 'imgurl=' in pic:
-#-#                    tmp_pic = pic
-#-#                    idx = pic.find('imgurl=')
-#-#                    pic = 'http://cacheimg.manmanbuy.com/r_img/cacheimg/' + pic[idx + 7:]
-#-#                    info('pic 中间跳转页 %s -> %s', tmp_pic, pic)
-#-#                    continue
-#-#                error('Timeout pic get error %s', pic)
-#-#                await asyncio.sleep(1)
-#-#                nr_try -= 1
-#-#            except ClientTimeoutError:
-#-#                error('ReadTimeout pic get error %s', pic)
-#-#                await asyncio.sleep(1)
-#-#                nr_try -= 1
-#-#            except ClientConnectionError:
-#-#                error('ConnectionError pic get error %s', pic)
-#-#                await asyncio.sleep(1)
-#-#                nr_try -= 1
-#-#            except ClientError:
-#-#                error('pic get error %s', pic)
-#-#                break
-#-#            except HttpBadRequest:
-#-#                error('InvalidSchema pic get error %s', pic)
-#-#                break
-#-#            else:
-#-#                if picr.status == 200:
-#-#                    if raw_data:
-#-#                        try:
-#-#                            ret = await picr.read()
-#-#                        except asyncio.TimeoutError:
-#-#                            error('Timeout pic read error %s', pic)
-#-#                            await asyncio.sleep(1)
-#-#                            nr_try -= 1
-#-#                            continue
-#-#                    else:
-#-#                        ret = '/tmp/fxx_tmp_icon.jpg'  # 可能被其他协程覆盖，尽量不用这种模式
-#-#                        open(ret, 'wb').write(await picr.read())
-#-#                else:
-#-#                    warn('pic get status_code %s for %s', picr.status, pic)
-#-#                break
-#-#            finally:
-#-#                if picr:
-#-#                    await picr.release()
-#-#
-#-#        return ret
 
     async def _checkDup(self, from_title, title, his):
         """跨网站查询最近是否有近似的标题内容
@@ -194,12 +123,6 @@ class PromNotify(object):
         d_tmp = {'慢慢买': 'mmb',
                  '什么值得买': 'smzdm',
                  }
-#-#        for _item in Item.select().where((Item.ctime > seconds_ago) & (Item.source != d_tmp[from_title])):
-#-#            s = SequenceMatcher(None, _item.show_title, title)
-#-#            if s.ratio() > 0.8:
-#-#                warn('found dup title in %s %s @%s (ratio %s)', _item.source, _item.show_title, _item.ctime, s.ratio())
-#-#                ret = True
-#-#                break
         for _source, _show_title, _ctime in his.getRecentItems(d_tmp[from_title], seconds_ago):
             s = SequenceMatcher(None, _show_title, title)
             if s.ratio() >= 0.8:
@@ -361,7 +284,7 @@ class PromNotify(object):
                             if url:
                                 break
                         else:
-                            info('real url not found: code %s %s %s', r.status, raw_url, r.url)
+                            warn('real url not found: code %s %s %s', r.status, raw_url, r.url)
                         break
                     if nr_redirect > 5:
                         warn('too many redirect %s', real_url)

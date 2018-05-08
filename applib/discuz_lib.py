@@ -147,14 +147,20 @@ class QiLanManager(DiscuzManager):
                     else:
                         pr = etree.HTMLParser()
                         tree = etree.fromstring(text, pr)
-                        l_title = tree.xpath(forum['postlist_title'])
-                        l_url = tree.xpath(forum['postlist_url'])
-                        l_ctime = tree.xpath(forum['postlist_ctime'])
+                        l_title = tree.xpath(_sub.get('postlist_title') or forum['postlist_title'])
+                        # 最新发表/最新回复 有自己的板块
+                        if _sub.get('postlist_group'):
+                            l_group = tree.xpath(_sub['postlist_group'])
+                        else:
+                            l_group = [_sub['title'] for _ in range(len(l_title))]
+                        l_url = tree.xpath(_sub.get('postlist_url') or forum['postlist_url'])
+                        l_ctime = tree.xpath(_sub.get('postlist_ctime') or forum['postlist_ctime'])
+                        l_utime = tree.xpath(_sub.get('postlist_utime') or forum['postlist_utime'])
 #-#                        if not l_ctime:
 #-#                            info('text %s', text)
 #-#                            embed()
-                        for _i, (_title, _url, _ctime) in enumerate(zip(l_title, l_url, l_ctime), 1):
-                            info('[%s] %s/%s %s %s\n%s', _sub['title'], _i, len(l_title), _title, _ctime, _url)
+                        for _i, (_group, _title, _url, _ctime, _utime) in enumerate(zip(l_group, l_title, l_url, l_ctime, l_utime), 1):
+                            info('[%s] %s/%s %s %s %s\n%s', _group, _i, len(l_title), _title, _ctime, _utime, _url)
                         break
             if save_cookie:
                 open(os.path.abspath(forum['cookie_file']), 'w').write(cookie)

@@ -4,6 +4,9 @@ import pickle
 from urllib.parse import quote
 import asyncio
 from getpass import getuser
+from logging import WARNING
+from selenium.webdriver.remote.remote_connection import LOGGER
+LOGGER.setLevel(WARNING)
 if getuser() != 'pi':  # orangepi 上不检查优惠券信息
     from selenium import webdriver
     from selenium.common.exceptions import NoSuchElementException
@@ -53,7 +56,9 @@ class CouponManager(object):
                 info('读取已有cookie %s', cookie_file)
 #-#                ff.get('https://home.m.jd.com' if 'm.jd.com' in item['receiveUrl'] else 'http://help.jd.com/index.html')
 #-#                ff.get('https://so.m.jd.com/category/all.html?searchFrom=bysearchbox' if 'm.jd.com' in item['receiveUrl'] else 'http://help.jd.com/index.html')
-                ff.get('https://p.m.jd.com/cart/cart.action' if 'm.jd.com' in item['receiveUrl'] else 'http://help.jd.com/index.html')
+                url = 'https://p.m.jd.com/cart/cart.action' if 'm.jd.com' in item['receiveUrl'] else 'http://help.jd.com/index.html'
+                info('fetching %s', url)
+                ff.get(url)
 
                 for _c in pickle.load(open(cookie_file, 'rb')):
 #-#                    info('cookie data %s', pcformat(_c))
@@ -75,19 +80,27 @@ class CouponManager(object):
                         try:
                             element = ff.find_element_by_link_text('立即领取')
                         except NoSuchElementException:
-                            no_btn = True
+                            try:
+                                element = ff.find_element_by_class_name('btn')
+                            except NoSuchElementException:
+                                no_btn = True
+#-#                    embed()
                     if no_btn:
                         # 没登录？
                         info('没登录? 尝试登录')
                         # 登录京东
                         try:
                             if 'm.jd.com' in item['receiveUrl']:
-                                ff.get('https://plogin.m.jd.com/user/login.action?appid=100&kpkey=&returnurl=%s' % quote(item['receiveUrl']))
+                                url = 'https://plogin.m.jd.com/user/login.action?appid=100&kpkey=&returnurl=%s' % quote(item['receiveUrl'])
+                                info('open login page %s', url)
+                                ff.get(url)
                                 ff.find_element_by_id('username').send_keys(self.jd_user)
                                 ff.find_element_by_id('password').send_keys(self.jd_password)
                                 ff.find_element_by_id('loginBtn').click()
                             else:
-                                ff.get('https://passport.jd.com/new/login.aspx?ReturnUrl=%s' % quote(item['receiveUrl']))
+                                url = 'https://passport.jd.com/new/login.aspx?ReturnUrl=%s' % quote(item['receiveUrl'])
+                                info('open login page %s', url)
+                                ff.get(url)
                                 ff.find_element_by_link_text('账户登录').click()
                                 await asyncio.sleep(0.5)
                                 ff.find_element_by_name('loginname').send_keys(self.jd_user)
@@ -108,14 +121,20 @@ class CouponManager(object):
 #-#                        embed()
                         if 'btn-unable' in element.get_attribute('class'):
                             info('不能领取：%s', element.text)
+                        elif element.text.find('查看') != -1:
+                            info('不能领取(已领取过?)：%s', element.text)
                         else:
                             try:
                                 element.click()
-                                element = WebDriverWait(ff, 2).until(EC.presence_of_element_located((By.XPATH, '//p[@class="coupon-txt"]')))
+                                element = WebDriverWait(ff, 3).until(EC.presence_of_element_located((By.XPATH, '//p[@class="coupon-txt"]')))
                                 info('领取结果 %s', element.text)
                             except:
-                                error('获取领取结果时出错', exc_info=True)
-#-#                                embed()
+                                try:
+                                    element = WebDriverWait(ff, 1).until(EC.presence_of_element_located((By.CLASS_NAME, 'btn')))
+                                    info('领取结果 %s', element.text)
+                                except:
+                                    error('获取领取结果时出错', exc_info=True)
+#-#                                    embed()
                             finally:
                                 info('自动领取完成')
                                 await asyncio.sleep(1)
@@ -131,74 +150,10 @@ class CouponManager(object):
 
         return rslt, err
 
-#-#    async def GetJdCoupon(self, title, item):
-#-#        """自动领取京东普通优惠券
-#-#
-#-#        参考 http://selenium-python.readthedocs.io/index.html
-#-#        """
-#-#        rslt, err = '', ''
-#-#        if self.conf['geckodriver'] not in sys.path:
-#-#            sys.path.append(self.conf['geckodriver'])
-#-#        ff = webdriver.Firefox()
-#-#        try:
-#-#            # 登录京东
-#-#            if 'm.jd.com' in item['receiveUrl']:
-#-#                ff.get('https://plogin.m.jd.com/user/login.action?appid=100&kpkey=&returnurl=%s' % quote(item['receiveUrl']))
-#-#                ff.find_element_by_id('username').send_keys(self.jd_user)
-#-#                ff.find_element_by_id('password').send_keys(self.jd_password)
-#-#                ff.find_element_by_id('loginBtn').click()
-#-#            else:
-#-#                ff.get('https://passport.jd.com/new/login.aspx?ReturnUrl=%s' % quote(item['receiveUrl']))
-#-#                ff.find_element_by_link_text('账户登录').click()
-#-#                await asyncio.sleep(0.5)
-#-#                ff.find_element_by_name('loginname').send_keys(self.jd_user)
-#-#                await asyncio.sleep(0.5)
-#-#                ff.find_element_by_name('nloginpwd').send_keys(self.jd_password)
-#-#                await asyncio.sleep(0.5)
-#-#                ff.find_element_by_id('loginsubmit').click()
-#-#            await asyncio.sleep(2)
-#-#        except:
-#-#            info('登录京东时出错', exc_info=True)
-#-#        else:
-#-#            try:
-#-#                info('尝试自动领取 %s ...\n%s', title, pcformat(item))
-#-#                try:
-#-#                    element = ff.find_element_by_id('btnSubmit')
-#-#                except NoSuchElementException:
-#-#                    try:
-#-#                        element = ff.find_element_by_link_text('立即领取')
-#-#                        element.click()
-#-#                    except:
-#-#                        pass
-#-#                    else:
-#-#                        try:
-#-#                            rslt = ff.find_element_by_xpath('//p[@class="coupon-txt"]').text
-#-#                            info('领取结果 %s', rslt)
-#-#                        except:
-#-#                            error('获取领取结果时出错', exc_info=True)
-#-#                else:
-#-#                    element.click()
-#-#                    try:
-#-#                        rslt = ff.find_element_by_xpath('//p[@class="coupon-txt"]').text
-#-#                        info('领取结果 %s', rslt)
-#-#                    except:
-#-#                        error('获取领取结果时出错', exc_info=True)
-#-#            except:
-#-#                error('自动领取出错', exc_info=True)
-#-#            else:
-#-#                info('自动领取完成')
-#-#                await asyncio.sleep(2)
-#-#        finally:
-#-#            pass
-#-##-#            embed()
-#-#            ff.quit()
-#-#
-#-#        return rslt, err
-
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
 
-    item = {'receiveUrl': 'http://coupon.m.jd.com/coupons/show.action?key=df40fa94be1547858be22ac645173891&roleId=8768370&to=https://pro.m.jd.com/mall/active/4Sab8QiDMWw4danTXM8rMAmjMf3d/index.html', }
+    item = {'receiveUrl': 'http://coupon.m.jd.com/coupons/show.action?key=45d6a751fce54aa5be8dd8d40fb2912d&roleId=11653592&to=https://mall.jd.com/index-1000003005.html', }
     try:
         task = asyncio.ensure_future(CouponManager().GetJdCouponWithCookie('测试标题', item))
         x = loop.run_until_complete(task)
