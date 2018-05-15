@@ -756,7 +756,7 @@ class PromNotify(object):
         global event_exit
         if getuser() == 'pi':  # orangepi 上不检查优惠券信息
             return
-        interval = self.conf['interval'] * 2  # 检查时间放长
+        interval = self.conf['interval'] * 3  # 检查时间放长
         while True:
 #-#            info('check %s ...', datetime.now())
             await self.check_jd_coupon()
@@ -774,6 +774,30 @@ class PromNotify(object):
                 info('got exit flag, exit~')
                 break
 
+    async def do_work_jr_coupon(self):
+        global event_exit
+        if getuser() == 'pi':  # orangepi 上不检查优惠券信息
+            return
+        interval = 1800  # 最低半小时检查一次
+        while True:
+#-#            info('check %s ...', datetime.now())
+            await self.coupon.GetJdJrCouponWithCookie()
+            print('$', end='', file=sys.stderr, flush=True)
+            if event_exit.is_set():
+                info('got exit flag, exit~')
+                break
+            try:
+                x = datetime.now().strftime('%M%S')
+                s = 60 * (60 - int(x[:2])) - int(x[2:])
+                await asyncio.wait_for(event_exit.wait(), min(interval, s))  # 检查时长=min(指定时长, 距下一整点秒数), 保证整点时检查
+            except concurrent.futures._base.TimeoutError:
+                pass
+            else:
+                info('what\' wrong ?')
+            if event_exit.is_set():
+                info('got exit flag, exit~')
+                break
+
     async def do_work_async(self):
         self.loop.add_signal_handler(signal.SIGINT, lambda: asyncio.ensure_future(signal_handler(signal.SIGINT)))
 
@@ -781,7 +805,8 @@ class PromNotify(object):
         wm, notifier, wdd = startWatchConf(self.all_conf['filter']['filter_path'], event_notify)
 
         debug('doing ...')
-        fut = [self.do_work_smzdm(), self.do_work_mmb(), self.do_work_coupon()]
+        fut = [self.do_work_smzdm(), self.do_work_mmb(), self.do_work_coupon(), self.do_work_jr_coupon()]
+#-#        fut = [self.do_work_smzdm(), self.do_work_mmb(), self.do_work_coupon()]
         try:
             await asyncio.gather(*fut)
         except concurrent.futures._base.CancelledError:

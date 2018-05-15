@@ -8,11 +8,12 @@ lxml==3.7.3
 peewee==2.8.8
 PyAudio==0.2.10
 pyinotify==0.9.6
+PyVirtualDisplay==0.2.1
 qrcode==5.3
 redis==2.10.6
 selenium==3.7.0
 setproctitle==1.1.10
 SQLAlchemy==1.1.6
-ipython==6.2.1
-Pillow==4.3.0
+ipython==6.4.0
+Pillow==5.1.0
 PyYAML==3.12
