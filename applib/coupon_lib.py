@@ -14,8 +14,8 @@ if getuser() != 'pi':  # orangepi 上不检查优惠券信息
     from selenium.webdriver.common.by import By
     from selenium.webdriver.support.ui import WebDriverWait
     from selenium.webdriver.support import expected_conditions as EC
-#-#    from selenium.webdriver.firefox.options import Options
-    from pyvirtualdisplay import Display
+    from selenium.webdriver.firefox.options import Options
+#-#    from pyvirtualdisplay import Display
 else:
     webdriver = None
     NoSuchElementException = None
@@ -49,20 +49,23 @@ class CouponManager(object):
         rslt, err = '', ''
         if self.conf['geckodriver'] not in sys.path:
             sys.path.append(self.conf['geckodriver'])
-        display = Display(visible=0, size=(800, 600))
-        display.start()
-        ff = webdriver.Firefox()
+        opt = Options()
+        opt.add_argument('--headless')
+        ff = webdriver.Firefox(firefox_options=opt)
+#-#        display = Display(visible=0, size=(800, 600))
+#-#        display.start()
+#-#        ff = webdriver.Firefox()
         if 'm.jd.com' in item['receiveUrl']:
             cookie_file = '/tmp/plogin.m.jd.com.cookie.pkl'
         else:
             cookie_file = '/tmp/passport.jd.com.cookie.pkl'
         try:
             if os.path.exists(cookie_file):
-                info('读取已有cookie %s', cookie_file)
+                debug('读取已有cookie %s', cookie_file)
 #-#                ff.get('https://home.m.jd.com' if 'm.jd.com' in item['receiveUrl'] else 'http://help.jd.com/index.html')
 #-#                ff.get('https://so.m.jd.com/category/all.html?searchFrom=bysearchbox' if 'm.jd.com' in item['receiveUrl'] else 'http://help.jd.com/index.html')
                 url = 'https://p.m.jd.com/cart/cart.action' if 'm.jd.com' in item['receiveUrl'] else 'http://help.jd.com/index.html'
-                info('fetching %s', url)
+                debug('fetching %s', url)
                 ff.get(url)
 
                 for _c in pickle.load(open(cookie_file, 'rb')):
@@ -72,7 +75,7 @@ class CouponManager(object):
                     except:
                         pass
 #-#                        error('ignore except', exc_info=True)
-                info('读取完毕cookie %s', cookie_file)
+                debug('读取完毕cookie %s', cookie_file)
             for _ in range(2):
                 try:
                     info('尝试自动领取 %s ...\n%s', title, pcformat(item))
@@ -162,7 +165,7 @@ class CouponManager(object):
             pass
 #-#            embed()
             ff.quit()
-            display.stop()
+#-#            display.stop()
 
         return rslt, err
 
@@ -174,18 +177,18 @@ class CouponManager(object):
         rslt, err = '', ''
         if self.conf['geckodriver'] not in sys.path:
             sys.path.append(self.conf['geckodriver'])
-#-#        opt = Options()
-#-#        opt.add_argument('--headless')
-#-#        ff = webdriver.Firefox(firefox_options=opt)
-        display = Display(visible=0, size=(800, 600))
-        display.start()
-        ff = webdriver.Firefox()
+        opt = Options()
+        opt.add_argument('--headless')
+        ff = webdriver.Firefox(firefox_options=opt)
+#-#        display = Display(visible=False, size=(800, 600), color_depth=16)
+#-#        display.start()
+#-#        ff = webdriver.Firefox()
         cookie_file = '/tmp/plogin.m.jd.com.cookie.pkl'
         try:
             if os.path.exists(cookie_file):
-                info('读取已有cookie %s', cookie_file)
+                debug('读取已有cookie %s', cookie_file)
                 url = 'https://p.m.jd.com/cart/cart.action'
-                info('fetching %s', url)
+                debug('fetching %s', url)
                 ff.get(url)
 
                 for _c in pickle.load(open(cookie_file, 'rb')):
@@ -195,11 +198,11 @@ class CouponManager(object):
                     except:
                         pass
 #-#                        error('ignore except', exc_info=True)
-                info('读取完毕cookie %s', cookie_file)
+                debug('读取完毕cookie %s', cookie_file)
             try:
                 s_try = set()
                 while 1:
-                    info('now s_try %s', s_try)
+                    debug('now s_try %s', s_try)
                     url = 'https://m.jr.jd.com/mjractivity/rn/couponCenter/index.html?RN=couponCenter&from=wtmzhan&sid=&qingfrom=url'
                     ff.get(url)
                     l_txt = ff.find_elements_by_xpath('//div[@clstag="pageclick|keycount|LQZX1211|1"]/div[2]/span[position()=1 or position()=2]')
@@ -216,7 +219,7 @@ class CouponManager(object):
                             await asyncio.sleep(2)
                         except:
                             info('登录京东时出错', exc_info=True)
-                            embed()
+#-#                            embed()
                             break
                         else:
                             info('登录貌似成功了，保存cookie %s', cookie_file)
@@ -226,7 +229,7 @@ class CouponManager(object):
                     l_txt_1 = ff.find_elements_by_xpath('//div[@clstag="pageclick|keycount|LQZX1211|1"]/div[2]/span[position()=1]')  # 券名
                     l_txt_2 = ff.find_elements_by_xpath('//div[@clstag="pageclick|keycount|LQZX1211|1"]/div[2]/span[position()=2]')  # 剩余可抢 or 开抢时间
                     l_btn = ff.find_elements_by_xpath('//div[@clstag="pageclick|keycount|LQZX1211|2"]/span')  # 领取按钮
-                    info('%s %s %s', len(l_txt_1), len(l_txt_2), len(l_btn))
+#-#                    info('%s %s %s', len(l_txt_1), len(l_txt_2), len(l_btn))
                     for _i in range(len(l_txt_1)):  # 因为未开抢的券没有领取按钮，会导致券名列表和领取按钮列表对应错位，因此需要在按钮列表中为未开抢的券填上占位符
                         if '开抢' in l_txt_2[_i].text:
                             l_btn.insert(_i, None)
@@ -237,7 +240,7 @@ class CouponManager(object):
                     for _i, (_t, _p, _btn) in enumerate(zip_longest(l_txt_1, l_txt_2, l_btn, fillvalue='')):
                         # 跳过已尝试过领的
                         if _i in s_try:
-                            info('skip %s in s_try %s %s', _i, _t.text, _p.text if _p else '')
+                            debug('skip %s in s_try %s %s', _i, _t.text, _p.text if _p else '')
                             continue
 #-#                            debug('checking %s, %s %s', _t.text, _p.text if _p else '', _btn.text if _btn else '')
                         # 跳过不领的
@@ -263,7 +266,7 @@ class CouponManager(object):
 #-#                                    await asyncio.sleep(1)
                                     break  # 领取后原先的元素都失效了，因此需要重新load页面
                     if noop_this_loop:
-                        debug('无待领取的，退出')
+                        info('无待领取的，退出')
                         break
             except:
                 error('自动领取出错', exc_info=True)
@@ -273,7 +276,7 @@ class CouponManager(object):
             pass
 #-#            embed()
             ff.quit()
-            display.stop()
+#-#            display.stop()
 
         return rslt, err
 
