@@ -55,6 +55,10 @@ class CouponManager(object):
 #-#        display = Display(visible=0, size=(800, 600))
 #-#        display.start()
 #-#        ff = webdriver.Firefox()
+#-#        if not item['receiveUrl'].startswith('http'):
+        if item['receiveUrl'].startswith('coupon.m.jd.com'):
+            item['receiveUrl'] = 'http://' + item['receiveUrl']
+
         if 'm.jd.com' in item['receiveUrl']:
             cookie_file = '/tmp/plogin.m.jd.com.cookie.pkl'
         else:
@@ -154,7 +158,7 @@ class CouponManager(object):
                                     error('获取领取结果时出错', exc_info=True)
 #-#                                    embed()
                             finally:
-                                info('自动领取完成')
+                                debug('自动领取完成')
                                 await asyncio.sleep(1)
                         break
                 except:
@@ -260,13 +264,13 @@ class CouponManager(object):
                                         info('貌似无法领取 提示按钮文字: %s', _btn.text)
 #-#                                        embed()
                                 finally:
-                                    info('自动领取完成')
+                                    debug('自动领取完成')
                                     s_try.add(_i)
                                     noop_this_loop = False
 #-#                                    await asyncio.sleep(1)
                                     break  # 领取后原先的元素都失效了，因此需要重新load页面
                     if noop_this_loop:
-                        info('无待领取的，退出')
+                        debug('无待领取的，退出')
                         break
             except:
                 error('自动领取出错', exc_info=True)
