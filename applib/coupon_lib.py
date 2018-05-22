@@ -190,9 +190,9 @@ class CouponManager(object):
         cookie_file = '/tmp/plogin.m.jd.com.cookie.pkl'
         try:
             if os.path.exists(cookie_file):
-                debug('读取已有cookie %s', cookie_file)
+#-#                debug('读取已有cookie %s', cookie_file)
                 url = 'https://p.m.jd.com/cart/cart.action'
-                debug('fetching %s', url)
+#-#                debug('fetching %s', url)
                 ff.get(url)
 
                 for _c in pickle.load(open(cookie_file, 'rb')):
@@ -202,13 +202,14 @@ class CouponManager(object):
                     except:
                         pass
 #-#                        error('ignore except', exc_info=True)
-                debug('读取完毕cookie %s', cookie_file)
+#-#                debug('读取完毕cookie %s', cookie_file)
             try:
                 s_try = set()
                 while 1:
-                    debug('now s_try %s', s_try)
+#-#                    debug('now s_try %s', s_try)
                     url = 'https://m.jr.jd.com/mjractivity/rn/couponCenter/index.html?RN=couponCenter&from=wtmzhan&sid=&qingfrom=url'
                     ff.get(url)
+                    await asyncio.sleep(1)
                     l_txt = ff.find_elements_by_xpath('//div[@clstag="pageclick|keycount|LQZX1211|1"]/div[2]/span[position()=1 or position()=2]')
                     # 没登录？
                     if not l_txt:
@@ -237,7 +238,7 @@ class CouponManager(object):
                     for _i in range(len(l_txt_1)):  # 因为未开抢的券没有领取按钮，会导致券名列表和领取按钮列表对应错位，因此需要在按钮列表中为未开抢的券填上占位符
                         if '开抢' in l_txt_2[_i].text:
                             l_btn.insert(_i, None)
-                            debug('填充 idx %s@%s %s', _i, l_txt_1[_i].text, l_txt_2[_i].text)
+#-#                            debug('填充 idx %s@%s %s', _i, l_txt_1[_i].text, l_txt_2[_i].text)
 
                     # 每领取一次需要重新load页面
                     noop_this_loop = True
@@ -264,13 +265,13 @@ class CouponManager(object):
                                         info('貌似无法领取 提示按钮文字: %s', _btn.text)
 #-#                                        embed()
                                 finally:
-                                    debug('自动领取完成')
+#-#                                    debug('自动领取完成')
                                     s_try.add(_i)
                                     noop_this_loop = False
 #-#                                    await asyncio.sleep(1)
                                     break  # 领取后原先的元素都失效了，因此需要重新load页面
                     if noop_this_loop:
-                        debug('无待领取的，退出')
+#-#                        debug('无待领取的，退出')
                         break
             except:
                 error('自动领取出错', exc_info=True)

@@ -656,7 +656,7 @@ class PromNotify(object):
                                 rds.hdel(k_jd_coupon, str(_item['roleId']))
                                 continue
                             # 对全品类　按面值过滤
-                            if '全品类' in _item['limitStr'] and _item['quota'].isdigit() and int(_item['quota']) >= 500:
+                            if '全品类' in _item['limitStr'] and _item['quota'].isdigit() and int(_item['quota']) >= 2500:
                                 info('跳过大面额 %s', title)
                                 continue
 
