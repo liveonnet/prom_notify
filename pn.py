@@ -628,6 +628,11 @@ class PromNotify(object):
                             nr_ignore += 1
                             continue
 
+                        if _item['receiveUrl'] is None:
+                            debug('empty url? skip %s', _item)
+                            nr_ignore += 1
+                            continue
+
                         # url补全
                         if not _item['receiveUrl'].startswith('http'):
                             if _item['receiveUrl'].startswith('//'):
@@ -781,7 +786,7 @@ class PromNotify(object):
         interval = 1800  # 最低半小时检查一次
         while True:
 #-#            info('check %s ...', datetime.now())
-            await self.coupon.GetJdJrCouponWithCookie()
+            await self.coupon.GetJdJrCouponWithCookie(self.filter)
             print('$', end='', file=sys.stderr, flush=True)
             if event_exit.is_set():
                 info('got exit flag, exit~')

@@ -28,7 +28,6 @@ l_include:
 
 l_include_coupon:
         - 中石化
-        - 油卡
 
 l_exclude_coupon:
     - 游戏本
@@ -235,7 +234,31 @@ l_exclude_coupon:
     - 三鞭丸
     - 药房
     - 名表
+    - 茅台
+    - 大电
 
+l_include_jr_coupon:
+
+l_exclude_jr_coupon:
+    - 众筹
+    - 黄金
+    - 保险
+    - 理财
+    - 女装
+    - 新手
+    - 笔记本
+    - 火车
+    - 飞机
+    - 娱乐影音
+    - 大疆
+    - 医药
+    - 进口食品
+    - 美妆个护
+    - 名表
+    - 茅台
+    - 空调
+    - 大电
+    - 鞋靴
 
 l_exclude:
     - 挡风被
@@ -5112,3 +5135,10 @@ l_exclude:
     - 西瓜刀
     - 鸦片战争
     - 高筒袜
+    - ZIPPO
+    - 麦芽糖
+    - 彩铅
+    - 挖球勺
+    - 十八子作
+    - 打蜡机
+    - 皂前乳

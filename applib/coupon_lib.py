@@ -60,9 +60,9 @@ class CouponManager(object):
             item['receiveUrl'] = 'http://' + item['receiveUrl']
 
         if 'm.jd.com' in item['receiveUrl']:
-            cookie_file = '/tmp/plogin.m.jd.com.cookie.pkl'
+            cookie_file = os.path.abspath(os.path.join(self.conf['cookie_dir'], 'plogin.m.jd.com.cookie.pkl'))
         else:
-            cookie_file = '/tmp/passport.jd.com.cookie.pkl'
+            cookie_file = os.path.abspath(os.path.join(self.conf['cookie_dir'], 'passport.jd.com.cookie.pkl'))
         try:
             if os.path.exists(cookie_file):
                 debug('读取已有cookie %s', cookie_file)
@@ -173,7 +173,7 @@ class CouponManager(object):
 
         return rslt, err
 
-    async def GetJdJrCouponWithCookie(self):
+    async def GetJdJrCouponWithCookie(self, filter):
         """自动领取京东金融优惠券
 
         参考 http://selenium-python.readthedocs.io/index.html
@@ -187,7 +187,7 @@ class CouponManager(object):
 #-#        display = Display(visible=False, size=(800, 600), color_depth=16)
 #-#        display.start()
 #-#        ff = webdriver.Firefox()
-        cookie_file = '/tmp/plogin.m.jd.com.cookie.pkl'
+        cookie_file = os.path.abspath(os.path.join(self.conf['cookie_dir'], 'plogin.m.jd.com.cookie.pkl'))
         try:
             if os.path.exists(cookie_file):
 #-#                debug('读取已有cookie %s', cookie_file)
@@ -249,27 +249,27 @@ class CouponManager(object):
                             continue
 #-#                            debug('checking %s, %s %s', _t.text, _p.text if _p else '', _btn.text if _btn else '')
                         # 跳过不领的
-                        for _word in ('众筹', '黄金', '保险', '理财', '女装', '新手', '笔记本', '火车', '飞机', '娱乐影音', '大疆'):
-                            if _word in _t.text:
-                                break
-                        else:
-                            if _btn and '立即领取' in _btn.text:
-                                info('尝试领取 %s, %s %s', _t.text, _p.text if _p else '', _btn.text if _btn else '')
-                                try:
-                                    _btn.click()
-#-#                                        element = WebDriverWait(ff, 3).until(EC.staleness_of((By.ID, _btn.id)))
-                                    result = WebDriverWait(ff, 3).until(EC.staleness_of(_btn))
-                                    info('领取结果 %s', result)
-                                except:
-                                    if '领取' in _btn.text:
-                                        info('貌似无法领取 提示按钮文字: %s', _btn.text)
-#-#                                        embed()
-                                finally:
-#-#                                    debug('自动领取完成')
-                                    s_try.add(_i)
-                                    noop_this_loop = False
-#-#                                    await asyncio.sleep(1)
-                                    break  # 领取后原先的元素都失效了，因此需要重新load页面
+                        action, word, _ = filter.matchFilterJrCoupon(title=_t.text)
+                        if action == 'SKIP':
+#-#                            debug('skip %s %s hit %s', _i, _t.text, word)
+                            continue
+                        if _btn and '立即领取' in _btn.text:
+                            info('尝试领取 %s, %s %s', _t.text, _p.text if _p else '', _btn.text if _btn else '')
+                            try:
+                                _btn.click()
+#-#                                element = WebDriverWait(ff, 3).until(EC.staleness_of((By.ID, _btn.id)))
+                                result = WebDriverWait(ff, 3).until(EC.staleness_of(_btn))
+                                info('领取结果 %s', result)
+                            except:
+                                if '领取' in _btn.text:
+                                    info('貌似无法领取 提示按钮文字: %s', _btn.text)
+#-#                                    embed()
+                            finally:
+#-#                             ebug('自动领取完成')
+                                s_try.add(_i)
+                                noop_this_loop = False
+#-#                                await asyncio.sleep(1)
+                                break  # 领取后原先的元素都失效了，因此需要重新load页面
                     if noop_this_loop:
 #-#                        debug('无待领取的，退出')
                         break

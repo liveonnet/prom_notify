@@ -33,10 +33,14 @@ class FilterTitle(object):
         """
         conf = getConf(self.filter_path, force_reload=force_reload)
         self.st_include, self.st_exclude = set(conf['l_include']), set(conf['l_exclude'])
+        debug('include/exclude item(s) loaded. %s/%s ', len(self.st_include), len(self.st_exclude))
         self.l_include_coupon = conf['l_include_coupon'] or []
         self.l_exclude_coupon = conf['l_exclude_coupon'] or []
-        debug('include/exclude item(s) loaded. %s/%s ', len(self.st_include), len(self.st_exclude))
         debug('include/exclude coupon item(s) loaded. %s/%s ', len(self.l_include_coupon), len(self.l_exclude_coupon))
+
+        self.l_include_jr_coupon = conf['l_include_jr_coupon'] or []
+        self.l_exclude_jr_coupon = conf['l_exclude_jr_coupon'] or []
+        debug('include/exclude jr coupon item(s) loaded. %s/%s ', len(self.l_include_jr_coupon), len(self.l_exclude_jr_coupon))
         if force_reload:
             self._addUserWord()
 
@@ -95,7 +99,8 @@ class FilterTitle(object):
         return action, word, extra_data
 
     def matchFilterCoupon(self, **kwargs):
-        """根据匹配结果给出不同的动作建议(附带关注/排除词匹配结果和额外的分词细节)
+        """过滤京东优惠券
+        根据匹配结果给出不同的动作建议(附带关注/排除词匹配结果和额外的分词细节)
 
         排除优先
 
@@ -116,6 +121,39 @@ class FilterTitle(object):
                 break
         if not action:
             for _ignore_word in self.l_exclude_coupon:
+                if _ignore_word in title:
+                    action, word = 'SKIP', _ignore_word
+                    break
+            else:
+                action = 'NORMAL'
+        if not action:
+            action = 'SKIP'
+
+        return action, word, extra_data
+
+    def matchFilterJrCoupon(self, **kwargs):
+        """过滤京东金融的优惠券
+        根据匹配结果给出不同的动作建议(附带关注/排除词匹配结果和额外的分词细节)
+
+        排除优先
+
+        'SKIP', '<SKIP_WORD>', extra_data
+        'NOTIFY', '<NOTIFY_WORD>', extra_data
+        'NORMAL', '', extra_data
+        """
+        action, word, extra_data = '', '', {}
+        title = kwargs.get('title', '')
+        # reload modified filter data
+        if self.event_notify is not None and self.event_notify.is_set():
+            self._loadIncludeExcludeData(force_reload=True)
+            self.event_notify.clear()
+
+        for _include_word in self.l_include_jr_coupon:
+            if _include_word in title:
+                action, word = 'NOTIFY', _include_word
+                break
+        if not action:
+            for _ignore_word in self.l_exclude_jr_coupon:
                 if _ignore_word in title:
                     action, word = 'SKIP', _ignore_word
                     break
