@@ -32,7 +32,7 @@ class FilterTitle(object):
         """重新从配置文件读取关注/排除词, 作为自定义词组添加到结巴
         """
         conf = getConf(self.filter_path, force_reload=force_reload)
-        self.st_include, self.st_exclude = set(conf['l_include']), set(conf['l_exclude'])
+        self.st_include, self.st_exclude = set(conf['l_include'] or []), set(conf['l_exclude'] or [])
         debug('include/exclude item(s) loaded. %s/%s ', len(self.st_include), len(self.st_exclude))
         self.l_include_coupon = conf['l_include_coupon'] or []
         self.l_exclude_coupon = conf['l_exclude_coupon'] or []

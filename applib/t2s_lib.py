@@ -10,11 +10,11 @@ import codecs
 import asyncio
 import aiohttp
 from aiohttp.resolver import AsyncResolver
-from aiohttp.errors import ClientTimeoutError
-from aiohttp.errors import ClientConnectionError
-from aiohttp.errors import ClientError
+#-#from aiohttp.errors import ClientTimeoutError
+#-#from aiohttp.errors import ClientConnectionError
+from aiohttp import ClientError
 #-#from aiohttp.errors import HttpBadRequest
-from aiohttp.errors import ClientHttpProcessingError
+#-#from aiohttp.errors import ClientHttpProcessingError
 if __name__ == '__main__':
     sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
 from applib.tools_lib import pcformat
@@ -135,12 +135,12 @@ class Text2SpeechBaidu(object):
             resp = await self.sess.post(url, data=args, timeout=30)
         except asyncio.TimeoutError:
             info('TimeoutError %s %s', url, pcformat(args))
-        except ClientConnectionError:
-            error('ConnectionError %s %s', url, pcformat(args))
-        except ClientHttpProcessingError:
-            error('ClientHttpProcessingError %s %s', url, pcformat(args), exc_info=True)
-        except ClientTimeoutError:
-            error('ClientTimeoutError %s %s', url, pcformat(args))
+#-#        except ClientConnectionError:
+#-#            error('ConnectionError %s %s', url, pcformat(args))
+#-#        except ClientHttpProcessingError:
+#-#            error('ClientHttpProcessingError %s %s', url, pcformat(args), exc_info=True)
+#-#        except ClientTimeoutError:
+#-#            error('ClientTimeoutError %s %s', url, pcformat(args))
         except ClientError:
             error('ClientError %s %s', url, pcformat(args), exc_info=True)
         except UnicodeDecodeError as e:
@@ -178,12 +178,12 @@ class Text2SpeechBaidu(object):
                 resp = await self.sess.post(url, data=args, timeout=20)
             except asyncio.TimeoutError:
                 info('TimeoutError %s %s', url, pcformat(args))
-            except ClientConnectionError:
-                error('ConnectionError %s %s', url, pcformat(args))
-            except ClientHttpProcessingError:
-                error('ClientHttpProcessingError %s %s', url, pcformat(args), exc_info=True)
-            except ClientTimeoutError:
-                error('ClientTimeoutError %s %s', url, pcformat(args))
+#-#            except ClientConnectionError:
+#-#                error('ConnectionError %s %s', url, pcformat(args))
+#-#            except ClientHttpProcessingError:
+#-#                error('ClientHttpProcessingError %s %s', url, pcformat(args), exc_info=True)
+#-#            except ClientTimeoutError:
+#-#                error('ClientTimeoutError %s %s', url, pcformat(args))
             except ClientError:
                 error('ClientError %s %s', url, pcformat(args), exc_info=True)
             except UnicodeDecodeError as e:

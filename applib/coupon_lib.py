@@ -41,6 +41,15 @@ class CouponManager(object):
         self.jd_user = self.conf['jd_user']
         self.jd_password = self.conf['jd_password']
 
+        self.ff_jr = None
+        if getuser() != 'pi':  # orangepi 上不检查优惠券信息
+            pass
+#-#            if self.conf['geckodriver'] not in sys.path:
+#-#                sys.path.append(self.conf['geckodriver'])
+#-#            opt = Options()
+#-#            opt.add_argument('--headless')
+#-#            self.ff_jr = webdriver.Firefox(firefox_options=opt)
+
     async def GetJdCouponWithCookie(self, title, item):
         """自动领取京东普通优惠券
 
@@ -179,11 +188,15 @@ class CouponManager(object):
         参考 http://selenium-python.readthedocs.io/index.html
         """
         rslt, err = '', ''
-        if self.conf['geckodriver'] not in sys.path:
-            sys.path.append(self.conf['geckodriver'])
-        opt = Options()
-        opt.add_argument('--headless')
-        ff = webdriver.Firefox(firefox_options=opt)
+        info('checking ..')
+        if not self.ff_jr:
+            if self.conf['geckodriver'] not in sys.path:
+                sys.path.append(self.conf['geckodriver'])
+            opt = Options()
+            opt.add_argument('--headless')
+            ff = webdriver.Firefox(firefox_options=opt)
+        else:
+            ff = self.ff_jr
 #-#        display = Display(visible=False, size=(800, 600), color_depth=16)
 #-#        display.start()
 #-#        ff = webdriver.Firefox()
@@ -278,12 +291,23 @@ class CouponManager(object):
         except:
             error('自动领取出错', exc_info=True)
         finally:
+            info('checking done')
+            if not self.ff_jr:
+                ff.quit()
             pass
 #-#            embed()
-            ff.quit()
 #-#            display.stop()
 
         return rslt, err
+
+    def clean(self):
+        if self.ff_jr:
+            try:
+                self.ff_jr.quit()
+            except:
+                error('quit ff jr error', exc_info=True)
+            finally:
+                self.ff_jr = None
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()

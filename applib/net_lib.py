@@ -13,16 +13,17 @@ import os
 #-#from lxml import etree
 import asyncio
 import aiohttp
+import aiodns
 #-#import configparser
 #-#import codecs
 #-#from difflib import SequenceMatcher
-from aiohttp.errors import ClientTimeoutError
-from aiohttp.errors import ClientConnectionError
+#-#from aiohttp.errors import ClientTimeoutError
+#-#from aiohttp.errors import ClientConnectionError
 #-#from aiohttp.errors import ClientDisconnectedError
-from aiohttp.errors import ContentEncodingError
-from aiohttp.errors import ClientError
+#-#from aiohttp.errors import ContentEncodingError
+from aiohttp import ClientError
 #-#from aiohttp.errors import HttpBadRequest
-from aiohttp.errors import ClientHttpProcessingError
+#-#from aiohttp.errors import ClientHttpProcessingError
 from aiohttp.resolver import AsyncResolver
 #-#from setproctitle import setproctitle
 #-#import subprocess
@@ -60,8 +61,9 @@ class NetManager(object):
 
         self.loop = None
         self.sess = None
-        resolver = AsyncResolver(nameservers=['1.1.1.1', '8.8.8.8', '8.8.4.4'])
-        conn = aiohttp.TCPConnector(resolver=resolver, limit=10)
+        resolver = AsyncResolver(nameservers=['8.8.8.8', '8.8.4.4'])
+#-#        conn = aiohttp.TCPConnector(resolver=resolver, limit=10, ttl_dns_cache=300)
+        conn = aiohttp.TCPConnector(limit=10, ttl_dns_cache=300)
         if self.loop:
             self.sess = aiohttp.ClientSession(connector=conn, headers={'User-Agent': self.conf['user_agent']}, loop=self.loop)
         else:
@@ -103,10 +105,11 @@ class NetManager(object):
                         txt = await resp.read()
                         data = txt.decode(str_encoding, 'ignore')
                         warn('ignore decode error from %s', url)
-                    except ContentEncodingError:
+#-#                    except ContentEncodingError:
+                    except aiohttp.client_exceptions.ContentTypeError:
                         warn('ignore content encoding error from %s', url)
                 elif fmt == 'json':
-                    data = await resp.json(encoding=json_encoding, loads=json_loads)
+                    data = await resp.json(encoding=json_encoding, loads=json_loads, content_type=None)
 #-#                    if not data:
 #-#                    if 'json' not in resp.headers.get('content-type', ''):
 #-#                        warn('data not in json? %s', resp.headers.get('content-type', ''))
@@ -120,21 +123,25 @@ class NetManager(object):
                         streaming_cb(url, chunk)
                 ok = True
                 break
-            except aiohttp.errors.ServerDisconnectedError:
-                debug('%sServerDisconnectedError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
+#-#            except aiohttp.errors.ServerDisconnectedError:
+#-#                debug('%sServerDisconnectedError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
             except asyncio.TimeoutError:
 #-#                debug('%sTimeoutError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
                 debug('%sTimeoutError %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url)
-            except ClientConnectionError:
-                debug('%sConnectionError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
+            except aiohttp.client_exceptions.ClientConnectorError:
+                debug('%sClientConnectionError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
             except ConnectionResetError:
                 debug('%sConnectionResetError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
-            except aiohttp.errors.ClientResponseError:
-                debug('%sClientResponseError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
-            except ClientHttpProcessingError:
-                debug('%sClientHttpProcessingError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs), exc_info=True)
-            except ClientTimeoutError:
-                debug('%sClientTimeoutError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
+#-#            except aiohttp.errors.ClientResponseError:
+#-#                debug('%sClientResponseError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
+#-#            except ClientHttpProcessingError:
+#-#                debug('%sClientHttpProcessingError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs), exc_info=True)
+#-#            except ClientTimeoutError:
+#-#                debug('%sClientTimeoutError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
+            except aiohttp.client_exceptions.ContentTypeError:
+                debug('%sContentTypeError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs), exc_info=True)
+                data = await resp.text(encoding=str_encoding)
+                info('data %s', data[:50])
             except ClientError:
                 debug('%sClientError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs), exc_info=True)
             except UnicodeDecodeError:
@@ -142,6 +149,8 @@ class NetManager(object):
 #-#                raise e
             except json.decoder.JSONDecodeError:
                 debug('%sJSONDecodeError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs), exc_info=True)
+            except aiodns.error.DNSError:
+                debug('%sDNSError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
             finally:
                 if resp:
                     resp.release()
@@ -157,7 +166,7 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
 
     try:
-        net = NetManager()
+        net = NetManager(loop=loop)
         task = asyncio.ensure_future(net.getData('http://httpbin.org/ip', timeout=1, my_fmt='bytes'))
         x = loop.run_until_complete(task)
         info(pcformat(x))

@@ -41,15 +41,6 @@ def noalsaerr():
     asound.snd_lib_error_set_handler(None)
 
 
-def server_manager(address, authkey):
-    mgr = SyncManager(address, authkey)
-    setproctitle('process_mgr')
-    debug('manager server started.')
-    server = mgr.get_server()
-    server.serve_forever()
-    debug('manager server stopped.')
-
-
 def noop_func(x):
 #-#    pass
     sleep(1)
@@ -67,9 +58,6 @@ class PlaySound(object):
             self.t2s = Text2SpeechXunFei(self.conf_path)  # sync
         self.executor_t2s = concurrent.futures.ProcessPoolExecutor(2)  # async
         if self.conf['use_custom_manager']:
-            # start remote manager
-            p_mgr = multiprocessing.Process(target=server_manager, args=((get_lan_ip(), self.conf['custom_manager_port']), self.conf['custom_manager_authkey'].encode('utf8')))
-            p_mgr.start()
             # create proxy manager
             mgr = SyncManager((get_lan_ip(), self.conf['custom_manager_port']), self.conf['custom_manager_authkey'].encode('utf8'))
             sleep(0.5)  # wait for manager to start
