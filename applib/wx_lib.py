@@ -43,14 +43,18 @@ info, debug, warn, error = app_log.info, app_log.debug, app_log.warning, app_log
 
 msg_information = {}
 face_bug=None  # 针对表情包的内容
+attachment_dir = None
 
 
 class ItchatManager(object):
     """微信管理类
     """
     def __init__(self, conf_path='config/pn_conf.yaml'):
+        global attachment_dir
         self.conf_path = os.path.abspath(conf_path)
         self.conf = getConf(self.conf_path, root_key='itchat')
+
+        attachment_dir = os.path.abspath(self.conf['attachment_dir'])
 
         self.thread_id = None
 
@@ -84,6 +88,30 @@ class ItchatManager(object):
         else:
             info('itchat already running')
 
+        if self.gid is None:  # 有时候登录后第一次查不到“我们”群，尝试多次查找
+            try:
+                debug('finding chatroom ...')
+                groups = itchat.get_chatrooms()
+                for _g in groups:
+                    if _g['MemberCount'] == 3 and _g.Self.NickName == "刘强":
+                        self.gid = _g['UserName']
+                        info('我们 gid %s', self.gid)
+                        break
+                else:
+                    debug('chatroom not found')
+#-#                            debug('%s\t%s', _g['NickName'], _g['UserName'])
+#-#                        g = itchat.search_chatrooms(name="我们")
+#-#                        if g:
+#-#                            g = g[0]
+#-#                            info('g %s %s', g['UserName'], g['MemberCount'])
+#-#                            if g['MemberCount'] == 3 and g.Self.NickName == "刘强":
+#-#                                self.gid = g['UserName']
+#-#                                info('我们 gid %s', self.gid)
+#-#                        else:
+#-#                            debug('chatroom not found')
+            except:
+                error('error finding chatroom 我们', exc_info=True)
+
         while 1:
 #-#            embed()
             try:
@@ -95,21 +123,6 @@ class ItchatManager(object):
                 if event_exit.is_set():
                     info('got exit flag, exit~')
                     break
-                if self.gid is None:  # 有时候登录后第一次查不到“我们”群，尝试多次查找
-                    try:
-                        debug('finding chatroom ...')
-#-#                        groups = itchat.get_chatrooms()
-#-#                        for _g in groups:
-#-#                            debug('%s\t%s', _g['NickName'], _g['UserName'])
-                        g = itchat.search_chatrooms(name="我们")
-                        if g:
-                            g = g[0]
-                            info('g %s %s', g['UserName'], g['MemberCount'])
-                            if g['MemberCount'] == 3 and g.Self.NickName == "刘强":
-                                self.gid = g['UserName']
-                                info('我们 gid %s', self.gid)
-                    except:
-                        error('error finding chatroom 我们', exc_info=True)
             except Exception as e:
                 warn('got exception when waiting for msg to send, exit! %s', e)
                 break
@@ -127,16 +140,16 @@ class ItchatManager(object):
     def start(self):
         info('itchat starting ..')
         itchat.auto_login(enableCmdQR=2, hotReload=True, picDir='/tmp', statusStorageDir='config/itchat.pkl', loginCallback=self.onLogin, exitCallback=self.onExit)
-        groups = itchat.get_chatrooms()
-        for _g in groups:
-            info('%s\t%s', _g['NickName'], _g['UserName'])
-        g = itchat.search_chatrooms(name="我们")
-        if g:
-            g = g[0]
-            info('g %s %s', g['UserName'], g['MemberCount'])
-            if g['MemberCount'] == 3 and g.Self.NickName == "刘强":
-                self.gid = g['UserName']
-                info('我们 gid %s', self.gid)
+#-#        groups = itchat.get_chatrooms()
+#-#        for _g in groups:
+#-#            info('%s\t%s', _g['NickName'], _g['UserName'])
+#-#        g = itchat.search_chatrooms(name="我们")
+#-#        if g:
+#-#            g = g[0]
+#-#            info('g %s %s', g['UserName'], g['MemberCount'])
+#-#            if g['MemberCount'] == 3 and g.Self.NickName == "刘强":
+#-#                self.gid = g['UserName']
+#-#                info('我们 gid %s', self.gid)
 
         info('itchat started')
 
@@ -150,7 +163,7 @@ class ItchatManager(object):
     @staticmethod
     @itchat.msg_register([TEXT, PICTURE, FRIENDS, CARD, MAP, SHARING, RECORDING, ATTACHMENT, VIDEO], isFriendChat=True, isGroupChat=True, isMpChat=True)
     def handle_receive_msg(msg):
-        global face_bug
+        global face_bug, attachment_dir
         msg_time_rec = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())  # 接受消息的时间
         user_info = itchat.search_friends(userName=msg['FromUserName'])  # 在好友列表中查询发送信息的好友昵称
         msg_from = 'None' if not user_info else user_info['NickName']  # 在好友列表中查询发送信息的好友昵称
@@ -164,7 +177,7 @@ class ItchatManager(object):
             info('%s', msg_content)
         elif msg['Type'] in ('Attachment', 'Video', 'Picture', 'Recording'):  # 如果发送的消息是附件、视屏、图片、语音
             msg_content = msg['FileName']  # 内容就是他们的文件名
-            msg['Text'](msg_content)  # 下载文件
+            msg['Text'](os.path.join(attachment_dir, msg_content))  # 下载文件
             # print msg_content
         elif msg['Type'] == 'Card':  # 如果消息是推荐的名片
             msg_content = msg['RecommendInfo']['NickName'] + '的名片'  # 内容就是推荐人的昵称和性别

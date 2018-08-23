@@ -95,7 +95,9 @@ class PromNotify(object):
         # filter module
         self.filter = FilterTitle(self.conf_file_path, event_notify)
         # coupon module
-        self.coupon = CouponManager(self.conf_file_path, event_notify)
+        self.coupon = None
+        if self.conf['enable_coupon']:
+            self.coupon = CouponManager(self.conf_file_path, event_notify)
 
         self.p_price = re.compile(r'\s*(?:￥|券后)?([0-9\.]+)')
         self.p_chinese = re.compile('[\u4e00-\u9fa5]+')
@@ -199,7 +201,7 @@ class PromNotify(object):
             else:
                 info('[%s] %s (%s) %s --> %s', from_title, title, '/'.join(extra_data['cut_word']), item_url, real_url)
                 msg = '[%s] %s (%s) %s --> %s' % (from_title, title, '/'.join(extra_data['cut_word']), item_url, real_url)
-                if self.conf['enable_wx']:
+                if self.wx:
                     self.wx.q_send.put([msg, ''])
         elif action == 'NORMAL':
             if self.price_check(title, price, extra_data):
@@ -214,7 +216,7 @@ class PromNotify(object):
                 else:
                     info('[%s] %s (%s) %s --> %s', from_title, title, '/'.join(extra_data['cut_word']), item_url, real_url)
                     msg = '[%s] %s (%s) %s --> %s' % (from_title, title, '/'.join(extra_data['cut_word']), item_url, real_url)
-                    if self.conf['enable_wx']:
+                    if self.wx:
                         self.wx.q_send.put([msg, ''])
         elif action == 'SKIP':
             ret_data = word
@@ -892,7 +894,11 @@ class PromNotify(object):
             info('只检查网络连通性')
             fut = [self.do_work_test_conn(), ]
         else:
-            fut = [self.do_work_smzdm(), self.do_work_mmb(), self.do_work_coupon(), self.do_work_jr_coupon(), self.do_work_test_conn()]
+#-#            fut = [self.do_work_smzdm(), self.do_work_mmb(), self.do_work_coupon(), self.do_work_jr_coupon(), self.do_work_test_conn()]
+            fut = [self.do_work_smzdm(), self.do_work_mmb(), self.do_work_test_conn()]
+            if self.coupon:
+                fut.append(self.do_work_coupon())
+                fut.append(self.do_work_jr_coupon())
         try:
             await asyncio.gather(*fut)
         except concurrent.futures._base.CancelledError:
