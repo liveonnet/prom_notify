@@ -48,9 +48,9 @@ from applib.tools_lib import htmlentitydecode
 from applib.tools_lib import pcformat
 from applib.log_lib import app_log
 
+# 去掉itchat调用的_make_request 中的debug输出
 import logging
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger('connectionpool')
+from urllib3.connectionpool import log as logger
 logger.setLevel(logging.INFO)
 
 info, debug, warn, error = app_log.info, app_log.debug, app_log.warning, app_log.error

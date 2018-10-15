@@ -26,6 +26,7 @@ from setproctitle import setproctitle
 import multiprocessing
 from multiprocessing.managers import SyncManager
 #-#import concurrent
+import logging
 import _thread
 import itchat
 from itchat.content import TEXT, FRIENDS, MAP, CARD, NOTE, SHARING, PICTURE, RECORDING, ATTACHMENT, VIDEO

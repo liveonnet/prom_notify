@@ -61,7 +61,7 @@ class NetManager(object):
 
         self.loop = None
         self.sess = None
-        resolver = AsyncResolver(nameservers=['8.8.8.8', '8.8.4.4'])
+#-#        resolver = AsyncResolver(nameservers=['8.8.8.8', '8.8.4.4', '1.1.1.1'])
 #-#        conn = aiohttp.TCPConnector(resolver=resolver, limit=10, ttl_dns_cache=300)
         conn = aiohttp.TCPConnector(limit=10, ttl_dns_cache=300)
         if self.loop:
