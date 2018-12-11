@@ -412,7 +412,7 @@ class PromNotify(object):
 
                     action, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=tim, item_url=item_url, from_title='慢慢买', price=price, db_his=his)
                     if getuser() == 'pi' and action in ('NOTIFY', 'NORMAL', ''):
-                        info('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', tim, show_title, item_url, real_url)
+                        debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', tim, show_title, item_url, real_url)
                     else:
                         pass
         #-#                    debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', tim, show_title, item_url, real_url)
@@ -528,7 +528,7 @@ class PromNotify(object):
                         action, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=sbr_time, item_url=url, from_title='什么值得买', price=title_price, db_his=his)
 
                         if getuser() == 'pi' and action in ('NOTIFY', 'NORMAL', ''):
-                            info('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
+                            debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
                         else:
                             pass
 #-#                            debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
@@ -603,7 +603,7 @@ class PromNotify(object):
 
                         action, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=sbr_time, item_url=url, from_title='什么值得买', price=price, db_his=his)
                         if getuser() == 'pi' and action in ('NOTIFY', 'NORMAL', ''):
-                            info('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
+                            debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
                         else:
                             pass
 #-#                            debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
@@ -933,9 +933,9 @@ class ProgressData():
         self.loadCfg()
 
     def loadCfg(self):
-        self.__cfg = configparser.SafeConfigParser({'youhui_last_process_time': None, })
+        self.__cfg = configparser.ConfigParser({'youhui_last_process_time': '', })
         if os.path.exists(self.__inifile):
-            self.__cfg.readfp(codecs.open(self.__inifile, 'r', self.__inifile_encoding))
+            self.__cfg.read_file(codecs.open(self.__inifile, 'r', self.__inifile_encoding))
             debug('progress data loaded %s', self.__inifile)
         else:
             warn('progress data file not found ! %s', self.__inifile)

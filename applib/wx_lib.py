@@ -92,7 +92,7 @@ class ItchatManager(object):
         if self.gid is None:  # 有时候登录后第一次查不到“我们”群，尝试多次查找
             try:
                 debug('finding chatroom ...')
-                groups = itchat.get_chatrooms()
+                groups = itchat.get_chatrooms(update=True)
                 for _g in groups:
                     if _g['MemberCount'] == 3 and _g.Self.NickName == "刘强":
                         self.gid = _g['UserName']
@@ -172,13 +172,15 @@ class ItchatManager(object):
         msg_id = msg['MsgId']  # 每条信息的id
         msg_content = None  # 储存信息的内容
         msg_share_url = None  # 储存分享的链接，比如分享的文章和音乐
-        info('msgtype %s, msgid %s from %s', msg['Type'], msg['MsgId'], msg_from)
+#-#        info('[%s %s] %s', msg['Type'], msg['MsgId'], msg_from)
         if msg['Type'] in ('Text', 'Friends'):  # 如果发送的消息是文本或者好友推荐
             msg_content = msg['Text']
-            info('%s', msg_content)
+            info('[%s %s] %s: %s', msg['Type'], msg['MsgId'], msg_from, msg_content)
+#-#            info('%s', msg_content)
         elif msg['Type'] in ('Attachment', 'Video', 'Picture', 'Recording'):  # 如果发送的消息是附件、视屏、图片、语音
             msg_content = msg['FileName']  # 内容就是他们的文件名
             msg['Text'](os.path.join(attachment_dir, msg_content))  # 下载文件
+            info('[%s %s] %s', msg['Type'], msg['MsgId'], msg_from)
             # print msg_content
         elif msg['Type'] == 'Card':  # 如果消息是推荐的名片
             msg_content = msg['RecommendInfo']['NickName'] + '的名片'  # 内容就是推荐人的昵称和性别
@@ -186,17 +188,20 @@ class ItchatManager(object):
                 msg_content += '性别为男'
             else:
                 msg_content += '性别为女'
-            info('%s', msg_content)
+#-#            info('%s', msg_content)
+            info('[%s %s] %s: %s', msg['Type'], msg['MsgId'], msg_from, msg_content)
         elif msg['Type'] == 'Map':  # 如果消息为分享的位置信息
             x, y, location = re.search("<location x=\"(.*?)\" y=\"(.*?)\".*label=\"(.*?)\".*", msg['OriContent']).group(1, 2, 3)
             if location is None:
                 msg_content = "纬度->" + x.__str__() + " 经度->" + y.__str__()  # 内容为详细的地址
             else:
                 msg_content = location
+            info('[%s %s] %s: %s', msg['Type'], msg['MsgId'], msg_from, msg_content)
         elif msg['Type'] == 'Sharing':  # 如果消息为分享的音乐或者文章，详细的内容为文章的标题或者是分享的名字
             msg_content = msg['Text']
             msg_share_url = msg['Url']  # 记录分享的url
-            info('%s', msg_share_url)
+#-#            info('%s', msg_share_url)
+            info('[%s %s] %s: %s', msg['Type'], msg['MsgId'], msg_from, msg_share_url)
         face_bug = msg_content
 
         # 将信息存储在字典中，每一个msg_id对应一条信息

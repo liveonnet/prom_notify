@@ -3,7 +3,7 @@ aiodns==1.1.1
 colorlog==2.10.0
 PyAudio==0.2.10
 setproctitle==1.1.10
-lxml==3.7.3
+#lxml==3.7.3
 pyinotify==0.9.6
 Django==2.0.6
 peewee==2.8.8
