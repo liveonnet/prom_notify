@@ -250,11 +250,12 @@ class ItchatManager(object):
 
                 # 将撤回消息发送到文件助手
                 itchat.send_msg(msg_body, toUserName='filehelper')
-                # 有文件的话也要将文件发送回去
+                # 有文件的话也要将文件发送过去
                 if old_msg['msg_type'] in ('Picture', 'Recording', 'Video', 'Attachment'):
                     f = '@fil@%s' % (old_msg['msg_content'])
                     itchat.send(msg=f, toUserName='filehelper')
-                    os.remove(old_msg['msg_content'])
+                    if os.path.exists(old_msg['msg_content']):
+                        os.remove(old_msg['msg_content'])
                 # 删除字典旧消息
                 msg_information.pop(old_msg_id)
 

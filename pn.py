@@ -242,6 +242,7 @@ class PromNotify(object):
         if url is not None:
             raw_url = url
             nr_redirect = 0
+            l_redirect_his = []
             while url.find('manmanbuy') != -1 and urlparse(url).path:
                 r, _, ok = await self.net.getData(url, timeout=7, my_fmt='bytes', my_retry=2)
                 nr_redirect += 1
@@ -256,19 +257,7 @@ class PromNotify(object):
                                 try:
                                     if _k in d_p:
                                         url = d_p[_k][0]
-                                        break
-                                except UnicodeDecodeError as e:
-                                    warn('d_p %s %s', pcformat(d_p))
-                                    raise e
-                    elif r.status == 400:
-                        url = str(r.url)
-                        if 'url=' in url:  # found 'url=' or 'tourl='
-                            up = urlparse(url)
-                            d_p = parse_qs(up.query, encoding='gbk')
-                            for _k in ('url', 'tourl'):
-                                try:
-                                    if _k in d_p:
-                                        url = d_p[_k][0]
+                                        l_redirect_his.append(url)
                                         break
                                 except UnicodeDecodeError as e:
                                     warn('d_p %s %s', pcformat(d_p))
@@ -279,7 +268,30 @@ class PromNotify(object):
                                     url = raw_url[len(x) - 4:]
                                     if url[0] == 's':  # https
                                         url = url[1:]
-                                        info('got %s from ', url, r.url)
+                                        l_redirect_his.append(url)
+                                    debug('got %s from ', url, r.url)
+                    elif r.status == 400:
+                        url = str(r.url)
+                        if 'url=' in url:  # found 'url=' or 'tourl='
+                            up = urlparse(url)
+                            d_p = parse_qs(up.query, encoding='gbk')
+                            for _k in ('url', 'tourl'):
+                                try:
+                                    if _k in d_p:
+                                        url = d_p[_k][0]
+                                        l_redirect_his.append(url)
+                                        break
+                                except UnicodeDecodeError as e:
+                                    warn('d_p %s %s', pcformat(d_p))
+                                    raise e
+                        elif url.count('http') > 1:
+                            for x in ('http://cu.manmanbuy.com/http', ):
+                                if url.startswith(x):
+                                    url = raw_url[len(x) - 4:]
+                                    if url[0] == 's':  # https
+                                        url = url[1:]
+                                    l_redirect_his.append(url)
+                                    debug('got %s from %s', url, r.url)
                         else:
                             info('real url not found: code %s %s %s', r.status, raw_url, r.url)
                     else:
@@ -289,9 +301,11 @@ class PromNotify(object):
                             url = r.url[len(x) - 4:]
                             if url[0] == 's':  # https
                                 url = url[1:]
+                                l_redirect_his.append(url)
 #-#                                    debug('url from bad url: %s -> %s', raw_url, url)
-                        elif r.url.startswith(('http://detail.tmall.com/', 'https://detail.tmall.com/')):
+                        elif str(r.url).startswith(('http://detail.tmall.com/', 'https://detail.tmall.com/')):
                             url = str(r.url)
+                            l_redirect_his.append(url)
                         elif y in str(r.url):
                             up = urlparse(r.url)
                             d_p = parse_qs(up.query, encoding='gbk')
@@ -300,6 +314,7 @@ class PromNotify(object):
                                     if _k in d_p:
                                         url = d_p[_k][0]
 #-#                                                info('found url from %s', d_p)
+                                        l_redirect_his.append(url)
                                         break
                                 except UnicodeDecodeError as e:
                                     warn('d_p %s %s', pcformat(d_p))
@@ -310,7 +325,7 @@ class PromNotify(object):
                             warn('real url not found: code %s %s %s', r.status, raw_url, r.url)
                         break
                     if nr_redirect > 5:
-                        warn('too many redirect %s', real_url)
+                        warn('too many redirect %s\n%s', real_url, l_redirect_his)
                         break
                     if url.endswith('404.html'):
                         if r.history:  # 从历史url中找

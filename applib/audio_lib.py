@@ -228,7 +228,7 @@ class PlaySound(object):
                     warn('got exception when playing, exit! %s', e)
                     break
                 if event_exit.is_set():
-                    info('got exit flas, exit ~')
+                    info('got exit flag, exit ~')
                     break
 
     def clean(self):
