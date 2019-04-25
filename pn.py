@@ -8,22 +8,22 @@ import redis
 import random
 from getpass import getuser
 from urllib.parse import urlparse
-#-#from urllib.parse import urljoin
+# #from urllib.parse import urljoin
 from urllib.parse import parse_qs
 from lxml import etree
 import asyncio
-#-#import aiohttp
+# #import aiohttp
 import configparser
 import codecs
 from difflib import SequenceMatcher
-#-#from aiohttp.errors import ClientTimeoutError
-#-#from aiohttp.errors import ClientConnectionError
-#-#from aiohttp.errors import ClientDisconnectedError
-#-#from aiohttp.errors import ContentEncodingError
-#-#from aiohttp.errors import ClientError
-#-#from aiohttp.errors import HttpBadRequest
-#-#from aiohttp.errors import ClientHttpProcessingError
-#-#from aiohttp.resolver import AsyncResolver
+# #from aiohttp.errors import ClientTimeoutError
+# #from aiohttp.errors import ClientConnectionError
+# #from aiohttp.errors import ClientDisconnectedError
+# #from aiohttp.errors import ContentEncodingError
+# #from aiohttp.errors import ClientError
+# #from aiohttp.errors import HttpBadRequest
+# #from aiohttp.errors import ClientHttpProcessingError
+# #from aiohttp.resolver import AsyncResolver
 from setproctitle import setproctitle
 import subprocess
 import concurrent
@@ -41,8 +41,8 @@ from applib.watch_lib import startWatchConf, stopWatchConf
 from applib.filter_lib import FilterTitle
 from applib.coupon_lib import CouponManager
 from applib.wx_lib import ItchatManager
-#-#from applib.db_lib import HistoryDB
-#-#from applib.db_lib import Item
+# #from applib.db_lib import HistoryDB
+# #from applib.db_lib import Item
 from applib.orm_lib import HistoryDB
 from applib.tools_lib import htmlentitydecode
 from applib.tools_lib import pcformat
@@ -58,10 +58,10 @@ event_notify = multiprocessing.Event()
 event_exit = asyncio.Event()
 
 premovetag = re.compile('(<.*?>)', re.M | re.S)
-#-#exclude_first_div_tag = re.compile(r'\A<div.*?>(.*?)</div>\Z', re.M | re.S)
-#-#exclude_first_td_tag = re.compile(r'\A<td.*?>\s*(.*?)\s*</td>\Z', re.M | re.S)
-#-#exclude_first_comment_tag = re.compile(r'\A<!-- .*?-->(.*?)<!-- .*?-->\Z', re.M | re.S)
-#-#exclude_first_a_tag = re.compile(r'\A<a.*?>\s*(.*?)\s*</a>\Z', re.M | re.S)
+# #exclude_first_div_tag = re.compile(r'\A<div.*?>(.*?)</div>\Z', re.M | re.S)
+# #exclude_first_td_tag = re.compile(r'\A<td.*?>\s*(.*?)\s*</td>\Z', re.M | re.S)
+# #exclude_first_comment_tag = re.compile(r'\A<!-- .*?-->(.*?)<!-- .*?-->\Z', re.M | re.S)
+# #exclude_first_a_tag = re.compile(r'\A<a.*?>\s*(.*?)\s*</a>\Z', re.M | re.S)
 
 
 async def signal_handler(sig):
@@ -89,7 +89,7 @@ class PromNotify(object):
         self.loop = loop
         self.net = NetManager(conf_path=self.conf_file_path, loop=self.loop, event_notify=event_notify)
         # history data
-#-#        self.his = HistoryDB(self.conf_file_path)
+# #        self.his = HistoryDB(self.conf_file_path)
         # progress data
         self.progress = ProgressData(os.path.abspath(self.conf['progress_file']))
         # filter module
@@ -107,9 +107,9 @@ class PromNotify(object):
         if self.conf['enable_wx']:
             self.wx = ItchatManager(self.conf_file_path)
 
-#-#    async def init(self):
-#-#        if self.sess is None:
-#-#            self.sess = aiohttp.ClientSession(headers={'User-Agent': self.conf['user_agent']})
+# #    async def init(self):
+# #        if self.sess is None:
+# #            self.sess = aiohttp.ClientSession(headers={'User-Agent': self.conf['user_agent']})
 
     async def _getPic(self, pic, raw_data=False):
         '''获取图片数据
@@ -183,16 +183,16 @@ class PromNotify(object):
 
         if action == 'NOTIFY':
             action, ret_data = '', word
-#-#            if getuser() == 'pi':
-#-#                return action, ret_data  # for pi
+# #            if getuser() == 'pi':
+# #                return action, ret_data  # for pi
             # open browser
             cmd = 'notify-send  "%s" "%s at %s"' % (from_title, title.replace('$', '\$').replace('&', '＆'), sbr_time.strftime('%H:%M:%S'))
-#-#            debug('EXEC_CMD< %s ...\n%s %s', cmd, item_url, real_url)
+# #            debug('EXEC_CMD< %s ...\n%s %s', cmd, item_url, real_url)
             subprocess.Popen(cmd, shell=True).wait()
-#-#            # 禁掉open url
+# #            # 禁掉open url
             info('ACCEPT open url for word %s in %s', word, title)
-#-#            pic_path = await self._getPic(pic)
-#-#            webbrowser.get('firefox').open_new_tab('file:///%s' % QrCode.getQrCode(real_url, pic=pic_path))
+# #            pic_path = await self._getPic(pic)
+# #            webbrowser.get('firefox').open_new_tab('file:///%s' % QrCode.getQrCode(real_url, pic=pic_path))
             pic_data = await self._getPic(pic, raw_data=True)
             if pic_data and getuser() != 'pi':
                 webbrowser.get('firefox').open_new_tab('file:///%s' % QrCode.getQrCode(real_url, pic_data=pic_data))
@@ -206,8 +206,8 @@ class PromNotify(object):
         elif action == 'NORMAL':
             if self.price_check(title, price, extra_data):
                 action, ret_data = '', ''
-#-#                if getuser() == 'pi':
-#-#                    return action, ret_data  # for pi
+# #                if getuser() == 'pi':
+# #                    return action, ret_data  # for pi
                 if not slience:
                     self.ps.playTextAsync(title, extra_data)
                     if getuser() != 'pi':
@@ -229,7 +229,7 @@ class PromNotify(object):
         m = self.p_price.match(str(price))
         if m:
             v = float(m.group(1))
-#-#            info('got price %s from %s', v, price)
+# #            info('got price %s from %s', v, price)
             if self.conf['ignore_high_price'] and v >= self.conf['ignore_high_price']:
                 debug('ignore high price: %s for %s %s', v, title, price)
                 return False
@@ -249,7 +249,7 @@ class PromNotify(object):
                 if ok:
                     if r.status == 200:
                         url = str(r.url)
-#-#                        info('url=%s', url)
+# #                        info('url=%s', url)
                         if 'url=' in url:  # found 'url=' or 'tourl='
                             up = urlparse(url)
                             d_p = parse_qs(up.query, encoding='gbk')
@@ -302,7 +302,7 @@ class PromNotify(object):
                             if url[0] == 's':  # https
                                 url = url[1:]
                                 l_redirect_his.append(url)
-#-#                                    debug('url from bad url: %s -> %s', raw_url, url)
+# #                                    debug('url from bad url: %s -> %s', raw_url, url)
                         elif str(r.url).startswith(('http://detail.tmall.com/', 'https://detail.tmall.com/')):
                             url = str(r.url)
                             l_redirect_his.append(url)
@@ -313,7 +313,7 @@ class PromNotify(object):
                                 try:
                                     if _k in d_p:
                                         url = d_p[_k][0]
-#-#                                                info('found url from %s', d_p)
+# #                                                info('found url from %s', d_p)
                                         l_redirect_his.append(url)
                                         break
                                 except UnicodeDecodeError as e:
@@ -346,7 +346,7 @@ class PromNotify(object):
                             warn('real url not found: %s (only found %s)', real_url, url)
                         break
                 else:
-#-#                            info('fetching url not ok %s', url)
+# #                            info('fetching url not ok %s', url)
                     break
 
             real_url = url
@@ -355,16 +355,16 @@ class PromNotify(object):
 
     async def check_main_page_mmb(self):
         his = HistoryDB(self.conf_file_path)
-#-#        r, text, ok = await self.net.getData('http://cu.manmanbuy.com/cx_0_0_wytj_Default_1.aspx', timeout=10, my_str_encoding='gbk')
+# #        r, text, ok = await self.net.getData('http://cu.manmanbuy.com/cx_0_0_wytj_Default_1.aspx', timeout=10, my_str_encoding='gbk')
         r, text, ok = await self.net.getData('http://zhekou.manmanbuy.com/', timeout=10, my_str_encoding='gbk')
-#-#        d_arg = {'DA': datetime.now().strftime('%a %b %d %Y %H:%M:%S') + ' GMT+0800 (CST)',
-#-#                 'action': 'Pull-downLoad',
-#-#                 'siteid': '0',
-#-#                 'sjlx': '0',
-#-#                 'tag': '',
-#-#                 'yfx': '',
-#-#                 }
-#-#        r, text, ok = await self.net.getData('http://zhekou.manmanbuy.com/defaultsharelist.aspx', params=d_arg, timeout=5, my_str_encoding='gbk', my_retry=2)
+# #        d_arg = {'DA': datetime.now().strftime('%a %b %d %Y %H:%M:%S') + ' GMT+0800 (CST)',
+# #                 'action': 'Pull-downLoad',
+# #                 'siteid': '0',
+# #                 'sjlx': '0',
+# #                 'tag': '',
+# #                 'yfx': '',
+# #                 }
+# #        r, text, ok = await self.net.getData('http://zhekou.manmanbuy.com/defaultsharelist.aspx', params=d_arg, timeout=5, my_str_encoding='gbk', my_retry=2)
 
         if not ok:
             return
@@ -375,10 +375,9 @@ class PromNotify(object):
         pr = etree.HTMLParser()
         tree = etree.fromstring(text, pr)
         l_item = tree.xpath('//li[@class="item"]')
-#-#        info('got %s item(s)', len(l_item))
+# #        info('got %s item(s)', len(l_item))
         if not l_item:
             open('/tmp/mmb_source.txt', 'w').write(etree.tostring(tree, encoding='unicode'))
-
 
         try:
             for x in l_item:
@@ -386,28 +385,28 @@ class PromNotify(object):
                     if event_exit.is_set():
                         info('got exit flag, exit~')
                         break
-#-#                    _id = x.xpath('./div[@class="action"]/div[@class="popbox"]/dl/dd[1]/a/@data-id')[0][:]
-                    s=x.xpath('.//span[@class="gobuy"]/a[1]/@onclick')[0]
+# #                    _id = x.xpath('./div[@class="action"]/div[@class="popbox"]/dl/dd[1]/a/@data-id')[0][:]
+                    s = x.xpath('.//span[@class="gobuy"]/a[1]/@onclick')[0]
                     _id = re.search('(\d+)', s).group(1)
                     if _id.strip() != _id:
                         error('_id contain space char! %s|', _id)
                         _id = _id.strip()
 
-        #-#                if Item.select().where((Item.source == 'mmb') & (Item.sid == _id)).exists():
+        # #                if Item.select().where((Item.source == 'mmb') & (Item.sid == _id)).exists():
                     if his.existsItem('mmb', _id):
-        #-#                    info('SKIP EXISTING item mmb %s', _id)
-        #-#                    continue
+        # #                    info('SKIP EXISTING item mmb %s', _id)
+        # #                    continue
                         break
                     title = x.xpath('./div[@class="content"]/h2/a[1]/text()')[0][:].strip()
-#-#                    debug('title %s', title)
+# #                    debug('title %s', title)
                     price = x.xpath('./div[@class="content"]/h2/a[2]/text()')[0][:].strip()
-#-#                    debug('price %s', price)
+# #                    debug('price %s', price)
                     if not await self._checkChinese('慢慢买', title):
                         continue
                     show_title = title + ' ' + price
                     pic = x.xpath('div[@class="cover"]/a/img/@original')[0][:]
                     tim = x.xpath('./div[@class="content"]/div[@class="meta"]/div[@class="flinf"]/span/text()')[0][:].strip()
-#-#                    debug('tim %s', tim)
+# #                    debug('tim %s', tim)
                     tim_part_date, tim_part_time = tim.split(' ', 1)
                     tim_part_date = tim_part_date.split('/')
                     if len(tim_part_date[1]) == 1:
@@ -415,13 +414,13 @@ class PromNotify(object):
                     if len(tim_part_date[2]) == 1:
                         tim_part_date[2] = '0' + tim_part_date[2]
                     tim = '/'.join(tim_part_date) + ' ' + tim_part_time
-#-#                    debug('tim %s', tim)
+# #                    debug('tim %s', tim)
                     tim = datetime.strptime(tim, '%Y/%m/%d %H:%M:%S')
                     url = x.xpath('./div[@class="content"]/div[@class="meta"]/div[2][@class="frinf"]/span[@class="gobuy"]/a/@href')[0][:]
 
                     url = 'http://cu.manmanbuy.com/%s' % (url, )
                     item_url = 'http://cu.manmanbuy.com/Sharedetailed_%s.aspx' % (_id, )
-#-#                    debug('id %s title %s price %s, pic %s tim %s url %s item_url %s', _id, title, price, pic, tim, url, item_url)
+# #                    debug('id %s title %s price %s, pic %s tim %s url %s item_url %s', _id, title, price, pic, tim, url, item_url)
                     real_url = await self._get_real_url_4mmb(url)
                     real_url = self.get_from_linkstars(real_url, source='mmb')
 
@@ -430,13 +429,13 @@ class PromNotify(object):
                         debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', tim, show_title, item_url, real_url)
                     else:
                         pass
-        #-#                    debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', tim, show_title, item_url, real_url)
-        #-#                Item.create(source='mmb', sid=_id, show_title=show_title, item_url=item_url, real_url=real_url, pic_url=pic, get_time=tim)
+        # #                    debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', tim, show_title, item_url, real_url)
+        # #                Item.create(source='mmb', sid=_id, show_title=show_title, item_url=item_url, real_url=real_url, pic_url=pic, get_time=tim)
                     his.createItem(source='mmb', sid=_id, show_title=show_title, item_url=item_url, real_url=real_url, pic_url=pic, get_time=tim)
                 except (IndexError, ):
                     debug('IndexError')
                     continue
-        except:
+        except Exception:
             error('error ', exc_info=True)
         finally:
             his.clean()
@@ -444,7 +443,7 @@ class PromNotify(object):
     def get_from_linkstars(self, url, source=''):
         real_url = url
         if url and url.startswith('https://www.linkstars.com/click.php?'):
-#-#            debug('%s%slinkstars url found %s', source, ' ' if source else '', url)
+# #            debug('%s%slinkstars url found %s', source, ' ' if source else '', url)
             up = urlparse(url)
             d_p = parse_qs(up.query)
             for _k in ('to', ):
@@ -456,8 +455,8 @@ class PromNotify(object):
                     warn('d_p %s %s', pcformat(d_p))
                     raise e
 
-#-#        if real_url != url:
-#-#            debug('%s%sfound url from linkstars %s', source, ' ' if source else '', real_url)
+# #        if real_url != url:
+# #            debug('%s%sfound url from linkstars %s', source, ' ' if source else '', real_url)
         return real_url or ''
 
     async def check_main_page(self):
@@ -466,7 +465,7 @@ class PromNotify(object):
         his = HistoryDB(self.conf_file_path)
 
         base_url = '''https://www.smzdm.com/youhui/'''
-#-#        debug('base_url = %s', base_url)
+# #        debug('base_url = %s', base_url)
         real_url = None
         r, text, ok = await self.net.getData(base_url, timeout=5, my_retry=2)
         if ok:
@@ -492,10 +491,10 @@ class PromNotify(object):
                         title_price = title_price[0][:]
                         try:
                             title_noprice = premovetag.sub('', x.xpath('./div[@class="listTitle"]//h2[@class="itemName"]/a/text()')[0][:])
-                        except:
+                        except Exception:
                             error('got except, %s', etree.tostring(x), exc_info=True)
                             continue
-#-#                        info('title_noprice: %s', title_noprice)
+# #                        info('title_noprice: %s', title_noprice)
                         show_title = title_noprice + ' ' + title_price
                     else:
                         show_title = title
@@ -512,25 +511,25 @@ class PromNotify(object):
                         min_time = timesort
                     if max_time is None or timesort > max_time:
                         max_time = timesort
-#-#                    if not Item.select().where((Item.source == 'smzdm') & (Item.sid == _id)).exists():
+# #                    if not Item.select().where((Item.source == 'smzdm') & (Item.sid == _id)).exists():
                     if not his.existsItem('smzdm', _id):
                         nr_new += 1
                         # get real url
                         real_url = None
                         if direct_url is not None:
                             if direct_url.find('/go.smzdm.com/') != -1:
-#-#                                debug('getting real_url for %s ...', direct_url)
+# #                                debug('getting real_url for %s ...', direct_url)
                                 rr, rr_text, ok = await self.net.getData(direct_url, timeout=5)
                                 if ok and rr.status == 200:
                                     s_js = re.search(r'eval\((.+?)\)\s+\</script\>', rr_text, re.DOTALL | re.IGNORECASE | re.MULTILINE | re.UNICODE).group(1)
                                     s_rs = execjs.eval(s_js)
-#-#                                    debug('s_rs: %s', repr(s_rs))
+# #                                    debug('s_rs: %s', repr(s_rs))
                                     s_key = re.search(r'location\.href=(.+?)}', s_rs).group(1)
-#-#                                    debug('s_key: %s', repr(s_key))
+# #                                    debug('s_key: %s', repr(s_key))
                                     m = re.search(r'''%s='(?P<real_url>.+?)';''' % (s_key,), s_rs, re.DOTALL | re.IGNORECASE | re.MULTILINE | re.UNICODE)
                                     if m:
                                         real_url = m.group('real_url')
-#-#                                        debug('real_url: %s', real_url)
+# #                                        debug('real_url: %s', real_url)
                                     else:
                                         info('can\'t find real_url')
                             else:
@@ -546,12 +545,12 @@ class PromNotify(object):
                             debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
                         else:
                             pass
-#-#                            debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
-#-#                        Item.create(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
+# #                            debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
+# #                        Item.create(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
                         his.createItem(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
                     else:
                         break
-#-#                        info('SKIP EXISTING item smzdm %s', _id)
+# #                        info('SKIP EXISTING item smzdm %s', _id)
             else:
                 info('return code = %d !!!', r.status)
 
@@ -561,15 +560,15 @@ class PromNotify(object):
     async def check_main_page_getmore(self, process_time):
         nr_new = 0
         max_time, min_time = None, None
-#-#        base_url = '''https://www.smzdm.com/youhui/json_more'''
+# #        base_url = '''https://www.smzdm.com/youhui/json_more'''
         base_url = '''https://faxian.smzdm.com/json_more'''
-#-#        debug('base_url = %s', base_url)
+# #        debug('base_url = %s', base_url)
         real_url = None
         his = HistoryDB(self.conf_file_path)
         r, text, ok = await self.net.getData(base_url, params={'type': 'a', 'timesort': str(int(process_time))}, timeout=5, my_fmt='json', my_json_encoding='utf8')
         if ok:
             if r.status == 200:
-#-#                debug('url %s', r.url)
+# #                debug('url %s', r.url)
                 l_item = text
                 for x in l_item:
                     if event_exit.is_set():
@@ -592,7 +591,7 @@ class PromNotify(object):
                         min_time = timesort
                     if max_time is None or max_time < timesort:
                         max_time = timesort
-#-#                    if not Item.select().where((Item.source == 'smzdm') & (Item.sid == _id)).exists():
+# #                    if not Item.select().where((Item.source == 'smzdm') & (Item.sid == _id)).exists():
                     if not his.existsItem('smzdm', _id):
                         nr_new += 1
                         # get real url
@@ -600,7 +599,7 @@ class PromNotify(object):
                         if direct_url is not None:
                             real_url = None
                             if direct_url.find('/go.smzdm.com/') != -1:
-#-#                                debug('getting real_url for %s ...', direct_url)
+# #                                debug('getting real_url for %s ...', direct_url)
                                 rr, rr_text, ok = await self.net.getData(direct_url, timeout=5)
                                 if ok and rr.status == 200:
                                     s_js = re.search(r'eval\((.+?)\)\s+\</script\>', rr_text, re.DOTALL | re.IGNORECASE | re.MULTILINE | re.UNICODE).group(1)
@@ -609,7 +608,7 @@ class PromNotify(object):
                                     m = re.search(r'''%s='(?P<real_url>.+?)';''' % (s_key,), s_rs, re.DOTALL | re.IGNORECASE | re.MULTILINE | re.UNICODE)
                                     if m:
                                         real_url = m.group('real_url')
-#-#                                        debug('%s -> %s', direct_url, real_url)
+# #                                        debug('%s -> %s', direct_url, real_url)
                                     else:
                                         warn('can\'t find real_url')
                             else:
@@ -621,15 +620,15 @@ class PromNotify(object):
                             debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
                         else:
                             pass
-#-#                            debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
-#-#                        if len(x['article_link_list']) > 0:
-#-#                            (info if not action else debug)('have more url:\n%s', '\n'.join('%s %s %s' % (_url['name'], _url['buy_btn_domain'], _url['link']) for _url in x['article_link_list']))
+# #                            debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
+# #                        if len(x['article_link_list']) > 0:
+# #                            (info if not action else debug)('have more url:\n%s', '\n'.join('%s %s %s' % (_url['name'], _url['buy_btn_domain'], _url['link']) for _url in x['article_link_list']))
 
-#-#                        Item.create(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
+# #                        Item.create(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
                         his.createItem(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
                     else:
                         break
-#-#                        info('SKIP EXISTING item smzdm %s', _id)
+# #                        info('SKIP EXISTING item smzdm %s', _id)
             else:
                 info('return code = %d !!!', r.status)
 
@@ -654,14 +653,14 @@ class PromNotify(object):
             if r.status != 200:
                 info('got code %s for %s', r.status, r.url)
                 return
-#-#            info('url %s', url)
+# #            info('url %s', url)
 
             text = text[len(cb) + 1: -1]
-#-#            info('text %s %s', text[:5], text[-10:])
+# #            info('text %s %s', text[:5], text[-10:])
             try:
                 j_data = json.loads(text)
-            except:
-#-#                error('got except loading json data', exc_info=True)
+            except Exception:
+# #                error('got except loading json data', exc_info=True)
                 error('got except loading json data')
             else:
                 if j_data.get('resultCode') != '200' or j_data.get('success') is not True:
@@ -670,7 +669,7 @@ class PromNotify(object):
                     if num is None:
                         num = j_data['totalNum']
                     if 'couponList' not in j_data:
-#-#                        info('no couponList\n%s', pcformat(j_data))
+# #                        info('no couponList\n%s', pcformat(j_data))
                         break
                     for _item in j_data['couponList']:
                         nr_total += 1
@@ -702,7 +701,7 @@ class PromNotify(object):
                                 warn('bad url %s', _item['receiveUrl'])
 
                         if action == 'NORMAL' or action == 'NOTIFY':
-#-#                            info('券 %s %s %s[%s-%s][%s, %s] %s', _item['successLabel'], _item['limitStr'] or'', 'Plus' if _item['ynPlus'] else '', _item['quota'], _item['denomination'], _item['startTime'], _item['endTime'], _item['receiveUrl'])
+# #                            info('券 %s %s %s[%s-%s][%s, %s] %s', _item['successLabel'], _item['limitStr'] or'', 'Plus' if _item['ynPlus'] else '', _item['quota'], _item['denomination'], _item['startTime'], _item['endTime'], _item['receiveUrl'])
                             extra_data = {'from_title': 'jd',
                                           'cut_word': '',
                                           'item_url': '',
@@ -718,7 +717,7 @@ class PromNotify(object):
                                         continue
 
                             if _item['leftTime'] is not None and int(_item['leftTime']) > 0:
-#-#                                debug('%s 没到领取时间? %s [%s, %s]', title, _item['leftTime'], _item['startTime'], _item['endTime'])
+# #                                debug('%s 没到领取时间? %s [%s, %s]', title, _item['leftTime'], _item['startTime'], _item['endTime'])
                                 rds.hdel(k_jd_coupon, str(_item['roleId']))
                                 continue
                             # 对全品类　按面值过滤
@@ -726,8 +725,8 @@ class PromNotify(object):
                                 info('跳过大面额 %s', title)
                                 continue
 
-#-#                            info('FAKE 自动领取 %s', title)
-#-#                            continue
+# #                            info('FAKE 自动领取 %s', title)
+# #                            continue
 
                             if not self.conf['slience']:
                                 self.ps.playTextAsync(title, extra_data)
@@ -735,16 +734,16 @@ class PromNotify(object):
                                 info(title)
 
                             # 自动领取尝试
-#-#                            info('page %s', _idx)
+# #                            info('page %s', _idx)
                             await self.coupon.GetJdCouponWithCookie(title, _item)
-#-#        info('nr_total %s(%s) nr_ignore %s', nr_total, num, nr_ignore)
+# #        info('nr_total %s(%s) nr_ignore %s', nr_total, num, nr_ignore)
 
         return
 
     async def clean(self):
         info('cleaning ...')
-#-#        if self.sess:
-#-#            self.sess.close()
+# #        if self.sess:
+# #            self.sess.close()
         if self.coupon:
             self.coupon.clean()
         if self.net:
@@ -753,8 +752,8 @@ class PromNotify(object):
             self.filter.clean()
         if self.ps:
             self.ps.clean()
-#-#        if self.his:
-#-#            self.his.clean()
+# #        if self.his:
+# #            self.his.clean()
         if self.wx:
             self.wx.clean()
 
@@ -764,37 +763,40 @@ class PromNotify(object):
         nr_new = None
         interval = self.conf['interval']
         while True:
-            nr_new, max_process_time_sec, min_process_time_sec = await self.check_main_page()
+            try:
+                nr_new, max_process_time_sec, min_process_time_sec = await self.check_main_page()
 
-            while min_process_time_sec >= process_time_sec:
-                process_time_sec = min_process_time_sec
-                try:
-                    nr_new, _, min_process_time_sec = await self.check_main_page_getmore(process_time_sec)
-                except:
-                    error('error when chek main page getmore', exc_info=True)
+                while min_process_time_sec >= process_time_sec:
+                    process_time_sec = min_process_time_sec
+                    try:
+                        nr_new, _, min_process_time_sec = await self.check_main_page_getmore(process_time_sec)
+                    except Exception:
+                        error('error when chek main page getmore', exc_info=True)
 
-                if event_exit.is_set():
-                    info('got exit flag, exit~')
-                    break
+                    if event_exit.is_set():
+                        info('got exit flag, exit~')
+                        break
 
-                if min_process_time_sec is None:  # got net problem
-                    min_process_time_sec = process_time_sec
-                    await asyncio.sleep(5)
-                    continue
+                    if min_process_time_sec is None:  # got net problem
+                        min_process_time_sec = process_time_sec
+                        await asyncio.sleep(5)
+                        continue
 
-                if not nr_new:
-                    debug('got %s new item', nr_new)
-                    break
-                info('getmore nr_new %d min_sec %d(%s)', nr_new, min_process_time_sec, datetime.fromtimestamp(min_process_time_sec))
+                    if not nr_new:
+                        debug('got %s new item', nr_new)
+                        break
+                    info('getmore nr_new %d min_sec %d(%s)', nr_new, min_process_time_sec, datetime.fromtimestamp(min_process_time_sec))
 
-            process_time_sec = max_process_time_sec
-            self.progress.process_time = datetime.fromtimestamp(process_time_sec)
+                process_time_sec = max_process_time_sec
+                self.progress.process_time = datetime.fromtimestamp(process_time_sec)
+            except etree.XMLSyntaxError:
+                pass
 
             print('.', end='', file=sys.stderr, flush=True)
             if event_exit.is_set():
                 info('got exit flag, exit~')
                 break
-#-#            await asyncio.sleep(interval)
+# #            await asyncio.sleep(interval)
             try:
                 await asyncio.wait_for(event_exit.wait(), interval)
             except concurrent.futures._base.TimeoutError:
@@ -814,7 +816,7 @@ class PromNotify(object):
             if event_exit.is_set():
                 info('got exit flag, exit~')
                 break
-#-#            await asyncio.sleep(interval)
+# #            await asyncio.sleep(interval)
             try:
                 await asyncio.wait_for(event_exit.wait(), interval)
             except concurrent.futures._base.TimeoutError:
@@ -831,7 +833,7 @@ class PromNotify(object):
             return
         interval = self.conf['interval'] * 3  # 检查时间放长
         while True:
-#-#            info('check %s ...', datetime.now())
+# #            info('check %s ...', datetime.now())
             await self.check_jd_coupon()
             print('+', end='', file=sys.stderr, flush=True)
             if event_exit.is_set():
@@ -853,7 +855,7 @@ class PromNotify(object):
             return
         interval = 1800  # 最低半小时检查一次
         while True:
-#-#            info('check %s ...', datetime.now())
+# #            info('check %s ...', datetime.now())
             await self.coupon.GetJdJrCouponWithCookie(self.filter)
             print('$', end='', file=sys.stderr, flush=True)
             if event_exit.is_set():
@@ -886,7 +888,7 @@ class PromNotify(object):
             if event_exit.is_set():
                 info('got exit flag, exit~')
                 break
-#-#            await asyncio.sleep(interval)
+# #            await asyncio.sleep(interval)
             try:
                 await asyncio.wait_for(event_exit.wait(), interval)
             except concurrent.futures._base.TimeoutError:
@@ -897,11 +899,10 @@ class PromNotify(object):
                 info('got exit flag, exit~')
                 break
 
-
     async def do_work_async(self):
         self.loop.add_signal_handler(signal.SIGINT, lambda: asyncio.ensure_future(signal_handler(signal.SIGINT)))
 
-#-#        await self.init()
+# #        await self.init()
         wm, notifier, wdd = startWatchConf(self.all_conf['filter']['filter_path'], event_notify)
 
         debug('doing ...')
@@ -909,7 +910,7 @@ class PromNotify(object):
             info('只检查网络连通性')
             fut = [self.do_work_test_conn(), ]
         else:
-#-#            fut = [self.do_work_smzdm(), self.do_work_mmb(), self.do_work_coupon(), self.do_work_jr_coupon(), self.do_work_test_conn()]
+# #            fut = [self.do_work_smzdm(), self.do_work_mmb(), self.do_work_coupon(), self.do_work_jr_coupon(), self.do_work_test_conn()]
             fut = [self.do_work_smzdm(), self.do_work_mmb(), self.do_work_test_conn()]
             if self.coupon:
                 fut.append(self.do_work_coupon())
@@ -983,7 +984,7 @@ if __name__ == '__main__':
     finally:
         try:
             loop.stop()
-        except:
+        except Exception:
             error('got except when stop loop', exc_info=True)
             pass
 
