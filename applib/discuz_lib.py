@@ -3,6 +3,9 @@ import os
 import re
 from lxml import etree
 #-#from urllib.parse import quote
+from urllib.parse import urljoin
+from itertools import repeat
+from itertools import count
 import importlib
 import asyncio
 from getpass import getuser
@@ -71,7 +74,7 @@ class DiscuzManager(object):
 
         return data
 
-    async def getPost(self):
+    async def getPost(self, title, url):
         """获得帖子内容, 目前只取开主内容，不取回帖内容
         """
 
@@ -103,11 +106,11 @@ class QiLanManager(DiscuzManager):
                 h = m.group(1)
                 ff.find_element_by_id('username_' + h).send_keys(forum['user'])
                 ff.find_element_by_id('password3_' + h).send_keys(forum['password'])
+                embed()
                 m = re.search("updateseccode\('([^']+)'\)", ff.page_source)
                 if m:
                     s = m.group(1)
                     ff.find_element_by_id('seccodeverify_' + s).click()
-            embed()
             l_c = ff.get_cookies()
             data = ';'.join('{name}={value}'.format(**c) for c in l_c)
         finally:
@@ -156,11 +159,8 @@ class QiLanManager(DiscuzManager):
                         l_url = tree.xpath(_sub.get('postlist_url') or forum['postlist_url'])
                         l_ctime = tree.xpath(_sub.get('postlist_ctime') or forum['postlist_ctime'])
                         l_utime = tree.xpath(_sub.get('postlist_utime') or forum['postlist_utime'])
-#-#                        if not l_ctime:
-#-#                            info('text %s', text)
-#-#                            embed()
                         for _i, (_group, _title, _url, _ctime, _utime) in enumerate(zip(l_group, l_title, l_url, l_ctime, l_utime), 1):
-                            info('[%s] %s/%s %s %s %s\n%s', _group, _i, len(l_title), _title, _ctime, _utime, _url)
+                            info(f'[{_group}] {_i}/{len(l_title)} {_title} {_ctime} {_utime}\n--> {_url}')
                         break
             if save_cookie:
                 open(os.path.abspath(forum['cookie_file']), 'w').write(cookie)
@@ -169,9 +169,115 @@ class QiLanManager(DiscuzManager):
         info('%s 处理完毕', forum['title'])
         return data
 
-    async def getPost(self):
+    async def getPost(self, title, url):
         """获得帖子内容, 目前只取开帖内容，不取回帖内容
         """
+
+
+class SzsManager(DiscuzManager):
+    """获取szs帖子内容
+    """
+    def __init__(self, conf_path='config/pn_conf.yaml', event_notify=None):
+        super().__init__(conf_path, event_notify)
+        self.init()
+        self.cookie = None
+
+    async def login(self, forum):
+        """登录操作
+        """
+        data = None
+        ff = webdriver.Firefox()
+        try:
+            ff.get(forum['login_url'])
+            m = re.search('loginhash=([^"]+)"', ff.page_source)
+            if m:
+                h = m.group(1)
+                ff.find_element_by_id('username_' + h).send_keys(forum['user'])
+                ff.find_element_by_id('password3_' + h).send_keys(forum['password'])
+                embed()
+                m = re.search("updateseccode\('([^']+)'\)", ff.page_source)
+                if m:
+                    s = m.group(1)
+                    ff.find_element_by_id('seccodeverify_' + s).click()
+            l_c = ff.get_cookies()
+            data = ';'.join('{name}={value}'.format(**c) for c in l_c)
+        finally:
+            ff.quit()
+
+        return data
+
+    async def getPostList(self, forum):
+        """获得帖子列表
+        """
+        data = None
+        debug('fetching %s ...', forum['title'])
+        for _sub in forum['subforum']:
+            if not _sub['enabled']:
+                continue
+            debug('fetching sub forum %s\n%s ...', _sub['title'], _sub['url'])
+            cookie, save_cookie = self.cookie, False
+            if cookie is None and os.path.exists(forum['cookie_file']):
+                cookie = open(forum['cookie_file']).read()
+                info('loaded cookie from %s', forum['cookie_file'])
+                self.cookie = cookie
+            for _page in count(1):
+                info(f'fetching {_sub["title"]} page {_page} ...')
+                resp, text, ok = await self.net.getData(_sub['url'].format(page=_page), timeout=5, my_fmt='str', my_str_encoding='gbk', headers={'Cookie': cookie} if cookie else None, my_retry=2)
+                if ok:
+#-#                    info('resp %s', pcformat(resp))
+                    pr = etree.HTMLParser()
+                    tree = etree.fromstring(text, pr)
+                    l_title = tree.xpath(_sub.get('postlist_title') or forum['postlist_title'])
+                    if not l_title:
+                        break
+                    l_type = tree.xpath(_sub.get('postlist_type') or forum['postlist_type'])
+#-#                        info(f'{len(l_title)}\n{l_title}')
+                    l_url = tree.xpath(_sub.get('postlist_url') or forum['postlist_url'])
+                    l_ctime = tree.xpath(_sub.get('postlist_ctime') or forum['postlist_ctime'])
+                    l_utime = tree.xpath(_sub.get('postlist_utime') or forum['postlist_utime'])
+#-#                    info(f'{len(l_title)} {len(l_url)} {len(l_ctime)} {len(l_utime)}')
+                    for _i, (_group, _title, _type, _url, _ctime, _utime) in enumerate(zip(repeat(_sub['title'], len(l_title)), l_title, l_type, l_url, l_ctime, l_utime), 1):
+                        if _type not in _sub.get('ignore_type', []):
+                            for _keyword in _sub.get('ignore_keyword', []):
+                                if _title.find(_keyword) != -1:
+#-#                                    warn(f'SKIP keyword {_keyword} for {_title}')
+                                    break
+                            else:
+#-#                                info(f'[{_type}] {_i}/{len(l_title)} {_title} {_ctime} {_utime}\n\t--> {urljoin(forum["post_base_url"], _url)}\n\n')
+                                _content, _img_list, _attach_info = await self.getPost(_title, _url, forum, _sub, cookie)
+                                if _content:
+                                    info(f'\n[{_type}] {_i}/{len(l_title)} {_title} {_ctime} {_utime}\n\t--> {urljoin(forum["post_base_url"], _url)}\n\t {pcformat(_img_list)}\n\t {_attach_info}\n\n')
+#-#                        else:
+#-#                            warn(f'SKIP type {_type} for {_title}')
+                else:
+                    break
+
+        info('%s 处理完毕', forum['title'])
+        return data
+
+    async def getPost(self, title, url, forum_cfg, subforum_cfg, cookie):
+        """获得帖子内容, 目前只取开帖内容，不取回帖内容
+        """
+        resp, text, ok = await self.net.getData(urljoin(forum_cfg['post_base_url'], url), timeout=5, my_fmt='str', my_str_encoding='gbk', headers={'Cookie': cookie} if cookie else None)
+        content, image_list, attach_info = None, None, None
+        if ok:
+            pr = etree.HTMLParser()
+            tree = etree.fromstring(text, pr)
+#-#            info(f'{etree.tounicode(tree)}')
+#-#            info(f'{subforum_cfg.get("post_content")} {forum_cfg["post_content"]}')
+            post_content = tree.xpath(subforum_cfg.get('post_content') or forum_cfg['post_content'])
+            if post_content:
+                post_content = post_content[0]
+#-#                info(f'{etree.tounicode(content)}')
+                content = etree.tounicode(post_content)
+                attachlist_title = post_content.xpath(forum_cfg['post_attachlist_title'])[0]
+                attachlist_url = post_content.xpath(forum_cfg['post_attachlist_url'])[0]
+                attach_info = (attachlist_title, urljoin(forum_cfg["post_base_url"], attachlist_url))
+                image_list = post_content.xpath('.//img[starts-with(@src, "http")]/@src')
+#-#                info(f'{pcformat(image_list)}\n{attach_info}')
+            elif '无权' in etree.tounicode(tree):
+                info('无权查看')
+        return content, image_list, attach_info
 
 
 if __name__ == '__main__':

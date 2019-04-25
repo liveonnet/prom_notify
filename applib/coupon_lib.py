@@ -59,7 +59,7 @@ class CouponManager(object):
         if self.conf['geckodriver'] not in sys.path:
             sys.path.append(self.conf['geckodriver'])
         opt = Options()
-        opt.add_argument('--headless')
+#-#        opt.add_argument('--headless')
         ff = webdriver.Firefox(firefox_options=opt)
 #-#        display = Display(visible=0, size=(800, 600))
 #-#        display.start()
@@ -119,6 +119,7 @@ class CouponManager(object):
                     if no_btn or need_login:
                         # 没登录？
                         info('没登录? 尝试登录')
+#-#                        embed()
                         # 登录京东
                         try:
                             if 'm.jd.com' in item['receiveUrl']:
@@ -128,6 +129,16 @@ class CouponManager(object):
                                 ff.find_element_by_id('username').send_keys(self.jd_user)
                                 ff.find_element_by_id('password').send_keys(self.jd_password)
                                 ff.find_element_by_id('loginBtn').click()
+                                # 判断是否需要输入验证码
+                                code = None
+                                try:
+                                    code = ff.find_element_by_id('code')
+                                except:  # 不需要输入
+                                    pass
+                                else:
+                                    info('貌似需要输入验证码')
+    #-#                                raise Exception('无法自动登录')
+                                    embed()
                             else:
                                 url = 'https://passport.jd.com/new/login.aspx?ReturnUrl=%s' % quote(item['receiveUrl'])
                                 info('open login page %s', url)
@@ -182,7 +193,7 @@ class CouponManager(object):
 
         return rslt, err
 
-    async def GetJdJrCouponWithCookie(self, filter):
+    async def GetJdJrCouponWithCookie(self, my_filter):
         """自动领取京东金融优惠券
 
         参考 http://selenium-python.readthedocs.io/index.html
@@ -193,7 +204,7 @@ class CouponManager(object):
             if self.conf['geckodriver'] not in sys.path:
                 sys.path.append(self.conf['geckodriver'])
             opt = Options()
-            opt.add_argument('--headless')
+#-#            opt.add_argument('--headless')
             ff = webdriver.Firefox(firefox_options=opt)
         else:
             ff = self.ff_jr
@@ -215,7 +226,7 @@ class CouponManager(object):
                     except:
                         pass
 #-#                        error('ignore except', exc_info=True)
-#-#                debug('读取完毕cookie %s', cookie_file)
+                debug('读取完毕cookie %s', cookie_file)
             try:
                 s_try = set()
                 while 1:
@@ -234,6 +245,16 @@ class CouponManager(object):
                             ff.find_element_by_id('username').send_keys(self.jd_user)
                             ff.find_element_by_id('password').send_keys(self.jd_password)
                             ff.find_element_by_id('loginBtn').click()
+                            # 判断是否需要输入验证码
+                            code = None
+                            try:
+                                code = ff.find_element_by_id('code')
+                            except:  # 不需要输入
+                                pass
+                            else:
+                                info('貌似需要输入验证码')
+#-#                                raise Exception('无法自动登录')
+                                embed()
                             await asyncio.sleep(2)
                         except:
                             info('登录京东时出错', exc_info=True)
@@ -262,7 +283,10 @@ class CouponManager(object):
                             continue
 #-#                            debug('checking %s, %s %s', _t.text, _p.text if _p else '', _btn.text if _btn else '')
                         # 跳过不领的
-                        action, word, _ = filter.matchFilterJrCoupon(title=_t.text)
+                        if not my_filter:
+                            info('my_filter is None !!!')
+                            continue
+                        action, word, _ = my_filter.matchFilterJrCoupon(title=_t.text)
                         if action == 'SKIP':
 #-#                            debug('skip %s %s hit %s', _i, _t.text, word)
                             continue
@@ -313,9 +337,12 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
 
     item = {'receiveUrl': 'http://coupon.m.jd.com/coupons/show.action?key=45d6a751fce54aa5be8dd8d40fb2912d&roleId=11653592&to=https://mall.jd.com/index-1000003005.html', }
+    from applib.filter_lib import FilterTitle
+    my_filter = None
     try:
-#-#        task = asyncio.ensure_future(CouponManager().GetJdCouponWithCookie('测试标题', item))
-        task = asyncio.ensure_future(CouponManager().GetJdJrCouponWithCookie())
+        task = asyncio.ensure_future(CouponManager().GetJdCouponWithCookie('测试标题', item))
+#-#        my_filter = FilterTitle('config/pn_conf.yaml', None)
+#-#        task = asyncio.ensure_future(CouponManager().GetJdJrCouponWithCookie(my_filter))
         x = loop.run_until_complete(task)
         info(pcformat(x))
     except KeyboardInterrupt:
@@ -324,6 +351,8 @@ if __name__ == '__main__':
         loop.run_forever()
         task.exception()
     finally:
+        if my_filter:
+            my_filter.clean()
         loop.stop()
 
 
