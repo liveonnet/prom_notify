@@ -67,3 +67,13 @@ class HistoryDB(object):
 #-#            return obj
 #-#        raise AttributeError('can\'t find attribute %s in %s', repr(name), self)
 
+
+class SzsTorrent(BaseModel):
+    tid = CharField(primary_key=True)
+    posttitle = CharField()
+    img_url = CharField(null=True)
+    name = CharField()
+    size = CharField(null=True)
+    aid = CharField()
+    ctime = DateTimeField(null=True, default=datetime.now)
+

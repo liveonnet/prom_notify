@@ -8,7 +8,9 @@ from sqlalchemy import and_
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 #-#from sqlalchemy.ext.automap import automap_base
-from sqlalchemy import Column, Integer, String, DateTime
+from IPython import embed
+embed
+from sqlalchemy import Column, BigInteger, Integer, String, DateTime
 if __name__ == '__main__':
     sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
 from applib.tools_lib import pcformat
@@ -37,6 +39,19 @@ class Item(Base):
 
     def __repr__(self):
         return '<%s %s %s>' % (self.source, self.sid, self.show_title)
+
+
+class SisTorrent(Base):
+    __tablename__ = 'sist'
+
+    tid = Column(BigInteger, primary_key=True, autoincrement=False)
+    url = Column(String(256))
+    title = Column(String(256))
+    img_url = Column(String(4096), nullable=True)
+    name = Column(String(256))
+    size = Column(String(16), nullable=True)
+    aid = Column(BigInteger)
+    ctime = Column(DateTime, nullable=True, default=datetime.now)
 
 
 class Singleton(type):
@@ -123,7 +138,74 @@ class HistoryDB(object):
 #-#        info('closed.')
 
 
+class SisDB(object):
+    def __init__(self, conf_path='config/pn_conf.yaml'):
+        self.conf_path = os.path.abspath(conf_path)
+        self.conf = getConf(self.conf_path, root_key='orm')
+        self.conf = self.conf['sis']
+        self.sess_factory = SessionMaker.getSessMaker(self.conf['conn_str'], self.conf['echo'])
+
+    def getSess(self):
+        return self.sess_factory()
+
+    def existsRecord(self, tid, sess=None):
+        if not sess:
+            sess = self.getSess()
+        try:
+            x = sess.query(SisTorrent.ctime).filter(SisTorrent.tid == tid).first()
+        except:
+            error('got error', exc_info=True)
+            x = None
+        sess.close()
+        return True if x else False
+
+    def createRecord(self, *args, **kwargs):
+        tid, url, title, img_url, name, size, aid, sess = \
+            map(lambda x, d=kwargs: d.get(x, ''), ('tid', 'url', 'title', 'img_url', 'name', 'size', 'aid', 'sess'))
+        if not sess:
+            sess = self.getSess()
+        try:
+            rcd = SisTorrent(tid=tid, url=url, title=title, img_url=img_url, name=name, size=size, aid=aid)
+            sess.add(rcd)
+            sess.commit()
+            sess.close()
+        except:
+            error('create record error', exc_info=True)
+
+    def getRecords(self, seconds_ago, page=1, pagesize=10, sess=None):
+        ret = None
+        if not sess:
+            sess = self.getSess()
+        try:
+            if not page or int(page) < 1:
+                page = 1
+            start = (int(page) - 1) * pagesize
+            ret = sess.query(SisTorrent).filter(SisTorrent.ctime > seconds_ago).order_by(SisTorrent.ctime.desc())[start: start + pagesize]
+        except:
+            error('got error', exc_info=True)
+        finally:
+            sess.close()
+        return ret
+
+
+    def clean(self):
+        pass
+#-#        info('closed.')
+
 if __name__ == '__main__':
-    h = HistoryDB()
-    info(pcformat(h.getRecentItems('mmb', datetime.now() + timedelta(seconds=-240))))
-    info(h.existsItem('mmb', 882564))
+    def createTable(table_obj):
+        conf_path = os.path.abspath('config/pn_conf.yaml')
+        conf = getConf(conf_path, root_key='orm')
+        conf = conf['sis']
+        engine = create_engine(conf['conn_str'], echo=conf['echo'])
+#-#        table_obj.__table__.drop(bind=engine)
+        table_obj.__table__.create(bind=engine)
+
+#-#    h = HistoryDB()
+#-#    info(pcformat(h.getRecentItems('mmb', datetime.now() + timedelta(seconds=-240))))
+#-#    info(h.existsItem('mmb', 882564))
+
+#-#    createTable(SisTorrent)
+    s = SisDB()
+#-#    embed()
+    info(s.existsRecord(666))

@@ -2,8 +2,13 @@ import sys
 import os
 import re
 from lxml import etree
+import json
+from datetime import datetime
+from datetime import timedelta
 #-#from urllib.parse import quote
 from urllib.parse import urljoin
+from urllib.parse import urlsplit
+from urllib.parse import parse_qs
 from itertools import repeat
 from itertools import count
 import importlib
@@ -19,7 +24,9 @@ from IPython import embed
 embed
 if __name__ == '__main__':
     sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
+from applib.orm_lib import SisDB
 from applib.tools_lib import pcformat
+from applib.cache_lib import RedisManager
 from applib.conf_lib import getConf
 from applib.net_lib import NetManager
 from applib.log_lib import app_log
@@ -50,7 +57,7 @@ class DiscuzManager(object):
         """登录操作
         """
 
-    async def getPostList(self):
+    async def getPostList(self, loop=None):
         """获得帖子列表
         """
         data = None
@@ -64,7 +71,7 @@ class DiscuzManager(object):
                 mgr = mgr_class(self.conf_path, self.event_notify) if mgr_class else None
                 if mgr:
                     try:
-                        data = await mgr.getPostList(_forum)
+                        data = await mgr.getPostList(_forum, loop)
                     finally:
                         await mgr.clean()
                 else:
@@ -118,7 +125,7 @@ class QiLanManager(DiscuzManager):
 
         return data
 
-    async def getPostList(self, forum):
+    async def getPostList(self, forum, loop):
         """获得帖子列表
         """
         data = None
@@ -160,7 +167,7 @@ class QiLanManager(DiscuzManager):
                         l_ctime = tree.xpath(_sub.get('postlist_ctime') or forum['postlist_ctime'])
                         l_utime = tree.xpath(_sub.get('postlist_utime') or forum['postlist_utime'])
                         for _i, (_group, _title, _url, _ctime, _utime) in enumerate(zip(l_group, l_title, l_url, l_ctime, l_utime), 1):
-                            info(f'[{_group}] {_i}/{len(l_title)} {_title} {_ctime} {_utime}\n--> {_url}')
+                            info(f'[{_group}] {_i}/{len(l_title)} {_title} {_ctime} {_utime}\n--> {urljoin(forum["post_base_url"], _url)}')
                         break
             if save_cookie:
                 open(os.path.abspath(forum['cookie_file']), 'w').write(cookie)
@@ -174,13 +181,14 @@ class QiLanManager(DiscuzManager):
         """
 
 
-class SzsManager(DiscuzManager):
-    """获取szs帖子内容
+class SisManager(DiscuzManager):
+    """获取sis帖子内容
     """
     def __init__(self, conf_path='config/pn_conf.yaml', event_notify=None):
         super().__init__(conf_path, event_notify)
         self.init()
         self.cookie = None
+        self.p_size = re.compile('【影片大小】\s*(?:：|:)\s*([^<]+)')
 
     async def login(self, forum):
         """登录操作
@@ -206,15 +214,19 @@ class SzsManager(DiscuzManager):
 
         return data
 
-    async def getPostList(self, forum):
+    async def getPostList(self, forum, loop):
         """获得帖子列表
         """
         data = None
+        RedisManager.setCfg(self.conf_path, loop)
+        rds = await RedisManager.getConn('sis')
+        db = SisDB(self.conf_path)
+#-#        embed()
         debug('fetching %s ...', forum['title'])
         for _sub in forum['subforum']:
             if not _sub['enabled']:
                 continue
-            debug('fetching sub forum %s\n%s ...', _sub['title'], _sub['url'])
+#-#            debug('fetching sub forum %s\n%s ...', _sub['title'], _sub['url'])
             cookie, save_cookie = self.cookie, False
             if cookie is None and os.path.exists(forum['cookie_file']):
                 cookie = open(forum['cookie_file']).read()
@@ -237,21 +249,38 @@ class SzsManager(DiscuzManager):
                     l_utime = tree.xpath(_sub.get('postlist_utime') or forum['postlist_utime'])
 #-#                    info(f'{len(l_title)} {len(l_url)} {len(l_ctime)} {len(l_utime)}')
                     for _i, (_group, _title, _type, _url, _ctime, _utime) in enumerate(zip(repeat(_sub['title'], len(l_title)), l_title, l_type, l_url, l_ctime, l_utime), 1):
+                        # check cache
+                        tid = parse_qs(urlsplit(_url).query).get('tid', [None, ])[0]
+                        if await rds.checkCounting(f'tid{tid}', 86400):
+#-#                            warn(f'already fetched tid {tid}')
+                            continue
+                        # check db
+                        if db.existsRecord(tid):
+#-#                            warn(f'already in db, tid={tid}')
+                            continue
+
                         if _type not in _sub.get('ignore_type', []):
+                            _upper_title = _title.upper()
                             for _keyword in _sub.get('ignore_keyword', []):
-                                if _title.find(_keyword) != -1:
+                                if _upper_title.find(_keyword.upper()) != -1:
 #-#                                    warn(f'SKIP keyword {_keyword} for {_title}')
                                     break
                             else:
 #-#                                info(f'[{_type}] {_i}/{len(l_title)} {_title} {_ctime} {_utime}\n\t--> {urljoin(forum["post_base_url"], _url)}\n\n')
-                                _content, _img_list, _attach_info = await self.getPost(_title, _url, forum, _sub, cookie)
-                                if _content:
-                                    info(f'\n[{_type}] {_i}/{len(l_title)} {_title} {_ctime} {_utime}\n\t--> {urljoin(forum["post_base_url"], _url)}\n\t {pcformat(_img_list)}\n\t {_attach_info}\n\n')
+                                _content, _attach_size, _img_list, _attach_info = await self.getPost(_title, _url, forum, _sub, cookie)
+                                if _attach_info:
+                                    _aid = parse_qs(urlsplit(_attach_info[1]).query).get('aid', [None, 0])[0]
+                                if _content and _aid:
+                                    info(f'\n[{_type}] {_i}/{len(l_title)} {_title} {_ctime} {_utime}\n\t--> {urljoin(forum["post_base_url"], _url)}\n\t {pcformat(_img_list)}\n\t {_attach_size} {_attach_info}\n\n')
+                                    db.createRecord(tid=tid, url=_url, title=_title, img_url=json.dumps(_img_list), name=_attach_info[0], size=_attach_size, aid=_aid)
 #-#                        else:
 #-#                            warn(f'SKIP type {_type} for {_title}')
                 else:
                     break
 
+#-#        RedisManager.info('sis')
+        RedisManager.releaseConn(rds, 'sis')
+#-#        RedisManager.info('sis')
         info('%s 处理完毕', forum['title'])
         return data
 
@@ -259,7 +288,7 @@ class SzsManager(DiscuzManager):
         """获得帖子内容, 目前只取开帖内容，不取回帖内容
         """
         resp, text, ok = await self.net.getData(urljoin(forum_cfg['post_base_url'], url), timeout=5, my_fmt='str', my_str_encoding='gbk', headers={'Cookie': cookie} if cookie else None)
-        content, image_list, attach_info = None, None, None
+        content, attach_size, image_list, attach_info = None, 'Unknown', None, None
         if ok:
             pr = etree.HTMLParser()
             tree = etree.fromstring(text, pr)
@@ -270,6 +299,10 @@ class SzsManager(DiscuzManager):
                 post_content = post_content[0]
 #-#                info(f'{etree.tounicode(content)}')
                 content = etree.tounicode(post_content)
+                m = self.p_size.search(content)
+                if m:
+                    attach_size = m.group(1).strip()
+#-#                embed()
                 attachlist_title = post_content.xpath(forum_cfg['post_attachlist_title'])[0]
                 attachlist_url = post_content.xpath(forum_cfg['post_attachlist_url'])[0]
                 attach_info = (attachlist_title, urljoin(forum_cfg["post_base_url"], attachlist_url))
@@ -277,17 +310,14 @@ class SzsManager(DiscuzManager):
 #-#                info(f'{pcformat(image_list)}\n{attach_info}')
             elif '无权' in etree.tounicode(tree):
                 info('无权查看')
-        return content, image_list, attach_info
-
+        return content, attach_size, image_list, attach_info
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
 
     try:
         dz = DiscuzManager()
-#-#        task = asyncio.ensure_future(dz.getPostList())
-#-#        x = loop.run_until_complete(task)
-        x = loop.run_until_complete(dz.getPostList())
+        x = loop.run_until_complete(dz.getPostList(loop))
         info(pcformat(x))
     except KeyboardInterrupt:
         info('cancel on KeyboardInterrupt..')
