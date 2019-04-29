@@ -19,14 +19,14 @@ from datetime import datetime
 from datetime import timedelta
 import re
 from time import sleep
-import queue
+# #import queue
 from queue import Empty
 #-#import asyncio
 from setproctitle import setproctitle
 import multiprocessing
 from multiprocessing.managers import SyncManager
 #-#import concurrent
-import logging
+# #import logging
 import _thread
 import itchat
 from itchat.content import TEXT, FRIENDS, MAP, CARD, NOTE, SHARING, PICTURE, RECORDING, ATTACHMENT, VIDEO
@@ -36,14 +36,14 @@ from IPython import embed
 embed
 if __name__ == '__main__':
     sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
-from applib.tools_lib import pcformat
+# #from applib.tools_lib import pcformat
 from applib.conf_lib import getConf
 from applib.log_lib import get_lan_ip
 from applib.log_lib import app_log
 info, debug, warn, error = app_log.info, app_log.debug, app_log.warning, app_log.error
 
 msg_information = {}
-face_bug=None  # 针对表情包的内容
+face_bug = None  # 针对表情包的内容
 attachment_dir = None
 
 
@@ -110,7 +110,7 @@ class ItchatManager(object):
 #-#                                info('我们 gid %s', self.gid)
 #-#                        else:
 #-#                            debug('chatroom not found')
-            except:
+            except Exception:
                 error('error finding chatroom 我们', exc_info=True)
 
         while 1:
@@ -167,7 +167,7 @@ class ItchatManager(object):
         global face_bug, attachment_dir
         msg_time_rec = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())  # 接受消息的时间
         user_info = itchat.search_friends(userName=msg['FromUserName'])  # 在好友列表中查询发送信息的好友昵称
-        msg_from = 'None' if not user_info else user_info['NickName']  # 在好友列表中查询发送信息的好友昵称
+        msg_from = msg['FromUserName'] if not user_info else user_info['NickName']  # 在好友列表中查询发送信息的好友昵称
         msg_time = msg['CreateTime']  # 信息发送的时间
         msg_id = msg['MsgId']  # 每条信息的id
         msg_content = None  # 储存信息的内容
@@ -224,7 +224,6 @@ class ItchatManager(object):
             info('del %s old msg', len(l_msgid_2del))
         for _msgid in l_msgid_2del:
             msg_information.pop(_msgid, None)
-
 
     # 这个是用于监听是否有消息撤回
     @itchat.msg_register(NOTE, isFriendChat=True, isGroupChat=True, isMpChat=True)

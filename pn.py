@@ -425,10 +425,10 @@ class PromNotify(object):
                     real_url = self.get_from_linkstars(real_url, source='mmb')
 
                     action, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=tim, item_url=item_url, from_title='慢慢买', price=price, db_his=his)
-                    if getuser() == 'pi' and action in ('NOTIFY', 'NORMAL', ''):
-                        debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', tim, show_title, item_url, real_url)
-                    else:
-                        pass
+# #                    if getuser() == 'pi' and action in ('NOTIFY', 'NORMAL', ''):
+# #                        debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', tim, show_title, item_url, real_url)
+# #                    else:
+# #                        pass
         # #                    debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', tim, show_title, item_url, real_url)
         # #                Item.create(source='mmb', sid=_id, show_title=show_title, item_url=item_url, real_url=real_url, pic_url=pic, get_time=tim)
                     his.createItem(source='mmb', sid=_id, show_title=show_title, item_url=item_url, real_url=real_url, pic_url=pic, get_time=tim)
@@ -541,10 +541,10 @@ class PromNotify(object):
 
                         action, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=sbr_time, item_url=url, from_title='什么值得买', price=title_price, db_his=his)
 
-                        if getuser() == 'pi' and action in ('NOTIFY', 'NORMAL', ''):
-                            debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
-                        else:
-                            pass
+# #                        if getuser() == 'pi' and action in ('NOTIFY', 'NORMAL', ''):
+# #                            debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
+# #                        else:
+# #                            pass
 # #                            debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
 # #                        Item.create(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
                         his.createItem(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
@@ -798,7 +798,7 @@ class PromNotify(object):
                 break
 # #            await asyncio.sleep(interval)
             try:
-                await asyncio.wait_for(event_exit.wait(), interval)
+                await asyncio.wait_for(event_exit.wait(), interval if not 0 <= datetime.now().hour < 7 else interval * 3)
             except concurrent.futures._base.TimeoutError:
                 pass
             else:
@@ -818,7 +818,7 @@ class PromNotify(object):
                 break
 # #            await asyncio.sleep(interval)
             try:
-                await asyncio.wait_for(event_exit.wait(), interval)
+                await asyncio.wait_for(event_exit.wait(), interval if not 0 <= datetime.now().hour < 7 else interval * 3)
             except concurrent.futures._base.TimeoutError:
                 pass
             else:
