@@ -3,8 +3,8 @@ import os
 import re
 from lxml import etree
 import json
-from datetime import datetime
-from datetime import timedelta
+# #from datetime import datetime
+# #from datetime import timedelta
 #-#from urllib.parse import quote
 from urllib.parse import urljoin
 from urllib.parse import urlsplit
@@ -24,6 +24,7 @@ from IPython import embed
 embed
 if __name__ == '__main__':
     sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
+sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 from applib.orm_lib import SisDB
 from applib.tools_lib import pcformat
 from applib.cache_lib import RedisManager
@@ -227,7 +228,7 @@ class SisManager(DiscuzManager):
             if not _sub['enabled']:
                 continue
 #-#            debug('fetching sub forum %s\n%s ...', _sub['title'], _sub['url'])
-            cookie, save_cookie = self.cookie, False
+            cookie, _ = self.cookie, False
             if cookie is None and os.path.exists(forum['cookie_file']):
                 cookie = open(forum['cookie_file']).read()
                 info('loaded cookie from %s', forum['cookie_file'])
@@ -311,6 +312,7 @@ class SisManager(DiscuzManager):
             elif '无权' in etree.tounicode(tree):
                 info('无权查看')
         return content, attach_size, image_list, attach_info
+
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()

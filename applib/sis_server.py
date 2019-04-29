@@ -2,14 +2,14 @@ import sys
 import os
 import re
 import json
-import shlex
+# #import shlex
 from datetime import datetime
 from datetime import timedelta
 import subprocess
 import http.server
 #-#import aiohttp
-import setproctitle
-import asyncio
+# #import setproctitle
+# #import asyncio
 #-#import uvloop
 #-#asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 #-#import ssl
@@ -19,23 +19,23 @@ import asyncio
 #-#from middleware import l_middleware
 #-#from urllib.parse import quote
 from urllib.parse import urljoin
-from urllib.parse import unquote
+# #from urllib.parse import unquote
 #-#from urllib.parse import urlsplit
 from urllib.parse import parse_qs
 #-#from itertools import repeat
 #-#from itertools import count
-import importlib
-import asyncio
+# #import importlib
+# #import asyncio
 #-#from getpass import getuser
 from IPython import embed
 embed
 if __name__ == '__main__':
     sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
 from applib.discuz_lib import SisDB
-from applib.tools_lib import pcformat
-from applib.cache_lib import RedisManager
+# #from applib.tools_lib import pcformat
+# #from applib.cache_lib import RedisManager
 from applib.conf_lib import getConf
-from applib.net_lib import NetManager
+# #from applib.net_lib import NetManager
 from applib.log_lib import app_log
 info, debug, warn, error = app_log.info, app_log.debug, app_log.warning, app_log.error
 
@@ -76,20 +76,18 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             l_content = []
             for _i, (_title, _img_url, _aname, _asize, _aurl) in enumerate(l_rcd, 1):
                 l_content.append(f'<div>'
-                f'<h3>{_i}/{len(l_rcd)} {_title}</h3><br/>'
-                f'{_img_url}<br/>'
-                f'<div>'
-                f'<form id="form_{_i}" action="/dl/" method="POST" target="_blank">'
-                f'<a target="_blank" href="{_aurl}">{_aname} {_asize}</a>   '
-                f'<input type="radio" name="as_{_i}" value="start" >start</input>'
-                f'<input type="radio" name="as_{_i}" value="paused" >paused</input>'
-                f'<input type="hidden" name="aurl" value="{_aurl}" />'
-                f'<button type="submit" value="Submit">加入下载队列</button>'
-                f'</form>'
-                f'</div>'
-                f'</div>')
-                if  _i > 2:
-                    break
+                                 f'<h3>{_i}/{len(l_rcd)} {_title}</h3><br/>'
+                                 f'{_img_url}<br/>'
+                                 f'<form id="form_{_i}" action="/dl/" method="POST" target="_blank">'
+                                 f'<a target="_blank" href="{_aurl}">{_aname} {_asize}</a>   '
+                                 f'<input type="radio" name="as_{_i}" value="start" >start</input>'
+                                 f'<input type="radio" name="as_{_i}" value="paused" >paused</input>'
+                                 f'<input type="hidden" name="aurl" value="{_aurl}" />'
+                                 f'<button type="submit" value="Submit">加入下载队列</button>'
+                                 f'</form>'
+                                 f'</div>')
+# #                if  _i > 2:
+# #                    break
             # 构造网页
             pre_page = '' if int(page) <= 1 else f'<h2><a href="http://{self.conf["host"]}:{self.conf["port"]}/{int(page) -1}">prev</a></h2>'
             nxt_page = '' if len(l_rcd) < self.pageSize else f'<h2><a href="http://{self.conf["host"]}:{self.conf["port"]}/{int(page) + 1}">next</a></h2>'
@@ -154,7 +152,7 @@ margin: auto;
     def do_POST(self):
         info(f'{id(self)} {self.path}')
 #-#        info(f'{self.headers}')
-        if self.headers['Content-Type'] == 'application/x-www-form-urlencoded':
+        if self.path == '/dl/' and self.headers['Content-Type'] == 'application/x-www-form-urlencoded':
             s = self.rfile.read(int(self.headers['Content-Length']))
             info(f'{s}')
             d = parse_qs(s.decode())
@@ -162,7 +160,7 @@ margin: auto;
             for _k, _v in d.items():
                 if _k.startswith('as_'):
                     if _v and _v[0] == 'start':
-                        d_cmd['add_start'] = ''
+                        d_cmd['add_start'] = '--no-start-paused'
                 elif _k == 'aurl' and _v:
                     d_cmd['torrent'] = _v[0]
             if 'torrent' in d_cmd:
@@ -173,11 +171,25 @@ margin: auto;
 
                 outs, errs = '', ''
                 try:
-                    rs = subprocess.run(cmd, shell=True, timeout=60)
+                    rs = subprocess.run(cmd, capture_output=True, shell=True, timeout=60)
                     outs = rs.stdout.decode() if rs.stdout else ''
-                    errs = rs.stderr.decode() if rs.stderr else ''
+                    if not outs:
+                        errs = rs.stderr.decode() if rs.stderr else ''
                 except subprocess.TimeoutExpired:
                     warn('timeout !!!')
+                else:
+                    if not errs:
+                        try:
+                            cmd = f'transmission-remote {tr_conf["host"]}:{tr_conf["port"]} -n {tr_conf["user"]}:{tr_conf["auth"]} {d_cmd["add_start"]} -l'
+                            rs = subprocess.run(cmd, capture_output=True, shell=True, timeout=60)
+                            outs = rs.stdout.decode() if rs.stdout else ''
+                            if not outs:
+                                errs = rs.stderr.decode() if rs.stderr else ''
+                            else:
+                                info(f'\n{outs}')
+                                outs = outs.replace('\n', '<br/>')
+                        except subprocess.TimeoutExpired:
+                            warn('timeout !!!')
 
                 self.send_response(200)
                 self.send_header('Version', 'HTTP/1.0')
@@ -192,19 +204,15 @@ margin: auto;
                 <body>
                 {}
                 <br/>
-                {}
-                <br/>
-                {}
                 <br/>
                 {}
                 </body>
                 </html>
-                '''.format(s, cmd, outs, errs).encode()
+                '''.format(outs, errs).encode()
                 self.send_header('Content-Length', len(s))
                 self.end_headers()
                 self.wfile.write(s)
         return True
-
 
     @classmethod
     def loadCfg(cls):
@@ -221,7 +229,7 @@ def run(server_class=http.server.HTTPServer, handler_class=MyHandler):
     server_address = (conf['host'], conf['port'])
     handler_class.loadCfg()
     httpd = server_class(server_address, handler_class)
-    info(f'listen on {server_address} ...')
+    info(f'listen on {server_address} ...\nhttp://{conf["host"]}:{conf["port"]}/')
     httpd.serve_forever()
     info('done.')
 

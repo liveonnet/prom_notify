@@ -8,6 +8,7 @@ import redis
 import random
 from getpass import getuser
 from urllib.parse import urlparse
+from urllib.parse import urlsplit
 # #from urllib.parse import urljoin
 from urllib.parse import parse_qs
 from lxml import etree
@@ -41,6 +42,7 @@ from applib.watch_lib import startWatchConf, stopWatchConf
 from applib.filter_lib import FilterTitle
 from applib.coupon_lib import CouponManager
 from applib.wx_lib import ItchatManager
+from applib.discuz_lib import DiscuzManager
 # #from applib.db_lib import HistoryDB
 # #from applib.db_lib import Item
 from applib.orm_lib import HistoryDB
@@ -287,11 +289,17 @@ class PromNotify(object):
                         elif url.count('http') > 1:
                             for x in ('http://cu.manmanbuy.com/http', ):
                                 if url.startswith(x):
-                                    url = raw_url[len(x) - 4:]
-                                    if url[0] == 's':  # https
-                                        url = url[1:]
-                                    l_redirect_his.append(url)
-                                    debug('got %s from %s', url, r.url)
+                                    url = url[len(x) - 4:]
+                                    if url.startswith('http://zhekou.manmanbuy.com/redirectTb.aspx'):
+                                        d = parse_qs(urlsplit(url).query)
+                                        if 'num' in d:
+                                            itemId = d['num'][0]
+                                            url = f'https://detail.taobao.com/item.htm?id={itemId}'
+                                            warn(f'create {url} from {d}')
+                                            break
+                                    else:
+                                        l_redirect_his.append(url)
+                                        debug('got %s from %s', url, r.url)
                         else:
                             info('real url not found: code %s %s %s', r.status, raw_url, r.url)
                     else:
@@ -899,6 +907,30 @@ class PromNotify(object):
                 info('got exit flag, exit~')
                 break
 
+    async def do_work_sis(self):
+        """获取sis论坛新贴信息
+        """
+        global event_exit
+        interval = 86400  # 一天一次
+        dz = DiscuzManager()
+        while True:
+            await dz.getPostList(self.loop)
+
+            print('?', end='', file=sys.stderr, flush=True)
+            if event_exit.is_set():
+                info('got exit flag, exit~')
+                break
+# #            await asyncio.sleep(interval)
+            try:
+                await asyncio.wait_for(event_exit.wait(), interval)
+            except concurrent.futures._base.TimeoutError:
+                pass
+            else:
+                info('what\' wrong ?')
+            if event_exit.is_set():
+                info('got exit flag, exit~')
+                break
+
     async def do_work_async(self):
         self.loop.add_signal_handler(signal.SIGINT, lambda: asyncio.ensure_future(signal_handler(signal.SIGINT)))
 
@@ -911,7 +943,7 @@ class PromNotify(object):
             fut = [self.do_work_test_conn(), ]
         else:
 # #            fut = [self.do_work_smzdm(), self.do_work_mmb(), self.do_work_coupon(), self.do_work_jr_coupon(), self.do_work_test_conn()]
-            fut = [self.do_work_smzdm(), self.do_work_mmb(), self.do_work_test_conn()]
+            fut = [self.do_work_smzdm(), self.do_work_mmb(), self.do_work_test_conn(), self.do_work_sis()]
             if self.coupon:
                 fut.append(self.do_work_coupon())
                 fut.append(self.do_work_jr_coupon())

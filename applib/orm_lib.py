@@ -1,7 +1,7 @@
 import sys
 import os
 from datetime import datetime
-from datetime import timedelta
+# #from datetime import timedelta
 #-#from sqlalchemy.orm import scoped_session
 from sqlalchemy import create_engine
 from sqlalchemy import and_
@@ -13,7 +13,7 @@ embed
 from sqlalchemy import Column, BigInteger, Integer, String, DateTime
 if __name__ == '__main__':
     sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
-from applib.tools_lib import pcformat
+# #from applib.tools_lib import pcformat
 from applib.conf_lib import getConf
 from applib.log_lib import app_log
 info, debug, warn, error = app_log.info, app_log.debug, app_log.warning, app_log.error
@@ -114,7 +114,7 @@ class HistoryDB(object):
             sess = self.getSess()
         try:
             x = sess.query(Item.ctime).filter(and_(Item.source == source, Item.sid == sid)).first()
-        except:
+        except Exception:
             error('got error', exc_info=True)
             x = None
         sess.close()
@@ -130,7 +130,7 @@ class HistoryDB(object):
             sess.add(item)
             sess.commit()
             sess.close()
-        except:
+        except Exception:
             error('create item error', exc_info=True)
 
     def clean(self):
@@ -153,7 +153,7 @@ class SisDB(object):
             sess = self.getSess()
         try:
             x = sess.query(SisTorrent.ctime).filter(SisTorrent.tid == tid).first()
-        except:
+        except Exception:
             error('got error', exc_info=True)
             x = None
         sess.close()
@@ -169,7 +169,7 @@ class SisDB(object):
             sess.add(rcd)
             sess.commit()
             sess.close()
-        except:
+        except Exception:
             error('create record error', exc_info=True)
 
     def getRecords(self, seconds_ago, page=1, pagesize=10, sess=None):
@@ -181,16 +181,16 @@ class SisDB(object):
                 page = 1
             start = (int(page) - 1) * pagesize
             ret = sess.query(SisTorrent).filter(SisTorrent.ctime > seconds_ago).order_by(SisTorrent.ctime.desc())[start: start + pagesize]
-        except:
+        except Exception:
             error('got error', exc_info=True)
         finally:
             sess.close()
         return ret
 
-
     def clean(self):
         pass
 #-#        info('closed.')
+
 
 if __name__ == '__main__':
     def createTable(table_obj):
@@ -205,7 +205,7 @@ if __name__ == '__main__':
 #-#    info(pcformat(h.getRecentItems('mmb', datetime.now() + timedelta(seconds=-240))))
 #-#    info(h.existsItem('mmb', 882564))
 
-#-#    createTable(SisTorrent)
+# #    createTable(SisTorrent)
     s = SisDB()
 #-#    embed()
     info(s.existsRecord(666))
