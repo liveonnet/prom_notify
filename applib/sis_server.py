@@ -70,20 +70,20 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 _img_url = '<br/>'.join(f'<img src="{_x}" alt="{_x}"></img>' for _x in json.loads(_rcd.img_url))
                 # 附件aid转成可访问链接
                 _aid = urljoin(forum['post_base_url'], f'attachment.php?aid={_rcd.aid}&clickDownload=1')
-                l_rcd.append((_rcd.title, _img_url, _rcd.name, _rcd.size, _aid))
+                l_rcd.append((_rcd.title, _img_url, _rcd.name, _rcd.size, _aid, _rcd.ctime))
 #-#            embed()
 
             l_content = []
-            for _i, (_title, _img_url, _aname, _asize, _aurl) in enumerate(l_rcd, 1):
+            for _i, (_title, _img_url, _aname, _asize, _aurl, _ctime) in enumerate(l_rcd, 1):
                 l_content.append(f'<div>'
-                                 f'<h3>{_i}/{len(l_rcd)} {_title}</h3><br/>'
+                                 f'<h3>{_i}/{len(l_rcd)} {_title}</h3><h5>{_ctime}</h5>'
                                  f'{_img_url}<br/>'
                                  f'<form id="form_{_i}" action="/dl/" method="POST" target="_blank">'
-                                 f'<a target="_blank" href="{_aurl}">{_aname} {_asize}</a>   '
+                                 f'<a class="torrent_link" target="_blank" href="{_aurl}">{_aname}&nbsp;&nbsp;{_asize}</a>&nbsp;&nbsp;&nbsp;'
                                  f'<input type="radio" name="as_{_i}" value="start" >start</input>'
-                                 f'<input type="radio" name="as_{_i}" value="paused" >paused</input>'
+                                 f'<input type="radio" name="as_{_i}" value="paused" checked>paused</input>'
                                  f'<input type="hidden" name="aurl" value="{_aurl}" />'
-                                 f'<button type="submit" value="Submit">加入下载队列</button>'
+                                 f'&nbsp;&nbsp;<button type="submit" value="Submit">加入下载队列</button>'
                                  f'</form>'
                                  f'</div>')
 # #                if  _i > 2:
@@ -112,6 +112,12 @@ text-align:center;
 color:red;
 }}
 
+h5
+{{
+text-align:center;
+color:blue;
+}}
+
 form
 {{
 display:block;
@@ -122,8 +128,12 @@ img
 {{
 clear:both;
 display:block;
+max-width: 90%;
 margin: auto;
 }}
+
+a.torrent_link:link {{text-decoration: none}}
+a.torrent_link:hover {{background: #66ff66; text-decoration: underline}}
 
 </style>
 <title>sis torrent</title>
@@ -169,27 +179,31 @@ margin: auto;
 #-#                cmd = shlex.split(cmd)
                 debug('EXEC_CMD< %s ...', cmd)
 
-                outs, errs = '', ''
+                l_content = []
                 try:
                     rs = subprocess.run(cmd, capture_output=True, shell=True, timeout=60)
                     outs = rs.stdout.decode() if rs.stdout else ''
-                    if not outs:
-                        errs = rs.stderr.decode() if rs.stderr else ''
+                    errs = rs.stderr.decode() if rs.stderr else ''
+                    info(f'{outs}')
+                    l_content.append(outs.strip())
+                    if errs:
+                        info(f'{errs}')
+                        l_content.append(errs.strip())
                 except subprocess.TimeoutExpired:
                     warn('timeout !!!')
                 else:
-                    if not errs:
-                        try:
-                            cmd = f'transmission-remote {tr_conf["host"]}:{tr_conf["port"]} -n {tr_conf["user"]}:{tr_conf["auth"]} {d_cmd["add_start"]} -l'
-                            rs = subprocess.run(cmd, capture_output=True, shell=True, timeout=60)
-                            outs = rs.stdout.decode() if rs.stdout else ''
-                            if not outs:
-                                errs = rs.stderr.decode() if rs.stderr else ''
-                            else:
-                                info(f'\n{outs}')
-                                outs = outs.replace('\n', '<br/>')
-                        except subprocess.TimeoutExpired:
-                            warn('timeout !!!')
+                    try:
+                        cmd = f'transmission-remote {tr_conf["host"]}:{tr_conf["port"]} -n {tr_conf["user"]}:{tr_conf["auth"]} {d_cmd["add_start"]} -l'
+                        rs = subprocess.run(cmd, capture_output=True, shell=True, timeout=60)
+                        outs = rs.stdout.decode() if rs.stdout else ''
+                        errs = rs.stderr.decode() if rs.stderr else ''
+                        info(f'\n{outs}')
+                        l_content.append(outs.strip())
+                        if errs:
+                            info(f'\n{errs}')
+                            l_content.append(errs.strip())
+                    except subprocess.TimeoutExpired:
+                        warn('timeout !!!')
 
                 self.send_response(200)
                 self.send_header('Version', 'HTTP/1.0')
@@ -198,17 +212,15 @@ margin: auto;
                 self.send_header('Cache-Control', 'max-age=600')
                 self.send_header('Content-Type', 'text/html;charset=utf-8')
                 s = '''<html>
-                <head>
-                <title>result</title>
-                </head>
-                <body>
-                {}
-                <br/>
-                <br/>
-                {}
-                </body>
-                </html>
-                '''.format(outs, errs).encode()
+<head>
+<title>result</title>
+</head>
+<body>
+<pre>
+{}
+</pre>
+</body>
+</html> '''.format('\n\n'.join(l_content)).encode()
                 self.send_header('Content-Length', len(s))
                 self.end_headers()
                 self.wfile.write(s)
