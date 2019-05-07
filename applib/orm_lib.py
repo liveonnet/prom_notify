@@ -180,7 +180,7 @@ class SisDB(object):
             if not page or int(page) < 1:
                 page = 1
             start = (int(page) - 1) * pagesize
-            ret = sess.query(SisTorrent).filter(SisTorrent.ctime > seconds_ago).order_by(SisTorrent.tid.desc())[start: start + pagesize]
+            ret = sess.query(SisTorrent).filter(SisTorrent.ctime > seconds_ago).order_by(SisTorrent.ctime.desc())[start: start + pagesize]
         except Exception:
             error('got error', exc_info=True)
         finally:

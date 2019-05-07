@@ -252,7 +252,7 @@ class SisManager(DiscuzManager):
                     for _i, (_group, _title, _type, _url, _ctime, _utime) in enumerate(zip(repeat(_sub['title'], len(l_title)), l_title, l_type, l_url, l_ctime, l_utime), 1):
                         # check cache
                         tid = parse_qs(urlsplit(_url).query).get('tid', [None, ])[0]
-                        if await rds.checkCounting(f'tid{tid}', 86400):
+                        if await rds.checkCounting(f'tid{tid}', 3600):
 #-#                            warn(f'already fetched tid {tid}')
                             continue
                         # check db
@@ -268,12 +268,15 @@ class SisManager(DiscuzManager):
                                     break
                             else:
 #-#                                info(f'[{_type}] {_i}/{len(l_title)} {_title} {_ctime} {_utime}\n\t--> {urljoin(forum["post_base_url"], _url)}\n\n')
-                                _content, _attach_size, _img_list, _attach_info = await self.getPost(_title, _url, forum, _sub, cookie)
-                                if _attach_info:
-                                    _aid = parse_qs(urlsplit(_attach_info[1]).query).get('aid', [None, 0])[0]
-                                if _content and _aid:
-                                    info(f'\n[{_type}] {_i}/{len(l_title)} {_title} {_ctime} {_utime}\n\t--> {urljoin(forum["post_base_url"], _url)}\n\t {pcformat(_img_list)}\n\t {_attach_size} {_attach_info}\n\n')
-                                    db.createRecord(tid=tid, url=_url, title=_title, img_url=json.dumps(_img_list), name=_attach_info[0], size=_attach_size, aid=_aid)
+                                try:
+                                    _content, _attach_size, _img_list, _attach_info = await self.getPost(_title, _url, forum, _sub, cookie)
+                                    if _attach_info:
+                                        _aid = parse_qs(urlsplit(_attach_info[1]).query).get('aid', [None, 0])[0]
+                                    if _content and _aid:
+                                        info(f'\n[{_type}] {_i}/{len(l_title)} {_title} {_ctime} {_utime}\n\t--> {urljoin(forum["post_base_url"], _url)}\n\t {pcformat(_img_list)}\n\t {_attach_size} {_attach_info}\n\n')
+                                        db.createRecord(tid=tid, url=_url, title=_title, img_url=json.dumps(_img_list), name=_attach_info[0], size=_attach_size, aid=_aid)
+                                except Exception:
+                                    warn('got except', exc_info=True)
 #-#                        else:
 #-#                            warn(f'SKIP type {_type} for {_title}')
                 else:

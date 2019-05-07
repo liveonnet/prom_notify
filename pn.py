@@ -295,7 +295,7 @@ class PromNotify(object):
                                         if 'num' in d:
                                             itemId = d['num'][0]
                                             url = f'https://detail.taobao.com/item.htm?id={itemId}'
-                                            warn(f'create {url} from {d}')
+# #                                            warn(f'create {url} from {d}')
                                             break
                                     else:
                                         l_redirect_his.append(url)
@@ -911,7 +911,7 @@ class PromNotify(object):
         """获取sis论坛新贴信息
         """
         global event_exit
-        interval = 86400  # 一天一次
+        interval = 86400 / 6
         dz = DiscuzManager()
         while True:
             await dz.getPostList(self.loop)

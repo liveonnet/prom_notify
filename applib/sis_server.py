@@ -6,6 +6,7 @@ import json
 from datetime import datetime
 from datetime import timedelta
 import subprocess
+from base64 import b64decode
 import http.server
 #-#import aiohttp
 # #import setproctitle
@@ -44,21 +45,48 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
 #-#    def __init__(self, *args, **kwargs):
 #-#        super().__init__(*args, **kwargs)
 
+    def do_BasicAuth(self):
+        """HTTP基本验证 参考 https://blog.csdn.net/wochunyang/article/details/78675325
+        注意，这种方式当前没有配合https，所以只是不完美的临时方案
+        """
+        ip = self.address_string()
+        info(f'request from {ip}')
+        auth = self.headers.get('Authorization')
+        if auth:
+            b, s = auth.split(' ', 1)
+            if b == 'Basic' and s:
+                try:
+                    x = b64decode(s).decode()
+                except Exception:
+                    warn(f'bad auth str! {s}')
+                else:
+                    if x == self.conf['auth']:
+                        return True
+                    else:
+                        warn(f'bad auth str! {x}')
+            else:
+                warn(f'bad auth header! {auth}')
+        else:
+            warn(f'no Authenticate header!')
+
+        self.send_response(401)
+        self.send_header('WWW-Authenticate', 'Basic realm="NOT FOR YOU"')
+        self.end_headers()
+        self.flush_headers()
+        return False
+
     def do_GET(self):
         info(f'{id(self)} {self.path}')
-        p = getattr(self, 'p', None)
-        if not p:
-            self.pageSize = 10
-            p = re.compile('^/(\d+)')
-            self.p = p
-        m = p.match(self.path)
+# #        info(f'{self.headers}')
+        if not self.do_BasicAuth():
+            return
+        m = self.pPage.match(self.path)
         if m:
             page = m.group(1) or '1'
         else:
             page = '1'
         if self.path == '/' or m:  # 展示
 #-#            info(f'{self.requestline}')
-#-#            info(f'{self.headers}')
             forum = [x for x in self.discuz_conf['forum'] if x['title'] == 'sis'][0]
             # 查询数据
             db = SisDB(self.conf_path)
@@ -67,7 +95,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             l_rcd = []
             for _rcd in db.getRecords(seconds_ago, page):
                 # 图片转成可访问链接
-                _img_url = '<br/>'.join(f'<img src="{_x}" alt="{_x}"></img>' for _x in json.loads(_rcd.img_url))
+                _img_url = '<br/>'.join(f'<a href="{_x}" ><img src="{_x}" alt="{_x}" ></img></a>' for _x in json.loads(_rcd.img_url))
                 # 附件aid转成可访问链接
                 _aid = urljoin(forum['post_base_url'], f'attachment.php?aid={_rcd.aid}&clickDownload=1')
                 l_rcd.append((_rcd.title, _img_url, _rcd.name, _rcd.size, _aid, _rcd.ctime))
@@ -89,10 +117,13 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
 # #                if  _i > 2:
 # #                    break
             # 构造网页
-            pre_page = '' if int(page) <= 1 else f'<h2><a href="http://{self.conf["host"]}:{self.conf["port"]}/{int(page) -1}">prev</a></h2>'
-            nxt_page = '' if len(l_rcd) < self.pageSize else f'<h2><a href="http://{self.conf["host"]}:{self.conf["port"]}/{int(page) + 1}">next</a></h2>'
+            pre_page = '' if int(page) <= 1 else f'<h2><a href="/{int(page) -1}">prev</a></h2>'
+            nxt_page = '' if len(l_rcd) < self.pageSize else f'<h2><a href="/{int(page) + 1}">next</a></h2>'
             s = '''<html>
 <head>
+<!-- <meta name="referrer" content="never">
+<meta name="referrer" content="no-referrer">
+-->
 <style>
 div
 {{
@@ -136,7 +167,7 @@ a.torrent_link:link {{text-decoration: none}}
 a.torrent_link:hover {{background: #66ff66; text-decoration: underline}}
 
 </style>
-<title>sis torrent</title>
+<title>sis torrent page {cur_page}</title>
 </head>
 <body>
 {content}
@@ -144,7 +175,7 @@ a.torrent_link:hover {{background: #66ff66; text-decoration: underline}}
 {pre_page}
 {nxt_page}
 </body>
-</html>'''.format(content='<br/><hr/>'.join(l_content), pre_page=pre_page, nxt_page=nxt_page).encode()
+</html>'''.format(content='<br/><hr/>'.join(l_content), pre_page=pre_page, nxt_page=nxt_page, cur_page=page).encode()
 
             self.send_response(200)
             self.send_header('Version', 'HTTP/1.0')
@@ -161,10 +192,12 @@ a.torrent_link:hover {{background: #66ff66; text-decoration: underline}}
 
     def do_POST(self):
         info(f'{id(self)} {self.path}')
+        if not self.do_BasicAuth():
+            return
 #-#        info(f'{self.headers}')
         if self.path == '/dl/' and self.headers['Content-Type'] == 'application/x-www-form-urlencoded':
             s = self.rfile.read(int(self.headers['Content-Length']))
-            info(f'{s}')
+# #            info(f'{s}')
             d = parse_qs(s.decode())
             d_cmd = {'add_start': '--start-paused'}
             for _k, _v in d.items():
@@ -233,9 +266,12 @@ a.torrent_link:hover {{background: #66ff66; text-decoration: underline}}
         cls.all_conf = getConf(cls.conf_path)
         cls.conf = cls.all_conf['sis_server']
         cls.discuz_conf = cls.all_conf['discuz']
+        # 其他配置
+        cls.pageSize = 10
+        cls.pPage = re.compile('^/(\d+)')
 
 
-def run(server_class=http.server.HTTPServer, handler_class=MyHandler):
+def run(server_class=http.server.ThreadingHTTPServer, handler_class=MyHandler):
     conf_path = os.path.abspath('config/pn_conf.yaml')
     conf = getConf(conf_path, root_key='sis_server')
     server_address = (conf['host'], conf['port'])

@@ -70,7 +70,7 @@ class InternalLog(object):
         # stream log
         log_sh = colorlog.StreamHandler()
         log_sh.setLevel(logging.DEBUG)
-        fmt = colorlog.ColoredFormatter('%(log_color)s%(asctime)s %(levelname)1.1s %(processName)s %(module)s %(funcName)s %(lineno)d |%(message_log_color)s%(message)s',
+        fmt = colorlog.ColoredFormatter('%(log_color)s%(asctime)s %(levelname)1.1s %(processName).6s %(module).6s %(funcName)s %(lineno)d |%(message_log_color)s%(message)s',
                                         log_colors={'DEBUG': 'cyan',
                                                     'INFO': 'white',
                                                     'WARNING': 'purple',
