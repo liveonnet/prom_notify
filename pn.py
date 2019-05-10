@@ -914,6 +914,7 @@ class PromNotify(object):
         interval = 86400 / 6
         dz = DiscuzManager()
         while True:
+            a = time.time()
             await dz.getPostList(self.loop)
 
             print('?', end='', file=sys.stderr, flush=True)
@@ -922,7 +923,7 @@ class PromNotify(object):
                 break
 # #            await asyncio.sleep(interval)
             try:
-                await asyncio.wait_for(event_exit.wait(), interval)
+                await asyncio.wait_for(event_exit.wait(), int(interval - time.time() + a))
             except concurrent.futures._base.TimeoutError:
                 pass
             else:

@@ -76,7 +76,7 @@ class SessionMaker():
             engine = SessionMaker._engine.get(conn_str)
             if not engine:
                 info('create engine for %s echo %s', conn_str, echo)
-                engine = create_engine(conn_str, echo=echo)
+                engine = create_engine(conn_str, echo=echo, pool_pre_ping=True)  # https://stackoverflow.com/questions/23747742/sqlalchemy-session-reconnect
                 SessionMaker._engine[conn_str] = engine
             else:
                 info('using cached engine for %s', conn_str)

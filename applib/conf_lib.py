@@ -19,7 +19,7 @@ def getConf(conf_path='./pn_conf.yaml', root_key=None, force_reload=False):
         if force_reload:
             debug('force load conf from file %s', conf_file_path)
         assert os.path.exists(conf_file_path)
-        conf = yaml.load(open(conf_file_path))
+        conf = yaml.load(open(conf_file_path), Loader=yaml.FullLoader)  # https://github.com/yaml/pyyaml/wiki/PyYAML-yaml.load(input)-Deprecation
         _cache_conf[conf_file_path] = conf
 #-#        debug('load done %s. %s key(s)', conf_file_path, len(conf))
 #-#    else:
@@ -31,6 +31,7 @@ def getConf(conf_path='./pn_conf.yaml', root_key=None, force_reload=False):
         conf = conf.get(root_key)
 
     return conf
+
 
 if __name__ == '__main__':
     from applib.tools_lib import pcformat
