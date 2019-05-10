@@ -62,12 +62,17 @@ class ItchatManager(object):
         self.gid = None  # 记录我们群的UserName
         if self.conf['use_custom_manager']:
             # create proxy manager
-            mgr = SyncManager((get_lan_ip(), self.conf['custom_manager_port']), self.conf['custom_manager_authkey'].encode('utf8'))
+            class MySyncManager(SyncManager):
+                pass
+            MySyncManager.register('get_wx_send_q')
+            mgr = MySyncManager((get_lan_ip(), self.conf['custom_manager_port']), self.conf['custom_manager_authkey'].encode('utf8'))
 #-#            sleep(0.5)  # wait for manager to start
             mgr.connect()
+
+            self.q_send = mgr.get_wx_send_q()
         else:
             mgr = multiprocessing.Manager()
-        self.q_send = mgr.Queue()
+            self.q_send = mgr.Queue()
         self.event_exit = mgr.Event()
         multiprocessing.current_process().authkey = self.conf['custom_manager_authkey'].encode('utf8')  # https://bugs.python.org/issue7503
         self.proc_wx = multiprocessing.Process(target=self.run, args=(self.event_exit, self.q_send))
@@ -261,7 +266,12 @@ class ItchatManager(object):
     def sendMsg(self, msg_body, toUserName='filehelper'):
         if not toUserName:
             toUserName = 'filehelper'
-        itchat.send_msg(msg_body, self.gid if self.gid else toUserName)
+        if toUserName != 'filehelper' and toUserName[0] != '@':  # 需要根据用户名找微信id
+            users = itchat.search_friends(name=toUserName)
+            if users:
+# #                debug(f'use {users[0]["UserName"]} from {toUserName}')
+                toUserName = users[0]['UserName']
+        itchat.send_msg(msg_body, toUserName)
 #-#        debug('send %s %s', msg_body, self.gid if self.gid else toUserName)
 
 

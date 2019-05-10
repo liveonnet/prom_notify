@@ -17,8 +17,10 @@ __pycache__/
 *~
 msc/
 config/db.gz
-config/fx_process.cfg
 config/pn_conf.yaml
+config/pn_process.cfg
+config/itchat.pkl
+deploy/
 
 # Distribution / packaging
 .idea/

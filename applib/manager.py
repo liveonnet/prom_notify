@@ -1,11 +1,13 @@
 import os
 import sys
-import re
-from time import sleep
+# #import re
+# #from time import sleep
 from setproctitle import setproctitle
 import multiprocessing
+# #from multiprocessing.managers import BaseManager
 from multiprocessing.managers import SyncManager
-import concurrent.futures
+from queue import Queue
+# #import concurrent.futures
 #-#from ctypes import cdll, CFUNCTYPE, c_char_p, c_int
 #-#from contextlib import contextmanager
 #-#import shlex
@@ -23,8 +25,18 @@ from applib.log_lib import app_log
 info, debug, warn, error = app_log.info, app_log.debug, app_log.warning, app_log.error
 
 
+wx_send_q = Queue()
+
+
+class MySyncManager(SyncManager):
+    pass
+
+
+MySyncManager.register('get_wx_send_q', callable=lambda: wx_send_q)
+
+
 def server_manager(address, authkey):
-    mgr = SyncManager(address, authkey)
+    mgr = MySyncManager(address, authkey)
     setproctitle('process_mgr')
     debug('manager server started.')
     server = mgr.get_server()
