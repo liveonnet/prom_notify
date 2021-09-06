@@ -141,7 +141,7 @@ class QiLanManager(DiscuzManager):
                 info('loaded cookie from %s', forum['cookie_file'])
                 self.cookie = cookie
             for _ in range(2):
-                resp, text, ok = await self.net.getData(_sub['url'], timeout=5, my_fmt='str', my_str_encoding='gbk', headers={'Cookie': cookie} if cookie else None)
+                resp, text, ok = await self.net.getData(_sub['url'], timeout=5, my_fmt='str', my_str_encoding='utf8', headers={'Cookie': cookie} if cookie else None)
                 if ok:
 #-#                    info('resp %s', pcformat(resp))
                     if '用户名' in text and '密码' in text and '快捷登录' in text:
@@ -235,7 +235,7 @@ class SisManager(DiscuzManager):
                 self.cookie = cookie
             for _page in count(1):
                 info(f'fetching {_sub["title"]} page {_page} ...')
-                resp, text, ok = await self.net.getData(_sub['url'].format(page=_page), timeout=5, my_fmt='str', my_str_encoding='gbk', headers={'Cookie': cookie} if cookie else None, my_retry=2)
+                resp, text, ok = await self.net.getData(_sub['url'].format(page=_page), timeout=5, my_fmt='str', my_str_encoding='utf8', headers={'Cookie': cookie} if cookie else None, my_retry=2)
                 if ok:
 #-#                    info('resp %s', pcformat(resp))
                     pr = etree.HTMLParser()
@@ -276,7 +276,7 @@ class SisManager(DiscuzManager):
                                         info(f'\n[{_type}] {_i}/{len(l_title)} {_title} {_ctime} {_utime}\n\t--> {urljoin(forum["post_base_url"], _url)}\n\t {pcformat(_img_list)}\n\t {_attach_size} {_attach_info}\n\n')
                                         db.createRecord(tid=tid, url=_url, title=_title, img_url=json.dumps(_img_list), name=_attach_info[0], size=_attach_size, aid=_aid)
                                 except Exception:
-                                    warn('got except', exc_info=True)
+                                    warn('got except title: %s', _title, exc_info=True)
 #-#                        else:
 #-#                            warn(f'SKIP type {_type} for {_title}')
                 else:
@@ -291,7 +291,7 @@ class SisManager(DiscuzManager):
     async def getPost(self, title, url, forum_cfg, subforum_cfg, cookie):
         """获得帖子内容, 目前只取开帖内容，不取回帖内容
         """
-        resp, text, ok = await self.net.getData(urljoin(forum_cfg['post_base_url'], url), timeout=5, my_fmt='str', my_str_encoding='gbk', headers={'Cookie': cookie} if cookie else None)
+        resp, text, ok = await self.net.getData(urljoin(forum_cfg['post_base_url'], url), timeout=5, my_fmt='str', my_str_encoding='utf8', headers={'Cookie': cookie} if cookie else None)
         content, attach_size, image_list, attach_info = None, 'Unknown', None, None
         if ok:
             pr = etree.HTMLParser()
@@ -313,7 +313,7 @@ class SisManager(DiscuzManager):
                 image_list = post_content.xpath('.//img[starts-with(@src, "http")]/@src')
 #-#                info(f'{pcformat(image_list)}\n{attach_info}')
             elif '无权' in etree.tounicode(tree):
-                info('无权查看')
+                info(f'无权查看 {title} {url}')
         return content, attach_size, image_list, attach_info
 
 

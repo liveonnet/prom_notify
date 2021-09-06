@@ -43,6 +43,7 @@ from applib.filter_lib import FilterTitle
 from applib.coupon_lib import CouponManager
 from applib.wx_lib import ItchatManager
 from applib.discuz_lib import DiscuzManager
+from applib.wework_lib import WeworkManager
 # #from applib.db_lib import HistoryDB
 # #from applib.db_lib import Item
 from applib.orm_lib import HistoryDB
@@ -101,13 +102,18 @@ class PromNotify(object):
         if self.conf['enable_coupon']:
             self.coupon = CouponManager(self.conf_file_path, event_notify)
 
-        self.p_price = re.compile(r'\s*(?:￥|券后)?([0-9\.]+)')
+        self.p_price = re.compile(r'\s*(?:￥|券后|返后合)?([0-9\.]+)')
         self.p_chinese = re.compile('[\u4e00-\u9fa5]+')
 
         # 发送内容到微信
         self.wx = None
         if self.conf['enable_wx']:
             self.wx = ItchatManager(self.conf_file_path)
+
+        # 通过企业微信api发送内容到微信
+        self.wework = None
+        if self.conf['enable_wework']:
+            self.wework = WeworkManager(conf_path=self.conf_file_path, loop=self.loop, event_notify=event_notify, net=self.net)
 
 # #    async def init(self):
 # #        if self.sess is None:
@@ -188,23 +194,26 @@ class PromNotify(object):
 # #            if getuser() == 'pi':
 # #                return action, ret_data  # for pi
             # open browser
-            cmd = 'notify-send  "%s" "%s at %s"' % (from_title, title.replace('$', '\$').replace('&', '＆'), sbr_time.strftime('%H:%M:%S'))
-# #            debug('EXEC_CMD< %s ...\n%s %s', cmd, item_url, real_url)
-            subprocess.Popen(cmd, shell=True).wait()
+            if not getuser() == 'pi':
+                cmd = 'notify-send  "%s" "%s at %s"' % (from_title, title.replace('$', '\$').replace('&', '＆'), sbr_time.strftime('%H:%M:%S'))
+    # #            debug('EXEC_CMD< %s ...\n%s %s', cmd, item_url, real_url)
+                subprocess.Popen(cmd, shell=True).wait()
 # #            # 禁掉open url
             info('ACCEPT open url for word %s in %s', word, title)
 # #            pic_path = await self._getPic(pic)
 # #            webbrowser.get('firefox').open_new_tab('file:///%s' % QrCode.getQrCode(real_url, pic=pic_path))
-            pic_data = await self._getPic(pic, raw_data=True)
-            if pic_data and getuser() != 'pi':
-                webbrowser.get('firefox').open_new_tab('file:///%s' % QrCode.getQrCode(real_url, pic_data=pic_data))
+            if getuser() != 'pi':
+                pic_data = await self._getPic(pic, raw_data=True)
+                if pic_data:
+                    webbrowser.get('firefox').open_new_tab('file:///%s' % QrCode.getQrCode(real_url, pic_data=pic_data))
             if not slience:
                 self.ps.playTextAsync(title, extra_data)
-            else:
-                info('[%s] %s (%s) %s --> %s', from_title, title, '/'.join(extra_data['cut_word']), item_url, real_url)
-                msg = '[%s] %s (%s) %s --> %s' % (from_title, title, '/'.join(extra_data['cut_word']), item_url, real_url)
-                if self.wx:
-                    self.wx.q_send.put([msg, ''])
+            info('[%s] %s (%s) %s --> %s', from_title, title, '/'.join(extra_data['cut_word']), item_url, real_url)
+            msg = '[%s] %s (%s) %s --> %s' % (from_title, title, '/'.join(extra_data['cut_word']), item_url, real_url)
+            if self.wx:
+                self.wx.q_send.put([msg, ''])
+            if self.wework:
+                await self.wework.send_by_wework(sbr_time, from_title, title, pic, item_url, real_url)
         elif action == 'NORMAL':
             if self.price_check(title, price, extra_data):
                 action, ret_data = '', ''
@@ -215,11 +224,13 @@ class PromNotify(object):
                     if getuser() != 'pi':
                         cmd = 'notify-send  "%s" "%s at %s"' % (from_title, title.replace('$', '\$').replace('&', '＆'), sbr_time.strftime('%H:%M:%S'))
                         subprocess.Popen(cmd, shell=True).wait()
-                else:
-                    info('[%s] %s (%s) %s --> %s', from_title, title, '/'.join(extra_data['cut_word']), item_url, real_url)
-                    msg = '[%s] %s (%s) %s --> %s' % (from_title, title, '/'.join(extra_data['cut_word']), item_url, real_url)
-                    if self.wx:
-                        self.wx.q_send.put([msg, ''])
+
+                info('[%s] %s (%s) %s --> %s', from_title, title, '/'.join(extra_data['cut_word']), item_url, real_url)
+                msg = '[%s] %s (%s) %s --> %s' % (from_title, title, '/'.join(extra_data['cut_word']), item_url, real_url)
+                if self.wx:
+                    self.wx.q_send.put([msg, ''])
+                if self.wework:
+                    await self.wework.send_by_wework(sbr_time, from_title, title, pic, item_url, real_url)
         elif action == 'SKIP':
             ret_data = word
 
@@ -363,6 +374,7 @@ class PromNotify(object):
 
     async def check_main_page_mmb(self):
         his = HistoryDB(self.conf_file_path)
+        rds = redis.Redis(host=self.all_conf['redis']['host'], port=self.all_conf['redis']['port'], db=self.all_conf['redis']['db'], password=self.all_conf['redis']['password'])
 # #        r, text, ok = await self.net.getData('http://cu.manmanbuy.com/cx_0_0_wytj_Default_1.aspx', timeout=10, my_str_encoding='gbk')
         r, text, ok = await self.net.getData('http://zhekou.manmanbuy.com/', timeout=10, my_str_encoding='gbk')
 # #        d_arg = {'DA': datetime.now().strftime('%a %b %d %Y %H:%M:%S') + ' GMT+0800 (CST)',
@@ -384,8 +396,8 @@ class PromNotify(object):
         tree = etree.fromstring(text, pr)
         l_item = tree.xpath('//li[@class="item"]')
 # #        info('got %s item(s)', len(l_item))
-        if not l_item:
-            open('/tmp/mmb_source.txt', 'w').write(etree.tostring(tree, encoding='unicode'))
+# #        if not l_item:
+# #            open('/tmp/mmb_source.txt', 'w').write(etree.tostring(tree, encoding='unicode'))
 
         try:
             for x in l_item:
@@ -400,14 +412,18 @@ class PromNotify(object):
                         error('_id contain space char! %s|', _id)
                         _id = _id.strip()
 
+                    # 先查redis中是否已经存在
+                    if rds.exists(f'mmb_{_id}'):
+                        break
+
         # #                if Item.select().where((Item.source == 'mmb') & (Item.sid == _id)).exists():
                     if his.existsItem('mmb', _id):
         # #                    info('SKIP EXISTING item mmb %s', _id)
         # #                    continue
                         break
-                    title = x.xpath('./div[@class="content"]/h2/a[1]/text()')[0][:].strip()
+                    title = x.xpath('./div[@class="content"]/h3/a[1]/text()')[0][:].strip()
 # #                    debug('title %s', title)
-                    price = x.xpath('./div[@class="content"]/h2/a[2]/text()')[0][:].strip()
+                    price = x.xpath('./div[@class="content"]/h3/a[2]/text()')[0][:].strip()
 # #                    debug('price %s', price)
                     if not await self._checkChinese('慢慢买', title):
                         continue
@@ -440,8 +456,10 @@ class PromNotify(object):
         # #                    debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', tim, show_title, item_url, real_url)
         # #                Item.create(source='mmb', sid=_id, show_title=show_title, item_url=item_url, real_url=real_url, pic_url=pic, get_time=tim)
                     his.createItem(source='mmb', sid=_id, show_title=show_title, item_url=item_url, real_url=real_url, pic_url=pic, get_time=tim)
+                    rds.setex(f'mmb_{_id}', '1', 86400)
                 except (IndexError, ):
-                    debug('IndexError')
+# #                    debug('IndexError')
+                    error('IndexError ', exc_info=True)
                     continue
         except Exception:
             error('error ', exc_info=True)
@@ -471,6 +489,7 @@ class PromNotify(object):
         nr_new = 0
         max_time, min_time = time.time(), time.time()
         his = HistoryDB(self.conf_file_path)
+        rds = redis.Redis(host=self.all_conf['redis']['host'], port=self.all_conf['redis']['port'], db=self.all_conf['redis']['db'], password=self.all_conf['redis']['password'])
 
         base_url = '''https://www.smzdm.com/youhui/'''
 # #        debug('base_url = %s', base_url)
@@ -514,12 +533,20 @@ class PromNotify(object):
                         _id = _id.strip()
                     _id = _id[_id.find('_') + 1:]
                     timesort = int(x.attrib['timesort'])
-                    sbr_time = datetime.fromtimestamp(timesort)
+                    try:
+                        sbr_time = datetime.fromtimestamp(timesort)
+                    except ValueError:
+                        error('got except', exc_info=True)
+                        continue
                     if min_time is None or timesort < min_time:
                         min_time = timesort
                     if max_time is None or timesort > max_time:
                         max_time = timesort
 # #                    if not Item.select().where((Item.source == 'smzdm') & (Item.sid == _id)).exists():
+                    # 先查redis中是否已经存在
+                    if rds.exists(f'smzdm_{_id}'):
+                        break
+
                     if not his.existsItem('smzdm', _id):
                         nr_new += 1
                         # get real url
@@ -556,6 +583,7 @@ class PromNotify(object):
 # #                            debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
 # #                        Item.create(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
                         his.createItem(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
+                        rds.setex(f'smzdm_{_id}', '1', 86400)
                     else:
                         break
 # #                        info('SKIP EXISTING item smzdm %s', _id)
@@ -573,7 +601,8 @@ class PromNotify(object):
 # #        debug('base_url = %s', base_url)
         real_url = None
         his = HistoryDB(self.conf_file_path)
-        r, text, ok = await self.net.getData(base_url, params={'type': 'a', 'timesort': str(int(process_time))}, timeout=5, my_fmt='json', my_json_encoding='utf8')
+        rds = redis.Redis(host=self.all_conf['redis']['host'], port=self.all_conf['redis']['port'], db=self.all_conf['redis']['db'], password=self.all_conf['redis']['password'])
+        r, text, ok = await self.net.getData(base_url, params={'type': 'a', 'timesort': str(int(process_time))}, timeout=5, my_fmt='json', my_json_encoding='utf8', my_retry=2)
         if ok:
             if r.status == 200:
 # #                debug('url %s', r.url)
@@ -600,6 +629,10 @@ class PromNotify(object):
                     if max_time is None or max_time < timesort:
                         max_time = timesort
 # #                    if not Item.select().where((Item.source == 'smzdm') & (Item.sid == _id)).exists():
+                    # 先查redis中是否已经存在
+                    if rds.exists(f'smzdm_{_id}'):
+                        break
+
                     if not his.existsItem('smzdm', _id):
                         nr_new += 1
                         # get real url
@@ -624,16 +657,17 @@ class PromNotify(object):
                             real_url = self.get_from_linkstars(real_url, source='smzdm')
 
                         action, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=sbr_time, item_url=url, from_title='什么值得买', price=price, db_his=his)
-                        if getuser() == 'pi' and action in ('NOTIFY', 'NORMAL', ''):
-                            debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
-                        else:
-                            pass
+#-#                        if getuser() == 'pi' and action in ('NOTIFY', 'NORMAL', ''):
+#-#                            debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
+#-#                        else:
+#-#                            pass
 # #                            debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', sbr_time, show_title, url, real_url)
 # #                        if len(x['article_link_list']) > 0:
 # #                            (info if not action else debug)('have more url:\n%s', '\n'.join('%s %s %s' % (_url['name'], _url['buy_btn_domain'], _url['link']) for _url in x['article_link_list']))
 
 # #                        Item.create(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
                         his.createItem(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
+                        rds.setex(f'smzdm_{_id}', '1', 86400)
                     else:
                         break
 # #                        info('SKIP EXISTING item smzdm %s', _id)
@@ -799,6 +833,8 @@ class PromNotify(object):
                 self.progress.process_time = datetime.fromtimestamp(process_time_sec)
             except etree.XMLSyntaxError:
                 pass
+            except AttributeError:
+                error('error when process', exc_info=True)
 
             print('.', end='', file=sys.stderr, flush=True)
             if event_exit.is_set():
@@ -911,7 +947,7 @@ class PromNotify(object):
         """获取sis论坛新贴信息
         """
         global event_exit
-        interval = 86400 / 6
+        interval = 86400 / 8
         dz = DiscuzManager()
         while True:
             a = time.time()
@@ -944,7 +980,8 @@ class PromNotify(object):
             fut = [self.do_work_test_conn(), ]
         else:
 # #            fut = [self.do_work_smzdm(), self.do_work_mmb(), self.do_work_coupon(), self.do_work_jr_coupon(), self.do_work_test_conn()]
-            fut = [self.do_work_smzdm(), self.do_work_mmb(), self.do_work_test_conn(), self.do_work_sis()]
+# #            fut = [self.do_work_smzdm(), self.do_work_mmb(), self.do_work_test_conn(), self.do_work_sis()]
+            fut = [self.do_work_smzdm(), self.do_work_mmb(), self.do_work_sis()]
             if self.coupon:
                 fut.append(self.do_work_coupon())
                 fut.append(self.do_work_jr_coupon())

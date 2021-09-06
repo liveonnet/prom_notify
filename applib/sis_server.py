@@ -49,6 +49,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
         """HTTP基本验证 参考 https://blog.csdn.net/wochunyang/article/details/78675325
         注意，这种方式当前没有配合https，所以只是不完美的临时方案
         """
+#-#        return True  # 去掉验证
         ip = self.address_string()
         info(f'request from {ip}')
         auth = self.headers.get('Authorization')
@@ -90,12 +91,21 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             forum = [x for x in self.discuz_conf['forum'] if x['title'] == 'sis'][0]
             # 查询数据
             db = SisDB(self.conf_path)
-            seconds_ago = datetime.now() + timedelta(hours=-24)
+            seconds_ago = datetime.now() + timedelta(hours=-144)
 #-#            rcds = db.getRecords(seconds_ago, page)
             l_rcd = []
+            n_skip = 0
             for _rcd in db.getRecords(seconds_ago, page):
                 # 图片转成可访问链接
-                _img_url = '<br/>'.join(f'<a href="{_x}" ><img src="{_x}" alt="{_x}" ></img></a>' for _x in json.loads(_rcd.img_url))
+# #                _img_url = '<br/>'.join(f'<a href="{_x}" ><img src="{_x}" alt="{_x}" ></img></a>' for _x in json.loads(_rcd.img_url))
+                try:
+                    l_img = json.loads(_rcd.img_url)
+                except json.decoder.JSONDecodeError:
+                    n_skip += 1
+                    warn(f'skip bad img_url for {_rcd.title}')
+                    continue  # 跳过异常记录
+                else:
+                    _img_url = '<br/>'.join(f'<a href="{_x}" ><img src="{_x}" alt="{_x}" ></img></a>' for _x in l_img)
                 # 附件aid转成可访问链接
                 _aid = urljoin(forum['post_base_url'], f'attachment.php?aid={_rcd.aid}&clickDownload=1')
                 l_rcd.append((_rcd.title, _img_url, _rcd.name, _rcd.size, _aid, _rcd.ctime))
@@ -118,7 +128,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
 # #                    break
             # 构造网页
             pre_page = '' if int(page) <= 1 else f'<h2><a href="/{int(page) -1}">prev</a></h2>'
-            nxt_page = '' if len(l_rcd) < self.pageSize else f'<h2><a href="/{int(page) + 1}">next</a></h2>'
+            nxt_page = '' if len(l_rcd) < self.pageSize - n_skip else f'<h2><a href="/{int(page) + 1}">next</a></h2>'
             s = '''<html>
 <head>
 <!-- <meta name="referrer" content="never">
@@ -170,6 +180,8 @@ a.torrent_link:hover {{background: #66ff66; text-decoration: underline}}
 <title>sis torrent page {cur_page}</title>
 </head>
 <body>
+{pre_page}
+{nxt_page}
 {content}
 <div/>
 {pre_page}
@@ -214,7 +226,7 @@ a.torrent_link:hover {{background: #66ff66; text-decoration: underline}}
 
                 l_content = []
                 try:
-                    rs = subprocess.run(cmd, capture_output=True, shell=True, timeout=60)
+                    rs = subprocess.run(cmd, capture_output=True, shell=True, timeout=30)
                     outs = rs.stdout.decode() if rs.stdout else ''
                     errs = rs.stderr.decode() if rs.stderr else ''
                     info(f'{outs}')

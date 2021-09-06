@@ -271,8 +271,11 @@ class ItchatManager(object):
             if users:
 # #                debug(f'use {users[0]["UserName"]} from {toUserName}')
                 toUserName = users[0]['UserName']
-        itchat.send_msg(msg_body, toUserName)
+        try:
+            itchat.send_msg(msg_body, toUserName)
 #-#        debug('send %s %s', msg_body, self.gid if self.gid else toUserName)
+        except Exception:
+            error('got except', exc_info=True)
 
 
 if __name__ == '__main__':
