@@ -176,7 +176,7 @@ class PromNotify(object):
         slience, title, real_url, pic, sbr_time, item_url, from_title, price, his = \
             list(map(lambda x, k=kwargs: k.get(x, ''), ('slience', 'title', 'real_url', 'pic', 'sbr_time', 'item_url', 'from_title', 'price', 'db_his')))
 
-        action, word, extra_data = self.filter.matchFilter(**kwargs)
+        action, word, extra_data = self.filter.matchConcern(**kwargs)
 
         # enhance
         if extra_data is None:
@@ -185,9 +185,9 @@ class PromNotify(object):
         extra_data['item_url'] = item_url
         extra_data['real_url'] = real_url
 
-        if action != 'SKIP' and await self._checkDup(from_title, title, his):
-            action, ret_data = '', ''
-            return action, ret_data
+#-#        if action != 'SKIP' and await self._checkDup(from_title, title, his):
+#-#            action, ret_data = '', ''
+#-#            return action, ret_data
 
         if action == 'NOTIFY':
             action, ret_data = '', word
@@ -229,8 +229,6 @@ class PromNotify(object):
                 msg = '[%s] %s (%s) %s --> %s' % (from_title, title, '/'.join(extra_data['cut_word']), item_url, real_url)
                 if self.wx:
                     self.wx.q_send.put([msg, ''])
-                if self.wework:
-                    await self.wework.send_by_wework(sbr_time, from_title, title, pic, item_url, real_url)
         elif action == 'SKIP':
             ret_data = word
 

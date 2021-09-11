@@ -35,7 +35,8 @@ def getConf(conf_path='./pn_conf.yaml', root_key=None, force_reload=False):
 
 if __name__ == '__main__':
     from applib.tools_lib import pcformat
-    conf = getConf('./config/pn_conf.yaml')
+# #    conf = getConf('./config/pn_conf.yaml')
+    conf = getConf('./config/pn_filter.yaml')
     info(pcformat(conf))
 
 
