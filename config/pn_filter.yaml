@@ -2,31 +2,72 @@ l_concern:
     -
         inc:
             - 妙可
-    -
-        inc:
             - 罗兹
+        exc:
+            - 低脂
+            - 脱脂
     -
+        inc_all: true
         inc:
-            - 固态硬盘
+            - 固态
             - SATA
+            - 硬盘
         exc: 
             - 2TB
             - 1TB
             - 4TB
-            - NVME
+            - NVMe
             - 光威
+            - M.2
+            - type-c
+            - usb3
+            - 创见
+            - 威刚
+            - 酷兽
+            - 雷克沙
+            - 爱国者
+            - 硬盘盒
+            - 玖合
+            - 台电
+            - 七彩虹
+            - 移速
+            - 影驰
     -
         inc:
             - 湿巾
         exc:
-            - 婴儿
+            - 宝宝
+            - 婴
             - 宠物
             - 保湿
+            - 厨房
+            - 私护
+            - 女性
+            - 酒精
+    -
+        inc_all: true
+        inc:
+            - 红米
+            - Note
+            - !!str 9
+            - Pro
+        exc:
+            - 6GB
     -
         inc:
             - 黄小米
         exc:
             - 手机
+    -
+        inc:
+            - 小米
+        exc:
+            - 手机
+            - 耳机
+            - 红米
+            - 5G
+            - 4G
+            - note
     -
         inc:
             - 牛腱子
@@ -35,9 +76,14 @@ l_concern:
     -
         inc:
             - 神价
-    -
-        inc:
             - 中石化
+            - 8+256
+    -
+        inc_all: true
+        inc:
+            - 帆布
+            - 腰带
+
 
 l_include_coupon:
 

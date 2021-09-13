@@ -123,7 +123,7 @@ class WeworkManager(object):
                                                   'url': real_url if real_url else item_url,
                                                   'picurl': pic_url,
                                                   },
-                                                 {'title': f'{title[-60:]}' if len(title) > 60 else title,
+                                                 {'title': f'{title[60:]}' if len(title) > 60 else title,
                                                   'description': f'{sbr_time.strftime("%H:%M:%S")}',
                                                   #'url': f'https://httpbin.org/base64/{urlsafe_b64encode(title.encode("utf8")).decode()}',  # 利用httpbin显示url后附上的完整标题
                                                   'url': f'https://httpbin.org/base64/{urlsafe_b64encode(self.httpbin_html.format(**locals(), item_url_domain=urlsplit(item_url).netloc, real_url_domain=urlsplit(real_url).netloc).encode("utf8")).decode()}',  # 利用httpbin显示url后附上的完整内容

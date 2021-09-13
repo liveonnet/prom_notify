@@ -208,9 +208,11 @@ class PromNotify(object):
                     webbrowser.get('firefox').open_new_tab('file:///%s' % QrCode.getQrCode(real_url, pic_data=pic_data))
             if not slience:
                 self.ps.playTextAsync(title, extra_data)
-            info('[%s] %s (%s) %s --> %s', from_title, title, '/'.join(extra_data['cut_word']), item_url, real_url)
-            msg = '[%s] %s (%s) %s --> %s' % (from_title, title, '/'.join(extra_data['cut_word']), item_url, real_url)
+# #            info('[%s] %s (%s) %s --> %s', from_title, title, '/'.join(extra_data['cut_word']), item_url, real_url)
+            info(f'[{from_title}] {title} ({"/".join(extra_data["cut_word"])}) {item_url} --> {real_url}')
+
             if self.wx:
+                msg = '[%s] %s (%s) %s --> %s' % (from_title, title, '/'.join(extra_data['cut_word']), item_url, real_url)
                 self.wx.q_send.put([msg, ''])
             if self.wework:
                 await self.wework.send_by_wework(sbr_time, from_title, title, pic, item_url, real_url)
@@ -225,9 +227,10 @@ class PromNotify(object):
                         cmd = 'notify-send  "%s" "%s at %s"' % (from_title, title.replace('$', '\$').replace('&', '＆'), sbr_time.strftime('%H:%M:%S'))
                         subprocess.Popen(cmd, shell=True).wait()
 
-                info('[%s] %s (%s) %s --> %s', from_title, title, '/'.join(extra_data['cut_word']), item_url, real_url)
-                msg = '[%s] %s (%s) %s --> %s' % (from_title, title, '/'.join(extra_data['cut_word']), item_url, real_url)
+# #                debug('[%s] %s (%s) %s --> %s', from_title, title, '/'.join(extra_data['cut_word']), item_url, real_url)
+                debug(f'[{from_title}] {title} {item_url} --> {real_url}')
                 if self.wx:
+                    msg = '[%s] %s (%s) %s --> %s' % (from_title, title, '/'.join(extra_data['cut_word']), item_url, real_url)
                     self.wx.q_send.put([msg, ''])
         elif action == 'SKIP':
             ret_data = word

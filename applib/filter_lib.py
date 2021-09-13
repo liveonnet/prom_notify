@@ -1,5 +1,6 @@
 import os
 import sys
+import re
 from itertools import chain
 import jieba
 if __name__ == '__main__':
@@ -47,7 +48,7 @@ class FilterTitle(object):
         """添加自定义词组
         """
 # #        l_dynamic_word = sorted(chain((x.get('inc', []) for x in self.l_concern), (x.get('exc', []) for x in self.l_concern)), key=lambda x: len(x) if x else 0, reverse=True)
-        l_dynamic_word = [m for m in sorted(list(chain(*(x.get('inc', []) for x in self.l_concern), *(x.get('exc', []) for x in self.l_concern))), key=lambda x: len(x) if x else 0, reverse=True) if len(m) > 0]
+        l_dynamic_word = [m for m in sorted(set(list(chain(*(x.get('inc', []) for x in self.l_concern), *(x.get('exc', []) for x in self.l_concern)))), key=lambda x: len(x) if x else 0, reverse=True) if len(m) > 0]
         debug(pcformat(l_dynamic_word))
         list(map(lambda w: jieba.add_word(w, freq=1500, tag=None) if w else 0, l_dynamic_word))
         debug('added %s include/exclude word(s) to jieba', len(l_dynamic_word))
@@ -76,7 +77,7 @@ class FilterTitle(object):
 
         关注优先, 除了关注的外都跳过
 
-        每个关注项包含两个列表：一个是关注关键词列表，一个是排除关键词列表。一个title中如果包含关注关键词中的任意一个并且不包含排除关键词的任何一个，那么这个title就是符合条件的。
+        每个关注项包含两个列表：一个是关注关键词列表，一个是排除关键词列表。 另外包含一个inc_all字段，表示是否需要同时匹配上所有关键词(无此字段表示不需要同时匹配所有关键词)。一个title中如果包含关注关键词中的任意一个（inc_all=False）或所有的(inc_all=True)并且不包含排除关键词的任何一个，那么这个title就是符合条件的。
 
         之前的matchFilter是排除优先，需要将要排除的都放到单独的配置文件里面，随着排除项越来越多，这种方式
         变得臃肿低效。其实抓了半天网页就是想得到自己近期有计划要买的商品的优惠信息，所以改成从配置文件里
@@ -101,35 +102,52 @@ class FilterTitle(object):
         # 考虑到同时关注的条目和title都不会太多太长，使用循环查找的笨办法，未使用原matchFilter中的集合方式，因为不确定添加的自定义分词是否都有效，也考虑到添加的关键词可能有重叠部分，优化方向：使用ahocorasick模块
 # #        debug(f'=============== 检查目标 {title}')
         for _item in self.l_concern:  # 每个关注排除项依次检查
+            _inc_all = _item.get('inc_all', False)
             _inc, _exc = set(_item.get('inc', [])), set(_item.get('exc', []))
-# #            debug(f'------------- 检查项 关注 {_inc} 排除 {_exc}')
+# #            debug(f'------------- 检查项 关注{"所有" if _inc_all else "任意"} 关注 {_inc} 排除 {_exc}')
             if _inc:
-                for _inc_one in _inc:  # 关注项中的词依次测试是否有匹配
-                    if title.find(_inc_one) != -1:  # 有匹配
-# #                        debug(f'关注匹配到 {_inc_one}')
-                        for _exc_one in _exc:  # 排除项中的词依次测试是否有匹配
-                            if title.find(_exc_one) != -1:  # 有匹配
-# #                                debug(f'关注 {_inc_one} 被 {_exc_one} 排除')
-                                action, word = 'SKIP', f'{_inc_one}/{_exc_one}'
+                if _inc_all:  # 需要匹配上单个关注项中的所有关键词
+                    for _inc_one in _inc:
+                        if not re.search(_inc_one, title, re.IGNORECASE):
+# #                            debug(f'未匹配到所有关键词中的 {_inc_one}')
+                            break
+                    else:
+                        for _exc_one in _exc:
+                            if re.search(_exc_one, title, re.IGNORECASE):  # 有匹配
+# #                                debug(f'关注 {"&".join(_inc)} 被 {_exc_one} 排除')
+                                action, word = 'SKIP', f'{"&".join(_inc)}/{_exc_one}'  # 保留最近一次被排除的信息
                                 break
                         else:
 # #                            debug(f'关注无排除')
-                            action, word = 'NOTIFY', _inc_one
+                            action, word = 'NOTIFY', "&".join(_inc)
                             break
-                    if action == 'SKIP':
-# #                        debug('提前到下一检查项')
-                        break
+                else:  # 只需要匹配单个关注项中的单个关键词
+                    for _inc_one in _inc:  # 关注项中的词依次测试是否有匹配
+                        if re.search(_inc_one, title, re.IGNORECASE):  # 有匹配
+# #                            debug(f'关注匹配到 {_inc_one}')
+                            for _exc_one in _exc:  # 排除项中的词依次测试是否有匹配
+                                if re.search(_exc_one, title, re.IGNORECASE):  # 有匹配
+# #                                    debug(f'关注 {_inc_one} 被 {_exc_one} 排除')
+                                    action, word = 'SKIP', f'{_inc_one}/{_exc_one}'
+                                    break
+                            else:
+# #                                debug(f'关注无排除')
+                                action, word = 'NOTIFY', _inc_one
+                                break
+                        if action == 'SKIP':
+# #                            debug('提前到下一检查项')
+                            break
             else:
                 warn(f'关注项为空！ {pcformat(_item)}')
 
             if action == 'NOTIFY':  # 提前退出
 # #                debug(f'提前退出')
                 break
-        else:
-            pass
+# #        else:
+# #            pass
 # #            debug('不在关注中')
 
-        debug(f'check title {title} result: {action} {word}')
+# #        debug(f'check title {title} result: {action} {word}')
 
         return action, word, extra_data
 
@@ -212,20 +230,26 @@ if __name__ == '__main__':
 # #    x = t.cutWordJieba('世界经典文学名著 全译本')
     x = t.matchConcern(title='闪迪固态硬盘 SATA 500GB')
     info(pcformat(x))
-    x = t.matchConcern(title='闪迪固态硬盘 SATA 1TB')
-    info(pcformat(x))
-    x = t.matchConcern(title='闪迪固态硬盘 SATA 2TB')
-    info(pcformat(x))
+# #    x = t.matchConcern(title='闪迪固态硬盘 SATA 1TB')
+# #    info(pcformat(x))
+# #    x = t.matchConcern(title='闪迪固态硬盘 SATA 2TB')
+# #    info(pcformat(x))
 
-    x = t.matchConcern(title='酒精湿巾')
-    info(pcformat(x))
-    x = t.matchConcern(title='宠物湿巾')
-    info(pcformat(x))
+# #    x = t.matchConcern(title='酒精湿巾')
+# #    info(pcformat(x))
+# #    x = t.matchConcern(title='宠物湿巾')
+# #    info(pcformat(x))
 
     x = t.matchConcern(title='小米 note11')
     info(pcformat(x))
     x = t.matchConcern(title='黄小米500g')
     info(pcformat(x))
 
-    x = t.matchConcern(title='HONOD BEEF 恒都牛肉原切牛腱子肉 2.5kg')
+    x = t.matchConcern(title='红米 note9')
     info(pcformat(x))
+    x = t.matchConcern(title='红米 note9 pro')
+    info(pcformat(x))
+    x = t.matchConcern(title='红米 note9 pro 6GB')
+    info(pcformat(x))
+# #    x = t.matchConcern(title='HONOD BEEF 恒都牛肉原切牛腱子肉 2.5kg')
+# #    info(pcformat(x))
