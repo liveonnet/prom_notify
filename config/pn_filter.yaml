@@ -4,11 +4,13 @@ l_concern:
             - 妙可
             - 罗兹
         exc:
+            - 蓝多
             - 低脂
             - 脱脂
     -
         inc_all: true
         inc:
+            - 闪迪
             - 固态
             - SATA
             - 硬盘
@@ -17,21 +19,74 @@ l_concern:
             - 1TB
             - 4TB
             - NVMe
-            - 光威
             - M.2
             - type-c
             - usb3
-            - 创见
-            - 威刚
-            - 酷兽
-            - 雷克沙
-            - 爱国者
             - 硬盘盒
-            - 玖合
-            - 台电
-            - 七彩虹
-            - 移速
-            - 影驰
+    -
+        inc_all: true
+        inc:
+            - 铠侠
+            - 固态
+            - SATA
+            - 硬盘
+        exc: 
+            - 2TB
+            - 1TB
+            - 4TB
+            - NVMe
+            - M.2
+            - type-c
+            - usb3
+            - 硬盘盒
+    -
+        inc_all: true
+        inc:
+            - 金士顿
+            - 固态
+            - SATA
+            - 硬盘
+        exc: 
+            - 2TB
+            - 1TB
+            - 4TB
+            - NVMe
+            - M.2
+            - type-c
+            - usb3
+            - 硬盘盒
+    -
+        inc_all: true
+        inc:
+            - 三星
+            - 固态
+            - SATA
+            - 硬盘
+        exc: 
+            - 2TB
+            - 1TB
+            - 4TB
+            - NVMe
+            - M.2
+            - type-c
+            - usb3
+            - 硬盘盒
+    -
+        inc_all: true
+        inc:
+            - 西部数据
+            - 固态
+            - SATA
+            - 硬盘
+        exc: 
+            - 2TB
+            - 1TB
+            - 4TB
+            - NVMe
+            - M.2
+            - type-c
+            - usb3
+            - 硬盘盒
     -
         inc:
             - 湿巾
@@ -40,34 +95,36 @@ l_concern:
             - 婴
             - 宠物
             - 保湿
+            - 汽车
+            - 擦鞋
             - 厨房
+            - 私处
             - 私护
             - 女性
             - 酒精
+            - 控油
+            - 速干
+            - 眼镜
+            - 镜头
+            - 卸妆
     -
         inc_all: true
         inc:
             - 红米
-            - Note
-            - !!str 9
+            - Note9
+#            - !!str 9
             - Pro
         exc:
             - 6GB
     -
         inc:
             - 黄小米
+            - 小黄米
         exc:
             - 手机
-    -
-        inc:
-            - 小米
-        exc:
-            - 手机
-            - 耳机
-            - 红米
-            - 5G
-            - 4G
-            - note
+            - 绿色
+            - 有机
+            - 礼盒
     -
         inc:
             - 牛腱子
@@ -78,11 +135,60 @@ l_concern:
             - 神价
             - 中石化
             - 8+256
+              #- 5W-30
+        exc:
+            - oppo
+    -
+        inc_all: true
+        inc:
+            - 迪卡侬
+            - 裤
+        exc:
+            - 儿童
+            - 短裤
+            - 潜水
+            - 游泳
+            - 羽绒
+            - 沙滩
+            - 紧身
+            - 女
+            - 骑行
+            - 泳裤
     -
         inc_all: true
         inc:
             - 帆布
             - 腰带
+    -
+        inc:
+            - 香油
+            - 芝麻油
+            - 米醋
+            - 香醋
+            - 士力架
+    -
+        inc:
+            - 巧克力
+        exc:
+            - 松露
+            - 糖
+            - 派
+            - 威化
+            - 酸奶
+            - 好丽友
+            - 咖啡
+            - 曲奇
+            - 奥利奥
+            - 夹心
+            - 乳清
+            - 礼盒
+            - 蛋糕
+            - 雪糕
+            - 风味
+            - 芝士
+            - 冰淇淋
+            - 染发
+            - 礼物
 
 
 l_include_coupon:

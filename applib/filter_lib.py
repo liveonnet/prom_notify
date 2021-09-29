@@ -48,7 +48,8 @@ class FilterTitle(object):
         """添加自定义词组
         """
 # #        l_dynamic_word = sorted(chain((x.get('inc', []) for x in self.l_concern), (x.get('exc', []) for x in self.l_concern)), key=lambda x: len(x) if x else 0, reverse=True)
-        l_dynamic_word = [m for m in sorted(set(list(chain(*(x.get('inc', []) for x in self.l_concern), *(x.get('exc', []) for x in self.l_concern)))), key=lambda x: len(x) if x else 0, reverse=True) if len(m) > 0]
+        l_dynamic_word = [m for m in chain(*(x.get('inc', []) for x in self.l_concern), *(x.get('exc', []) for x in self.l_concern)) if len(m) > 0]
+        l_dynamic_word = sorted(set(l_dynamic_word), key=lambda x: len(x) if x else 0, reverse=True)
         debug(pcformat(l_dynamic_word))
         list(map(lambda w: jieba.add_word(w, freq=1500, tag=None) if w else 0, l_dynamic_word))
         debug('added %s include/exclude word(s) to jieba', len(l_dynamic_word))
