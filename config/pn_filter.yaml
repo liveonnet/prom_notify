@@ -18,6 +18,9 @@ l_concern:
             - 2TB
             - 1TB
             - 4TB
+            - 960GB
+            - 240GB
+            - 120GB
             - NVMe
             - M.2
             - type-c
@@ -34,6 +37,9 @@ l_concern:
             - 2TB
             - 1TB
             - 4TB
+            - 960GB
+            - 240GB
+            - 120GB
             - NVMe
             - M.2
             - type-c
@@ -50,6 +56,10 @@ l_concern:
             - 2TB
             - 1TB
             - 4TB
+            - 960GB
+            - 240GB
+            - 120GB
+            - 1920GB
             - NVMe
             - M.2
             - type-c
@@ -66,6 +76,9 @@ l_concern:
             - 2TB
             - 1TB
             - 4TB
+            - 960GB
+            - 240GB
+            - 120GB
             - NVMe
             - M.2
             - type-c
@@ -82,12 +95,16 @@ l_concern:
             - 2TB
             - 1TB
             - 4TB
+            - 960GB
+            - 240GB
+            - 120GB
             - NVMe
             - M.2
             - type-c
             - usb3
             - 硬盘盒
     -
+        enable: false
         inc:
             - 湿巾
         exc:
@@ -106,16 +123,14 @@ l_concern:
             - 速干
             - 眼镜
             - 镜头
-            - 卸妆
-    -
-        inc_all: true
-        inc:
-            - 红米
-            - Note9
-#            - !!str 9
-            - Pro
-        exc:
-            - 6GB
+            - 卸
+            - 新生
+            - 迷你
+            - 湿厕
+            - 妆
+            - 猫
+            - 狗
+            - 精华
     -
         inc:
             - 黄小米
@@ -125,19 +140,161 @@ l_concern:
             - 绿色
             - 有机
             - 礼盒
+            - 锅巴
     -
         inc:
-            - 牛腱子
+            - 雨刷
+    -
+        inc:
+            - 鸡翅
+        exc:
+            - 辣
+            - 奥尔良
+            - 休闲
+            - 盐焗
+            - 零食
+            - 鸡翅木
+            - 鸡翅尖
+            - 咖喱
+    -
+        inc:
+            - 琵琶腿
+    -
+        inc:
+            - 牛腱
+            - 牛腩
+            - 羊肉
+            - 牛肉
         exc:
             - 恒都
+            - 肉粒
+            - 孜然
+            - 麻
+            - 面
+            - 酱牛肉
+            - 肉丸
+            - 猫
+            - 狗
+            - 犬
+            - 米粉
+            - 米线
+            - 香辣
+            - 肉干
+            - 五香
+            - 肉酱
+            - 牛排
+            - 腌料
+            - 肉饼
+            - 自热
+            - 辣
+            - 烧
+            - 烤
+            - 披萨
+            - 番茄
+            - 宠物
+            - 调理
+            - 整理
+            - 带骨
+            - 水煮
+            - 馄饨
+            - 水饺
+            - 瓜子
+            - 饼
+            - 丸
+            - 串
+            - 罐头
+            - 火腿
+            - 肉松
+            - 肉蓉
+            - 肉酥
+            - 肉馅
+            - 自嗨
+            - 咖喱
+            - 调味
+            - 方便
+            - 汉堡
+            - 黑椒
+            - 泡馍
+            - 豆
+            - 松鼠
+            - 精选
+            - 有机
+            - 牙签
+            - 手撕
+            - 肉丝
+            - 熟
+            - 肠
+            - 锅巴
+            - 礼盒
+            - 炒米
+            - 香菇
+            - 瓶
+            - 自热
+            - 料酒
+            - 汤包
     -
         inc:
             - 神价
+
             - 中石化
-            - 8+256
+              #- 8+256
               #- 5W-30
         exc:
             - oppo
+            - OPPO
+    -
+        enable: false
+        inc:
+            - 洗衣液
+        exc:
+            - 婴儿
+            - 内衣
+            - 内裤
+            - 血渍
+            - 凝珠
+    -
+        enable: false
+        inc_all: true
+        inc:
+            - 金纺
+            - 柔顺剂
+    -
+        inc_all: true
+        inc:
+            - AMD
+            - 2200G
+    -
+        inc_all: true
+        inc:
+            - 罗技
+            - M275
+    -
+        inc_all: true
+        inc:
+            - 罗技
+            - m275
+    -
+        inc_all: true
+        inc:
+            - PTC
+            - 加热
+    -
+        inc_all: true
+        inc:
+            - 三元
+            - 小方白
+            - 250ml
+            - !!str 24
+    -
+        inc_all: true
+        inc:
+            - AMD
+            - 3200G
+    -
+        inc_all: true
+        inc:
+            - 怡宝
+            - 纯净水
     -
         inc_all: true
         inc:
@@ -154,25 +311,81 @@ l_concern:
             - 女
             - 骑行
             - 泳裤
+            - 运动
+            - 冲锋
+            - 软壳
+            - 速干
     -
-        inc_all: true
-        inc:
-            - 帆布
-            - 腰带
-    -
+        enable: false
         inc:
             - 香油
             - 芝麻油
             - 米醋
             - 香醋
-            - 士力架
     -
+        enable: false
+        inc_all: true
+        inc:
+            - 李宁
+            - 运动鞋
+            - 男
+        exc:
+            - 童
+            - ABAR039
+            - AGCR
+            - 同款
+            - 走秀
+            - 新品
+    -
+        enable: false
+        inc_all: true
+        inc:
+            - new balance
+            - 跑鞋
+        exc:
+            - 女
+            - 童
+    -
+        enable: false
+        inc_all: true
+        inc:
+            - new balance
+            - 跑步鞋
+        exc:
+            - 女
+            - 童
+    -
+        inc_all: true
+        inc:
+            - 龙头
+            - 双孔
+        exc:
+            - 套装
+            - 净水
+            - 潜水艇
+            - 单冷
+            - 抽拉
+            - 单孔
+            - 套餐
+            - 水槽
+            - 过滤
+            - 延伸
+            - 生料带
+            - 即热
+            - 电热
+            - 加热
+            - 沥水
+            - 花洒
+    -
+        enable: true
         inc:
             - 巧克力
         exc:
             - 松露
             - 糖
             - 派
+            - 色
+            - 味
             - 威化
             - 酸奶
             - 好丽友
@@ -184,11 +397,26 @@ l_concern:
             - 礼盒
             - 蛋糕
             - 雪糕
-            - 风味
             - 芝士
             - 冰淇淋
             - 染发
             - 礼物
+            - 奶酪
+            - 蓝多
+            - 蜜饯
+            - 燕麦
+            - 饼干
+            - 饮品
+            - 费列罗
+            - 进口
+            - 键盘
+            - 脆香米
+            - 瑞士莲
+            - 豆
+            - 酥
+            - 奶香
+            - 丝滑
+            - 黄金
 
 
 l_include_coupon:

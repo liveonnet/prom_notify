@@ -33,6 +33,8 @@ class FilterTitle(object):
         """
         conf = getConf(self.filter_path, force_reload=force_reload)
         self.l_concern = conf['l_concern']
+        # 将enable=False的关注项去掉
+        self.l_concern = [x for x in self.l_concern if x.get('enable', True) is True]
         debug(f'concern item(s) loaded {len(self.l_concern)}')
         self.l_include_coupon = conf['l_include_coupon'] or []
         self.l_exclude_coupon = conf['l_exclude_coupon'] or []
@@ -48,7 +50,8 @@ class FilterTitle(object):
         """添加自定义词组
         """
 # #        l_dynamic_word = sorted(chain((x.get('inc', []) for x in self.l_concern), (x.get('exc', []) for x in self.l_concern)), key=lambda x: len(x) if x else 0, reverse=True)
-        l_dynamic_word = [m for m in chain(*(x.get('inc', []) for x in self.l_concern), *(x.get('exc', []) for x in self.l_concern)) if len(m) > 0]
+# #        l_dynamic_word = [m for m in chain(*(x.get('inc', []) for x in self.l_concern), *(x.get('exc', []) for x in self.l_concern)) if len(m) > 0]
+        l_dynamic_word = [m for m in chain(*(x.get('inc', []) for x in self.l_concern)) if len(m) > 0]  # 只把inc中的词做自定义分词，exc中的不做
         l_dynamic_word = sorted(set(l_dynamic_word), key=lambda x: len(x) if x else 0, reverse=True)
         debug(pcformat(l_dynamic_word))
         list(map(lambda w: jieba.add_word(w, freq=1500, tag=None) if w else 0, l_dynamic_word))
@@ -78,7 +81,7 @@ class FilterTitle(object):
 
         关注优先, 除了关注的外都跳过
 
-        每个关注项包含两个列表：一个是关注关键词列表，一个是排除关键词列表。 另外包含一个inc_all字段，表示是否需要同时匹配上所有关键词(无此字段表示不需要同时匹配所有关键词)。一个title中如果包含关注关键词中的任意一个（inc_all=False）或所有的(inc_all=True)并且不包含排除关键词的任何一个，那么这个title就是符合条件的。
+        每个关注项包含两个列表：一个是关注关键词列表，一个是排除关键词列表。 另外包含一个inc_all字段，表示是否需要同时匹配上所有的关注关键词(无此字段表示不需要同时匹配所有关注关键词)。一个title中如果包含关注关键词中的任意一个（inc_all=False）或所有的(inc_all=True)并且不包含排除关键词的任何一个，那么这个title就是符合条件的。
 
         之前的matchFilter是排除优先，需要将要排除的都放到单独的配置文件里面，随着排除项越来越多，这种方式
         变得臃肿低效。其实抓了半天网页就是想得到自己近期有计划要买的商品的优惠信息，所以改成从配置文件里
