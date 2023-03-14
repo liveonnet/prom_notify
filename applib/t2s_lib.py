@@ -549,8 +549,8 @@ if __name__ == '__main__':
     # >> python applib/t2s_lib.py -f /tmp/t.txt -t /tmp/out.mp3 -s
     loop = asyncio.get_event_loop()
     try:
-        t2s = Text2SpeechBaidu()
-        t2s.getArgs()
+        t2s = Text2SpeechXunFei()
+#-#        t2s.getArgs()
 #-#        await t2s.doWork()
         task = asyncio.ensure_future(t2s.doWork())
         loop.run_until_complete(task)

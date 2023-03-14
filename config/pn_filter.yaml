@@ -1,5 +1,6 @@
 l_concern:
     -
+        enable: true
         inc:
             - 妙可
             - 罗兹
@@ -7,7 +8,29 @@ l_concern:
             - 蓝多
             - 低脂
             - 脱脂
+            - 婴儿
     -
+        enable: true
+        inc_all: true
+        inc:
+            - 小米
+            - 电池
+            - 更换
+            - !!str 9
+    -
+        enable: false
+        inc_all: true
+        inc:
+            - 4TB
+            - 蓝盘
+    -
+        enable: false
+        inc_all: true
+        inc:
+            - 3TB
+            - 机械
+    -
+        enable: false
         inc_all: true
         inc:
             - 闪迪
@@ -27,6 +50,7 @@ l_concern:
             - usb3
             - 硬盘盒
     -
+        enable: false
         inc_all: true
         inc:
             - 铠侠
@@ -46,6 +70,7 @@ l_concern:
             - usb3
             - 硬盘盒
     -
+        enable: false
         inc_all: true
         inc:
             - 金士顿
@@ -66,6 +91,7 @@ l_concern:
             - usb3
             - 硬盘盒
     -
+        enable: false
         inc_all: true
         inc:
             - 三星
@@ -85,6 +111,7 @@ l_concern:
             - usb3
             - 硬盘盒
     -
+        enable: false
         inc_all: true
         inc:
             - 西部数据
@@ -95,6 +122,7 @@ l_concern:
             - 2TB
             - 1TB
             - 4TB
+            - 8TB
             - 960GB
             - 240GB
             - 120GB
@@ -144,6 +172,21 @@ l_concern:
     -
         inc:
             - 雨刷
+        exc:
+            - 路虎
+            - 福特
+            - 大众
+            - 奇瑞
+            - 奔驰
+            - 宝马
+            - 东风
+            - 起亚
+            - 别克
+            - 领克
+            - 奥迪
+            - 中华
+            - 雪佛兰
+            - 本田
     -
         inc:
             - 鸡翅
@@ -153,19 +196,29 @@ l_concern:
             - 休闲
             - 盐焗
             - 零食
-            - 鸡翅木
-            - 鸡翅尖
+            - 翅木
+            - 翅尖
+            - 翅中
             - 咖喱
+            - 炸锅
+            - 卤香
+            - 蜜汁
+            - 烧烤
     -
+        enable: true
         inc:
             - 琵琶腿
     -
+        enable: true
         inc:
             - 牛腱
             - 牛腩
             - 羊肉
             - 牛肉
         exc:
+            - 羊蝎子
+            - 宝宝
+            - 粥
             - 恒都
             - 肉粒
             - 孜然
@@ -188,6 +241,7 @@ l_concern:
             - 自热
             - 辣
             - 烧
+            - 拌饭
             - 烤
             - 披萨
             - 番茄
@@ -232,16 +286,13 @@ l_concern:
             - 自热
             - 料酒
             - 汤包
-    -
-        inc:
-            - 神价
-
-            - 中石化
-              #- 8+256
-              #- 5W-30
-        exc:
-            - oppo
-            - OPPO
+            - 汤粉
+            - 牛肉味
+            - 煲仔饭
+            - 切片机
+            - 煎包
+            - 原味
+            - 卤味
     -
         enable: false
         inc:
@@ -253,44 +304,64 @@ l_concern:
             - 血渍
             - 凝珠
     -
-        enable: false
+        enable: true
         inc_all: true
         inc:
             - 金纺
             - 柔顺剂
     -
-        inc_all: true
-        inc:
-            - AMD
-            - 2200G
-    -
-        inc_all: true
-        inc:
-            - 罗技
-            - M275
-    -
-        inc_all: true
-        inc:
-            - 罗技
-            - m275
-    -
+        enable: false
         inc_all: true
         inc:
             - PTC
             - 加热
+    -
+        enable: false
+        inc_all: true
+        inc:
+            - 三元
+            - 鲜牛奶
+            - 1.8L
     -
         inc_all: true
         inc:
             - 三元
             - 小方白
             - 250ml
-            - !!str 24
+        exc:
+            - 脱脂
+            - 低脂
     -
         inc_all: true
         inc:
-            - AMD
-            - 3200G
+            - 三元
+            - 小方白
+            - 200ml
+        exc:
+            - 脱脂
+            - 低脂
     -
+        inc_all: true
+        inc:
+            - 冠生园
+            - 压缩
+            - 饼干
+    -
+        inc_all: true
+        inc:
+            - 麦片
+            - 桂格
+            - 即食
+    -
+        inc_all: true
+        inc:
+            - 麦片
+            - 西麦
+            - 即食
+        exc:
+            - 黑芝麻
+    -
+        enable: false
         inc_all: true
         inc:
             - 怡宝
@@ -315,6 +386,7 @@ l_concern:
             - 冲锋
             - 软壳
             - 速干
+            - 搜鹿客
     -
         enable: false
         inc:
@@ -324,37 +396,6 @@ l_concern:
             - 香醋
     -
         enable: false
-        inc_all: true
-        inc:
-            - 李宁
-            - 运动鞋
-            - 男
-        exc:
-            - 童
-            - ABAR039
-            - AGCR
-            - 同款
-            - 走秀
-            - 新品
-    -
-        enable: false
-        inc_all: true
-        inc:
-            - new balance
-            - 跑鞋
-        exc:
-            - 女
-            - 童
-    -
-        enable: false
-        inc_all: true
-        inc:
-            - new balance
-            - 跑步鞋
-        exc:
-            - 女
-            - 童
-    -
         inc_all: true
         inc:
             - 龙头
@@ -375,12 +416,149 @@ l_concern:
             - 电热
             - 加热
             - 沥水
-            - 花洒
     -
         enable: true
         inc:
+            - 葱姜料酒
+    -
+        enable: false
+        inc:
+            - 洗洁精
+    -
+        enable: false
+        inc:
+            - 纸抽
+            - 抽纸
+        exc:
+            - 厨房
+    -
+        enable: false
+        inc_all: true
+        inc:
+            - 70g
+            - A4
+    -
+        enable: false
+        inc_all: true
+        inc:
+            - 探拓
+            - 鞋
+        exc:
+            - 冲锋衣
+            - 工装裤
+            - 抓绒
+            - 羽绒
+            - 帽子
+    -
+        enable: true
+        inc_all: false
+        inc:
+            - 大中华寻宝记
+        exc:
+            - 任选一本
+    -
+        enable: false
+        inc_all: false
+        inc:
+            - kn95
+            - KN95
+        exc:
+            - 儿童
+    -
+        enable: true
+        inc_all: true
+        inc:
+            - 羽毛球
+        exc:
+            - 拍
+            - 鞋
+            - 衣
+            - 服
+            - 短袖
+            - 包
+            - 球线
+            - 护具
+            - 袜子
+            - 毛巾
+    -
+        enable: true
+        inc:
+            - 虾
+        exc:
+            - 片
+            - 球
+            - 味
+            - 波士顿
+            - 面
+            - 滑
+            - 馅
+            - 休闲
+            - 烤
+            - 零食
+            - 果冻
+            - 乌龟
+            - 饺
+            - 馄饨
+            - 饼
+            - 虾青素
+            - 犬
+            - 猫
+            - 宠物
+            - 粥
+            - 拉肠
+            - 龙虾
+            - 虾排
+            - 刀
+    -
+        enable: true
+        inc_all: true
+        inc:
+            - !!str 574
+            - new
+            - balance
+    -
+        enable: false
+        inc:
+            - 炒锅
+            - 铁锅
+        exc:
+            - 铸铁
+            - 生铁
+            - 平底
+            - 麦饭石
+            - 勺
+            - 铲
+            - 雪平
+            - 牛油果
+            - 八角
+            - 件套
+            - 不锈钢
+    -
+        enable: true
+        inc_all: true
+        inc:
+            - 滴露
+        exc:
+            - 衣物
+            - 地板
+            - 喷雾
+            - 洗手
+            - 洗衣机
+    -
+        enable: false
+        inc_all: true
+        inc:
+            - 京东
+            - PLUS
+            - 年卡
+    -
+        enable: false
+        inc:
             - 巧克力
         exc:
+            - 牛奶
+            - 肉松
+            - 月饼
             - 松露
             - 糖
             - 派
@@ -417,7 +595,63 @@ l_concern:
             - 奶香
             - 丝滑
             - 黄金
-
+            - 酒心
+    -
+        enable: true
+        inc_all: false
+        inc:
+            - vasque
+            - VASQUE
+    -
+        enable: true
+        inc_all: true
+        inc:
+            - 电池
+            - !!str 2032
+    -
+        enable: true
+        inc_all: true
+        inc:
+            - 舒肤佳
+            - 香皂
+    -
+        enable: true
+        inc_all: true
+        inc:
+            - 收纳盒
+        exc:
+            - 密封
+            - 冰箱
+            - 玻璃
+            - 五谷
+            - 厨房
+            - 耐热
+            - 抽屉
+            - 手办
+            - 文具
+    -
+        enable: true
+        inc_all: true
+        inc:
+            - 迪卡侬
+            - 鞋
+            - 冬
+        exc:
+            - 童
+            - 雪
+            - 靴
+            - 溪
+    -
+        enable: true
+        inc_all: true
+        inc:
+            - 台灯
+            - 国AA
+        exc:
+            - 夜灯
+            - 飞利浦
+            - 小米
+            - 孩视宝
 
 l_include_coupon:
 

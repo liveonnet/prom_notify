@@ -141,7 +141,7 @@ class QiLanManager(DiscuzManager):
                 info('loaded cookie from %s', forum['cookie_file'])
                 self.cookie = cookie
             for _ in range(2):
-                resp, text, ok = await self.net.getData(_sub['url'], timeout=5, my_fmt='str', my_str_encoding='utf8', headers={'Cookie': cookie} if cookie else None)
+                resp, text, ok = await self.net.getData(_sub['url'], timeout=5, my_fmt='str', my_str_encoding='gb18030', headers={'Cookie': cookie} if cookie else None)
                 if ok:
 #-#                    info('resp %s', pcformat(resp))
                     if '用户名' in text and '密码' in text and '快捷登录' in text:
@@ -321,9 +321,14 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
 
     try:
-        dz = DiscuzManager()
-        x = loop.run_until_complete(dz.getPostList(loop))
-        info(pcformat(x))
+# #        dz = DiscuzManager()
+        dz = QiLanManager()
+        conf = getConf('config/pn_conf.yaml', root_key='discuz')
+        for _forum in conf['forum']:
+            if _forum['title'] == '栖兰小筑':
+                x = loop.run_until_complete(dz.getPostList(_forum, loop))
+                info(pcformat(x))
+                break
     except KeyboardInterrupt:
         info('cancel on KeyboardInterrupt..')
 #-#        task.cancel()

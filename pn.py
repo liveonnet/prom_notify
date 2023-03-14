@@ -102,7 +102,7 @@ class PromNotify(object):
         if self.conf['enable_coupon']:
             self.coupon = CouponManager(self.conf_file_path, event_notify)
 
-        self.p_price = re.compile(r'\s*(?:￥|券后|返后合)?([0-9\.]+)')
+        self.p_price = re.compile(r'\s*(?:￥|券后|返后合|€|$|£)?([0-9\.]+)')
         self.p_chinese = re.compile('[\u4e00-\u9fa5]+')
 
         # 发送内容到微信
@@ -144,7 +144,7 @@ class PromNotify(object):
         """
         ret = False
         seconds_ago = datetime.now() + timedelta(seconds=-180)
-        d_tmp = {'慢慢买': 'mmb',
+        d_tmp = {'慢慢买': 'zhi',
                  '什么值得买': 'smzdm',
                  }
         for _source, _show_title, _ctime in his.getRecentItems(d_tmp[from_title], seconds_ago):
@@ -317,6 +317,7 @@ class PromNotify(object):
                     else:
                         x = 'http://cu.manmanbuy.com/http'
                         y = '.manmanbuy.com/redirectUrl.aspx?'
+                        z = '.manmanbuy.com/redirectTaobao.aspx?'
                         if x in str(r.url):
                             url = r.url[len(x) - 4:]
                             if url[0] == 's':  # https
@@ -330,6 +331,21 @@ class PromNotify(object):
                             up = urlparse(r.url)
                             d_p = parse_qs(up.query, encoding='gbk')
                             for _k in ('tourl', ):
+                                try:
+                                    if _k in d_p:
+                                        url = d_p[_k][0]
+# #                                                info('found url from %s', d_p)
+                                        l_redirect_his.append(url)
+                                        break
+                                except UnicodeDecodeError as e:
+                                    warn('d_p %s %s', pcformat(d_p))
+                                    raise e
+                            if url:
+                                break
+                        elif z in str(r.url):
+                            up = urlparse(str(r.url))
+                            d_p = parse_qs(up.query, encoding='gbk')
+                            for _k in ('url', ):
                                 try:
                                     if _k in d_p:
                                         url = d_p[_k][0]
@@ -407,21 +423,22 @@ class PromNotify(object):
                         info('got exit flag, exit~')
                         break
 # #                    _id = x.xpath('./div[@class="action"]/div[@class="popbox"]/dl/dd[1]/a/@data-id')[0][:]
-                    s = x.xpath('.//span[@class="gobuy"]/a[1]/@onclick')[0]
+                    s = x.xpath('./div[@class="cover"]/a[1]/@onclick')[0]
                     _id = re.search('(\d+)', s).group(1)
                     if _id.strip() != _id:
                         error('_id contain space char! %s|', _id)
                         _id = _id.strip()
+# #                    debug('got _id=%s', _id)
 
                     # 先查redis中是否已经存在
-                    if rds.exists(f'mmb_{_id}'):
-                        break
+                    if rds.exists(f'zhi_{_id}'):
+                        continue
 
         # #                if Item.select().where((Item.source == 'mmb') & (Item.sid == _id)).exists():
-                    if his.existsItem('mmb', _id):
+                    if his.existsItem('zhi', _id):
         # #                    info('SKIP EXISTING item mmb %s', _id)
         # #                    continue
-                        break
+                        continue
                     title = x.xpath('./div[@class="content"]/h3/a[1]/text()')[0][:].strip()
 # #                    debug('title %s', title)
                     price = x.xpath('./div[@class="content"]/h3/a[2]/text()')[0][:].strip()
@@ -456,8 +473,8 @@ class PromNotify(object):
 # #                        pass
         # #                    debug('%s%sadding [%s] %s %s --> %s\n', ('[' + action + ']') if action else '', (data + ' ') if data else '', tim, show_title, item_url, real_url)
         # #                Item.create(source='mmb', sid=_id, show_title=show_title, item_url=item_url, real_url=real_url, pic_url=pic, get_time=tim)
-                    his.createItem(source='mmb', sid=_id, show_title=show_title, item_url=item_url, real_url=real_url, pic_url=pic, get_time=tim)
-                    rds.setex(f'mmb_{_id}', '1', 86400)
+                    his.createItem(source='zhi', sid=_id, show_title=show_title, item_url=item_url, real_url=real_url, pic_url=pic, get_time=tim)
+                    rds.setex(f'zhi_{_id}', '1', 86400)
                 except (IndexError, ):
 # #                    debug('IndexError')
                     error('IndexError ', exc_info=True)
@@ -546,7 +563,7 @@ class PromNotify(object):
 # #                    if not Item.select().where((Item.source == 'smzdm') & (Item.sid == _id)).exists():
                     # 先查redis中是否已经存在
                     if rds.exists(f'smzdm_{_id}'):
-                        break
+                        continue
 
                     if not his.existsItem('smzdm', _id):
                         nr_new += 1
@@ -632,7 +649,7 @@ class PromNotify(object):
 # #                    if not Item.select().where((Item.source == 'smzdm') & (Item.sid == _id)).exists():
                     # 先查redis中是否已经存在
                     if rds.exists(f'smzdm_{_id}'):
-                        break
+                        continue
 
                     if not his.existsItem('smzdm', _id):
                         nr_new += 1
@@ -670,7 +687,7 @@ class PromNotify(object):
                         his.createItem(source='smzdm', sid=_id, show_title=show_title, item_url=url, real_url=real_url, pic_url=pic, get_time=sbr_time)
                         rds.setex(f'smzdm_{_id}', '1', 86400)
                     else:
-                        break
+                        continue
 # #                        info('SKIP EXISTING item smzdm %s', _id)
             else:
                 info('return code = %d !!!', r.status)
