@@ -215,7 +215,7 @@ class PromNotify(object):
                 msg = '[%s] %s (%s) %s --> %s' % (from_title, title, '/'.join(extra_data['cut_word']), item_url, real_url)
                 self.wx.q_send.put([msg, ''])
             if self.wework:
-                await self.wework.send_by_wework(sbr_time, from_title, title, pic, item_url, real_url)
+                await self.wework.send_by_wework(sbr_time, from_title, title, pic, item_url[:2048], real_url[:2048])
         elif action == 'NORMAL':
             if self.price_check(title, price, extra_data):
                 action, ret_data = '', ''
@@ -461,7 +461,7 @@ class PromNotify(object):
                     url = x.xpath('./div[@class="content"]/div[@class="meta"]/div[2][@class="frinf"]/span[@class="gobuy"]/a/@href')[0][:]
 
                     url = 'http://cu.manmanbuy.com/%s' % (url, )
-                    item_url = 'http://cu.manmanbuy.com/Sharedetailed_%s.aspx' % (_id, )
+                    item_url = 'http://cu.manmanbuy.com/discuxiao_%s.aspx' % (_id, )
 # #                    debug('id %s title %s price %s, pic %s tim %s url %s item_url %s', _id, title, price, pic, tim, url, item_url)
                     real_url = await self._get_real_url_4mmb(url)
                     real_url = self.get_from_linkstars(real_url, source='mmb')
