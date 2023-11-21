@@ -81,6 +81,8 @@ class NetManager(object):
         streaming_chunk_size = kwargs.pop('my_streaming_chunk_size', 1024)
         streaming_cb = kwargs.pop('my_streaming_cb', None)
         max_try = kwargs.pop('my_retry', 1)
+        if 'ssl' not in kwargs:
+            kwargs['ssl'] = False
 
         for nr_try in range(max_try):
             try:
@@ -114,8 +116,8 @@ class NetManager(object):
             except asyncio.TimeoutError:
                 if nr_try == max_try - 1:  # 日志输出最后一次超时
                     debug('%sTimeoutError %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url)
-            except aiohttp.client_exceptions.ClientConnectorError:
-                error('%sClientConnectionError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
+            except aiohttp.client_exceptions.ClientConnectorError as e:
+                error('%sClientConnectionError %s %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs), e)
             except ConnectionResetError:
                 error('%sConnectionResetError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
             except aiohttp.client_exceptions.ContentTypeError:
@@ -160,6 +162,8 @@ class NetManager(object):
         streaming_chunk_size = kwargs.pop('my_streaming_chunk_size', 1024)
         streaming_cb = kwargs.pop('my_streaming_cb', None)
         max_try = kwargs.pop('my_retry', 1)
+        if 'ssl' not in kwargs:
+            kwargs['ssl'] = False
 
         for nr_try in range(max_try):
             try:

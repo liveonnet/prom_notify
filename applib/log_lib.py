@@ -79,7 +79,7 @@ class InternalLog(object):
                                                     },
                                         secondary_log_colors={'message': {'ERROR': 'red,bg_yellow',
                                                                           'CRITICAL': 'red,bg_white',
-                                                                          'WARNING': 'cyan,bg_blue',
+                                                                          'WARNING': 'bold_yellow,bg_blue',
                                                                           }
                                                               },
                                         datefmt='%H:%M:%S')

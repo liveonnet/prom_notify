@@ -64,8 +64,8 @@ class WeworkManager(object):
             return
 
         access_token = await self.rds.get('wework_access_token')
-        if access_token:
-            access_token = access_token.decode()  # bytes -> str
+#-#        if access_token:
+#-#            access_token = access_token.decode()  # bytes -> str
 
         for _ in range(2):
             if not access_token:

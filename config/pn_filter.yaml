@@ -19,120 +19,6 @@ l_concern:
             - !!str 9
     -
         enable: false
-        inc_all: true
-        inc:
-            - 4TB
-            - 蓝盘
-    -
-        enable: false
-        inc_all: true
-        inc:
-            - 3TB
-            - 机械
-    -
-        enable: false
-        inc_all: true
-        inc:
-            - 闪迪
-            - 固态
-            - SATA
-            - 硬盘
-        exc: 
-            - 2TB
-            - 1TB
-            - 4TB
-            - 960GB
-            - 240GB
-            - 120GB
-            - NVMe
-            - M.2
-            - type-c
-            - usb3
-            - 硬盘盒
-    -
-        enable: false
-        inc_all: true
-        inc:
-            - 铠侠
-            - 固态
-            - SATA
-            - 硬盘
-        exc: 
-            - 2TB
-            - 1TB
-            - 4TB
-            - 960GB
-            - 240GB
-            - 120GB
-            - NVMe
-            - M.2
-            - type-c
-            - usb3
-            - 硬盘盒
-    -
-        enable: false
-        inc_all: true
-        inc:
-            - 金士顿
-            - 固态
-            - SATA
-            - 硬盘
-        exc: 
-            - 2TB
-            - 1TB
-            - 4TB
-            - 960GB
-            - 240GB
-            - 120GB
-            - 1920GB
-            - NVMe
-            - M.2
-            - type-c
-            - usb3
-            - 硬盘盒
-    -
-        enable: false
-        inc_all: true
-        inc:
-            - 三星
-            - 固态
-            - SATA
-            - 硬盘
-        exc: 
-            - 2TB
-            - 1TB
-            - 4TB
-            - 960GB
-            - 240GB
-            - 120GB
-            - NVMe
-            - M.2
-            - type-c
-            - usb3
-            - 硬盘盒
-    -
-        enable: false
-        inc_all: true
-        inc:
-            - 西部数据
-            - 固态
-            - SATA
-            - 硬盘
-        exc: 
-            - 2TB
-            - 1TB
-            - 4TB
-            - 8TB
-            - 960GB
-            - 240GB
-            - 120GB
-            - NVMe
-            - M.2
-            - type-c
-            - usb3
-            - 硬盘盒
-    -
-        enable: false
         inc:
             - 湿巾
         exc:
@@ -160,34 +46,7 @@ l_concern:
             - 狗
             - 精华
     -
-        inc:
-            - 黄小米
-            - 小黄米
-        exc:
-            - 手机
-            - 绿色
-            - 有机
-            - 礼盒
-            - 锅巴
-    -
-        inc:
-            - 雨刷
-        exc:
-            - 路虎
-            - 福特
-            - 大众
-            - 奇瑞
-            - 奔驰
-            - 宝马
-            - 东风
-            - 起亚
-            - 别克
-            - 领克
-            - 奥迪
-            - 中华
-            - 雪佛兰
-            - 本田
-    -
+        enable: true
         inc:
             - 鸡翅
         exc:
@@ -204,18 +63,20 @@ l_concern:
             - 卤香
             - 蜜汁
             - 烧烤
+            - 周黑鸭
     -
-        enable: true
+        enable: false
         inc:
             - 琵琶腿
     -
         enable: true
         inc:
             - 牛腱
-            - 牛腩
+#            - 牛腩
             - 羊肉
             - 牛肉
         exc:
+            - 肋排
             - 羊蝎子
             - 宝宝
             - 粥
@@ -293,8 +154,29 @@ l_concern:
             - 煎包
             - 原味
             - 卤味
+            - 芝士
+            - 椒香
+            - 霸王
+            - 粉
+            - 鸳鸯锅
+            - 紫铜
+            - 火锅
+            - 锅贴
+            - 卷
+            - 瑞士
+            - 盐池滩
+            - 牛肉片
+            - 肉脯
+            - 酱香
+            - 卤
+            - 风干
+            - 堡
+            - 即食
+            - 低脂
+            - 口味
+            - 筋头巴脑
     -
-        enable: false
+        enable: true
         inc:
             - 洗衣液
         exc:
@@ -303,25 +185,15 @@ l_concern:
             - 内裤
             - 血渍
             - 凝珠
+            - 婴幼儿
+            - 真丝
+            - 羊毛
     -
-        enable: true
+        enable: false
         inc_all: true
         inc:
             - 金纺
             - 柔顺剂
-    -
-        enable: false
-        inc_all: true
-        inc:
-            - PTC
-            - 加热
-    -
-        enable: false
-        inc_all: true
-        inc:
-            - 三元
-            - 鲜牛奶
-            - 1.8L
     -
         inc_all: true
         inc:
@@ -343,15 +215,17 @@ l_concern:
     -
         inc_all: true
         inc:
-            - 冠生园
-            - 压缩
-            - 饼干
-    -
-        inc_all: true
-        inc:
             - 麦片
             - 桂格
             - 即食
+        exc:
+            - 黑芝麻
+            - 小袋
+            - 牛奶
+            - 混合
+            - 独立
+            - 组合
+            - 礼盒
     -
         inc_all: true
         inc:
@@ -360,33 +234,12 @@ l_concern:
             - 即食
         exc:
             - 黑芝麻
-    -
-        enable: false
-        inc_all: true
-        inc:
-            - 怡宝
-            - 纯净水
-    -
-        inc_all: true
-        inc:
-            - 迪卡侬
-            - 裤
-        exc:
-            - 儿童
-            - 短裤
-            - 潜水
-            - 游泳
-            - 羽绒
-            - 沙滩
-            - 紧身
-            - 女
-            - 骑行
-            - 泳裤
-            - 运动
-            - 冲锋
-            - 软壳
-            - 速干
-            - 搜鹿客
+            - 小袋
+            - 牛奶
+            - 混合
+            - 独立
+            - 组合
+            - 礼盒
     -
         enable: false
         inc:
@@ -395,7 +248,7 @@ l_concern:
             - 米醋
             - 香醋
     -
-        enable: false
+        enable: true
         inc_all: true
         inc:
             - 龙头
@@ -417,71 +270,15 @@ l_concern:
             - 加热
             - 沥水
     -
-        enable: true
-        inc:
-            - 葱姜料酒
-    -
-        enable: false
-        inc:
-            - 洗洁精
-    -
         enable: false
         inc:
             - 纸抽
             - 抽纸
+            - 纸巾
         exc:
             - 厨房
     -
         enable: false
-        inc_all: true
-        inc:
-            - 70g
-            - A4
-    -
-        enable: false
-        inc_all: true
-        inc:
-            - 探拓
-            - 鞋
-        exc:
-            - 冲锋衣
-            - 工装裤
-            - 抓绒
-            - 羽绒
-            - 帽子
-    -
-        enable: true
-        inc_all: false
-        inc:
-            - 大中华寻宝记
-        exc:
-            - 任选一本
-    -
-        enable: false
-        inc_all: false
-        inc:
-            - kn95
-            - KN95
-        exc:
-            - 儿童
-    -
-        enable: true
-        inc_all: true
-        inc:
-            - 羽毛球
-        exc:
-            - 拍
-            - 鞋
-            - 衣
-            - 服
-            - 短袖
-            - 包
-            - 球线
-            - 护具
-            - 袜子
-            - 毛巾
-    -
-        enable: true
         inc:
             - 虾
         exc:
@@ -510,31 +307,7 @@ l_concern:
             - 虾排
             - 刀
     -
-        enable: true
-        inc_all: true
-        inc:
-            - !!str 574
-            - new
-            - balance
-    -
         enable: false
-        inc:
-            - 炒锅
-            - 铁锅
-        exc:
-            - 铸铁
-            - 生铁
-            - 平底
-            - 麦饭石
-            - 勺
-            - 铲
-            - 雪平
-            - 牛油果
-            - 八角
-            - 件套
-            - 不锈钢
-    -
-        enable: true
         inc_all: true
         inc:
             - 滴露
@@ -553,69 +326,6 @@ l_concern:
             - 年卡
     -
         enable: false
-        inc:
-            - 巧克力
-        exc:
-            - 牛奶
-            - 肉松
-            - 月饼
-            - 松露
-            - 糖
-            - 派
-            - 色
-            - 味
-            - 威化
-            - 酸奶
-            - 好丽友
-            - 咖啡
-            - 曲奇
-            - 奥利奥
-            - 夹心
-            - 乳清
-            - 礼盒
-            - 蛋糕
-            - 雪糕
-            - 芝士
-            - 冰淇淋
-            - 染发
-            - 礼物
-            - 奶酪
-            - 蓝多
-            - 蜜饯
-            - 燕麦
-            - 饼干
-            - 饮品
-            - 费列罗
-            - 进口
-            - 键盘
-            - 脆香米
-            - 瑞士莲
-            - 豆
-            - 酥
-            - 奶香
-            - 丝滑
-            - 黄金
-            - 酒心
-    -
-        enable: true
-        inc_all: false
-        inc:
-            - vasque
-            - VASQUE
-    -
-        enable: true
-        inc_all: true
-        inc:
-            - 电池
-            - !!str 2032
-    -
-        enable: true
-        inc_all: true
-        inc:
-            - 舒肤佳
-            - 香皂
-    -
-        enable: true
         inc_all: true
         inc:
             - 收纳盒
@@ -629,29 +339,98 @@ l_concern:
             - 抽屉
             - 手办
             - 文具
+            - 数码
+            - 路由
+            - 龙头
+            - 洗衣机
+            - 卫生
+            - 后备箱
+            - 不锈钢
+            - 充电
+            - 饺子
+        enable: false
+        inc_all: true
+        inc:
+            - 护理垫
+    -
+        enable: false
+        inc_all: true
+        inc:
+            - 沐浴露
+        exc:
+            - 婴儿
+            - 儿童
+            - 幼儿
+            - 宝宝
+            - 小浣熊
+            - 青蛙
+            - 古龙
+            - 宠物
+            - 猫
+            - 狗
+    -
+        enable: true
+        inc:
+            - 探拓
+            - 日高
+        exc:
+            - 溯溪
+            - 女
+            - 防晒衣
+            - 沙滩
+            - 登山
+            - 假日
     -
         enable: true
         inc_all: true
         inc:
-            - 迪卡侬
-            - 鞋
-            - 冬
-        exc:
-            - 童
-            - 雪
-            - 靴
-            - 溪
-    -
-        enable: true
-        inc_all: true
-        inc:
-            - 台灯
-            - 国AA
-        exc:
-            - 夜灯
+            - 电动
+            - 牙刷
             - 飞利浦
-            - 小米
-            - 孩视宝
+    -
+        enable: false
+        inc_all: false
+        inc:
+            - 硬盘
+        exc:
+            - 固态
+            - 10T
+            - 16T
+            - 18T
+            - 8T
+            - 3T
+            - 1T
+            - 硬盘盒
+            - 便携
+            - 移动
+            - USB
+            - 私有云
+            - 网盘
+            - 服务器
+            - 共享
+            - 盘位
+            - 笔记本
+            - 7840H
+            - 7735H
+            - 录像机
+    -
+        enable: true
+        inc_all: false
+        inc:
+            - 5800U
+    -
+        enable: true
+        inc_all: false
+        inc:
+            - 5800u
+    -
+        enable: true
+        inc_all: true
+        inc:
+            - 洗手液
+        exc:
+            - 免洗
+
 
 l_include_coupon:
 

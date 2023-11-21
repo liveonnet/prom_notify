@@ -3,12 +3,14 @@ import os
 import re
 from lxml import etree
 import json
+import js2py
 # #from datetime import datetime
 # #from datetime import timedelta
 #-#from urllib.parse import quote
 from urllib.parse import urljoin
 from urllib.parse import urlsplit
 from urllib.parse import parse_qs
+#from urllib.parse import urlparse
 from itertools import repeat
 from itertools import count
 import importlib
@@ -32,6 +34,8 @@ from applib.conf_lib import getConf
 from applib.net_lib import NetManager
 from applib.log_lib import app_log
 info, debug, warn, error = app_log.info, app_log.debug, app_log.warning, app_log.error
+
+cached_js_check = None
 
 
 class DiscuzManager(object):
@@ -218,26 +222,66 @@ class SisManager(DiscuzManager):
     async def getPostList(self, forum, loop):
         """获得帖子列表
         """
+        global cached_js_check
         data = None
+        #up = urlparse(forum['login_url'])
+        #domain = f'http://{up.hostname}/'
+        #debug('domain=%s', domain)
         RedisManager.setCfg(self.conf_path, loop)
         rds = await RedisManager.getConn('sis')
         db = SisDB(self.conf_path)
+        p_js = re.compile('<script>(.+?)</script>', re.DOTALL | re.IGNORECASE | re.MULTILINE | re.UNICODE)
+        resp, aes_js, ok = await self.net.getData('http://23.225.255.99/aes.min.js', my_fmt='str')
+        if not ok:
+            return data
 #-#        embed()
         debug('fetching %s ...', forum['title'])
+        cookie, _ = self.cookie, False
         for _sub in forum['subforum']:
             if not _sub['enabled']:
                 continue
 #-#            debug('fetching sub forum %s\n%s ...', _sub['title'], _sub['url'])
-            cookie, _ = self.cookie, False
             if cookie is None and os.path.exists(forum['cookie_file']):
                 cookie = open(forum['cookie_file']).read()
                 info('loaded cookie from %s', forum['cookie_file'])
                 self.cookie = cookie
+            #if False:
+            #if cookie is None:
+            #    cookie = json.dumps({'CeRaHigh1': 'e5015f46e9b2ab6a9c77c26c6c624aa8'})
             for _page in count(1):
-                info(f'fetching {_sub["title"]} page {_page} ...')
-                resp, text, ok = await self.net.getData(_sub['url'].format(page=_page), timeout=5, my_fmt='str', my_str_encoding='utf8', headers={'Cookie': cookie} if cookie else None, my_retry=2)
+                for _i in range(2):
+                    info(f'fetching {_sub["title"]} page {_page} {"again" if _i == 1 else ""} ...')
+                    url = _sub['url'].format(page=_page)
+                    resp, text, ok = await self.net.getData(url, timeout=5, my_fmt='str', my_str_encoding='utf8', headers={'Cookie': cookie or cached_js_check} if cookie or cached_js_check else None, my_retry=2)
+                    if ok:
+                        if len(text) > 2000:
+                            break
+                        elif _i == 0:
+                            debug('need process js ?')
+                            m = p_js.search(text)
+                            if m:
+                                js = m.group(1)
+                                idx = js.find('document.cookie')
+                                js = js[:idx]
+                                js += 'function KKK(a,b,c){s="CeRaHigh1="+toHex(slowAES.decrypt(c,2,a,b));return s}KKK(a,b,c);'
+                                #debug('%s', js)
+                                x = js2py.eval_js(aes_js + '\n' + js)
+                                debug('eval js got: %s', x)
+                                #_k, _v = x.split('=', 1)
+                                #cookie = json.dumps({_k: _v})
+                                cookie = x + '; path=/'
+                                cached_js_check = cookie
+                                url += '&d=1'
+                            continue
+                        else:
+                            debug(f'try js failed')
+                            break
+                    else:
+                        break
                 if ok:
+                    #debug('---%s', resp.cookies)
 #-#                    info('resp %s', pcformat(resp))
+                    #info(f'resp text len {len(text)}')
                     pr = etree.HTMLParser()
                     tree = etree.fromstring(text, pr)
                     l_title = tree.xpath(_sub.get('postlist_title') or forum['postlist_title'])
@@ -280,10 +324,11 @@ class SisManager(DiscuzManager):
 #-#                        else:
 #-#                            warn(f'SKIP type {_type} for {_title}')
                 else:
+                    info(f'no ok')
                     break
 
 #-#        RedisManager.info('sis')
-        RedisManager.releaseConn(rds, 'sis')
+        await RedisManager.releaseConn(rds, 'sis')
 #-#        RedisManager.info('sis')
         info('%s 处理完毕', forum['title'])
         return data
@@ -322,13 +367,19 @@ if __name__ == '__main__':
 
     try:
 # #        dz = DiscuzManager()
-        dz = QiLanManager()
+        #dz = QiLanManager()
+        dz = SisManager()
         conf = getConf('config/pn_conf.yaml', root_key='discuz')
         for _forum in conf['forum']:
-            if _forum['title'] == '栖兰小筑':
+            #if _forum['title'] == '栖兰小筑':
+            #    x = loop.run_until_complete(dz.getPostList(_forum, loop))
+            #    info(pcformat(x))
+            #    break
+            if _forum['title'] == 'sis':
                 x = loop.run_until_complete(dz.getPostList(_forum, loop))
                 info(pcformat(x))
                 break
+
     except KeyboardInterrupt:
         info('cancel on KeyboardInterrupt..')
 #-#        task.cancel()

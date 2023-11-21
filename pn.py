@@ -67,7 +67,7 @@ premovetag = re.compile('(<.*?>)', re.M | re.S)
 # #exclude_first_a_tag = re.compile(r'\A<a.*?>\s*(.*?)\s*</a>\Z', re.M | re.S)
 
 
-async def signal_handler(sig):
+def signal_handler(sig):
     if sig == signal.SIGINT:
         warn('got Ctrl+C')
         if not event_exit.is_set():
@@ -861,13 +861,14 @@ class PromNotify(object):
 # #            await asyncio.sleep(interval)
             try:
                 await asyncio.wait_for(event_exit.wait(), interval if not 0 <= datetime.now().hour < 7 else interval * 3)
-            except concurrent.futures._base.TimeoutError:
+            except asyncio.exceptions.TimeoutError:
                 pass
             else:
-                info('what\' wrong ?')
-            if event_exit.is_set():
-                info('got exit flag, exit~')
-                break
+                if event_exit.is_set():
+                    info('got exit flag, exit~')
+                    break
+                else:
+                    info('what\' wrong ?')
 
     async def do_work_mmb(self):
         global event_exit
@@ -881,13 +882,15 @@ class PromNotify(object):
 # #            await asyncio.sleep(interval)
             try:
                 await asyncio.wait_for(event_exit.wait(), interval if not 0 <= datetime.now().hour < 7 else interval * 3)
-            except concurrent.futures._base.TimeoutError:
+            ##except concurrent.futures._base.TimeoutError:
+            except asyncio.exceptions.TimeoutError:
                 pass
             else:
-                info('what\' wrong ?')
-            if event_exit.is_set():
-                info('got exit flag, exit~')
-                break
+                if event_exit.is_set():
+                    info('got exit flag, exit~')
+                    break
+                else:
+                    info('what\' wrong ?')
 
     async def do_work_coupon(self):
         global event_exit
@@ -903,7 +906,8 @@ class PromNotify(object):
                 break
             try:
                 await asyncio.wait_for(event_exit.wait(), min(interval, 60 - float(datetime.now().strftime('%S.%f'))))  # 检查时长=min(指定时长, 距下一整分钟秒数), 保证整分钟时检查
-            except concurrent.futures._base.TimeoutError:
+            #except concurrent.futures._base.TimeoutError:
+            except asyncio.exceptions.TimeoutError:
                 pass
             else:
                 info('what\' wrong ?')
@@ -927,7 +931,8 @@ class PromNotify(object):
                 x = datetime.now().strftime('%M%S')
                 s = 60 * (60 - int(x[:2])) - int(x[2:])
                 await asyncio.wait_for(event_exit.wait(), min(interval, s))  # 检查时长=min(指定时长, 距下一整点秒数), 保证整点时检查
-            except concurrent.futures._base.TimeoutError:
+            #except concurrent.futures._base.TimeoutError:
+            except asyncio.exceptions.TimeoutError:
                 pass
             else:
                 info('what\' wrong ?')
@@ -953,7 +958,8 @@ class PromNotify(object):
 # #            await asyncio.sleep(interval)
             try:
                 await asyncio.wait_for(event_exit.wait(), interval)
-            except concurrent.futures._base.TimeoutError:
+            #except concurrent.futures._base.TimeoutError:
+            except asyncio.exceptions.TimeoutError:
                 pass
             else:
                 info('what\' wrong ?')
@@ -978,16 +984,18 @@ class PromNotify(object):
 # #            await asyncio.sleep(interval)
             try:
                 await asyncio.wait_for(event_exit.wait(), int(interval - time.time() + a))
-            except concurrent.futures._base.TimeoutError:
+            #except concurrent.futures._base.TimeoutError:
+            except asyncio.exceptions.TimeoutError:
                 pass
             else:
-                info('what\' wrong ?')
-            if event_exit.is_set():
-                info('got exit flag, exit~')
-                break
+                if event_exit.is_set():
+                    info('got exit flag, exit~')
+                    break
+                else:
+                    info('what\' wrong ?')
 
     async def do_work_async(self):
-        self.loop.add_signal_handler(signal.SIGINT, lambda: asyncio.ensure_future(signal_handler(signal.SIGINT)))
+        self.loop.add_signal_handler(signal.SIGINT, signal_handler, signal.SIGINT)
 
 # #        await self.init()
         wm, notifier, wdd = startWatchConf(self.all_conf['filter']['filter_path'], event_notify)

@@ -3,21 +3,23 @@
 import os
 import json
 from datetime import date
+import asyncio
 import aioredis
-from aioredis import Redis
+#from aioredis import Redis
 #-#from asyncio import sleep
 from asyncio import Lock
 #-#from asyncio import wait_for
 #-#from asyncio import TimeoutError
 #-#from asyncio import Task
 if __name__ == '__main__':
+    import sys
     sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
 from applib.conf_lib import getConf
 from applib.tools_lib import pcformat
 from applib.tools_lib import CJsonEncoder
 from applib.log_lib import app_log
 info, debug, warn, error = app_log.info, app_log.debug, app_log.warning, app_log.error
-pcformat
+#pcformat
 
 
 class K(object):
@@ -41,7 +43,7 @@ class MyRedis(object):
         if obj:
 #-#            info('%s found in redis obj', repr(name))
             return obj
-        raise AttributeError('can\'t find attribute %s in %s', repr(name), self)
+        raise AttributeError('can\'t find attribute %s in %s', repr(name), self.redis)
 
     async def getObj(self, key):
         """获取json对象
@@ -89,13 +91,13 @@ class MyRedis(object):
         for _k, _v in d.iteritems():
             try:
                 ret[_k] = json.loads(_v.decode('utf8'))
-            except:
+            except Exception:
                 info('%s %s', _k, pcformat(_v), exc_info=True)
                 try:
                     _tmp = _v.replace("'", '"')
                     _obj = json.loads(_tmp.decode('utf8'))
                     ret[_k] = _obj
-                except:
+                except Exception:
                     info('%s %s', _k, pcformat(_tmp), exc_info=True)
                     ret[_k] = _v
         return ret
@@ -108,11 +110,11 @@ class MyRedis(object):
         if s:
             try:
                 s = json.loads(s.decode('utf8'))
-            except:
+            except Exception:
                 try:
                     _tmp = s.replace("'", '"')
                     s = json.loads(_tmp.decode('utf8'))
-                except:
+                except Exception:
                     error('name %s key %s', name, key, exc_info=True)
         return s
 
@@ -126,11 +128,11 @@ class MyRedis(object):
             if s:
                 try:
                     s = json.loads(s)
-                except:
+                except Exception:
                     try:
                         _tmp = s.replace("'", '"')
                         s = json.loads(_tmp)
-                    except:
+                    except Exception:
                         s = None
                         error('name %s key %s', name, l_key[_i], exc_info=True)
             l_rslt.append(s)
@@ -145,7 +147,7 @@ class MyRedis(object):
             try:
                 _tmp = json.dumps(s, cls=CJsonEncoder)
                 s = _tmp
-            except:
+            except Exception:
                 error('', exc_info=True)
                 pass
         ret = await self.redis.hset(name, key, s)
@@ -161,7 +163,7 @@ class MyRedis(object):
         for _k, _v in dict_obj.iteritems():
             try:
                 _tmp = json.dumps(_v, cls=CJsonEncoder)
-            except:
+            except Exception:
                 _tmp = _v
             _obj[_k] = _tmp
         ret = await self.redis.hmset(name, _obj)
@@ -172,7 +174,8 @@ class MyRedis(object):
     def getConn(self):
         """获取底层真正的redis连接对象
         """
-        return self.redis.connection
+        #return self.redis.connection
+        return self.redis
 
 
 class RedisManager(object):
@@ -200,11 +203,12 @@ class RedisManager(object):
         """
         pool = RedisManager.POOL.get(redis_name)
         if not pool:
-            with (await RedisManager.LOCK):
+            async with RedisManager.LOCK:
                 pool = RedisManager.POOL.get(redis_name)
                 if not pool:
                     cfg = RedisManager.conf[redis_name]
-                    pool = await aioredis.create_pool((cfg['host'], cfg['port']), db=cfg['db'], password=cfg['password'] or None, minsize=0, maxsize=500, loop=RedisManager.loop)
+                    #pool = await aioredis.create_pool((cfg['host'], cfg['port']), db=cfg['db'], password=cfg['password'] or None, minsize=0, maxsize=500, loop=RedisManager.loop)
+                    pool = aioredis.ConnectionPool.from_url(f'redis://{cfg["host"]}:{cfg["port"]}/{cfg["db"]}', password=cfg['password'] or None, max_connections=500, encoding="utf-8", decode_responses=True)
                     RedisManager.POOL[redis_name] = pool
 
 #-#        nr_try = 1
@@ -236,8 +240,9 @@ class RedisManager(object):
 #-#                    finally:
 #-#                        break
 
-        conn = await pool.acquire()
-        conn_obj = MyRedis(Redis(conn))
+# #        conn = await pool.acquire()
+        rds = await aioredis.Redis(connection_pool=pool)
+        conn_obj = MyRedis(rds)
 #-#        info('acquired %s %s', redis_name, conn)
 #-#        RedisManager.info(redis_name)
         return conn_obj
@@ -248,14 +253,15 @@ class RedisManager(object):
         info('redis pool stat: %s total %s free %s', redis_name, pool.size, pool.freesize)
 
     @staticmethod
-    def releaseConn(conn_obj, redis_name='default'):
+    async def releaseConn(conn_obj, redis_name='default'):
         """将redis连接还回连接池，一般由框架自动处理，不用自己调用
         """
         pool = RedisManager.POOL.get(redis_name)
         if pool:
 #-#            info('release %s %s', redis_name, conn_obj.getConn())
 #-#            info('redis pool stat: %s total %s free %s', redis_name, pool.size, pool.freesize)
-            pool.release(conn_obj.getConn())
+            #await pool.release(conn_obj.getConn())
+            await conn_obj.close()
             del conn_obj
 #-#            RedisManager.info(redis_name)
 
@@ -270,8 +276,9 @@ class RedisManager(object):
             except KeyError:
                 break
             else:
-                _pool.close()
-                await _pool.wait_closed()
+                await _pool.disconnect()
+#-#                _pool.close()
+#-#                await _pool.wait_closed()
                 info('pool %s closed %s %s', _redis_name, _pool, _pool.closed)
 
 
