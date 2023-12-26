@@ -967,8 +967,8 @@ class PromNotify(object):
                 info('got exit flag, exit~')
                 break
 
-    async def do_work_sis(self):
-        """获取sis论坛新贴信息
+    async def do_work_sis_cl(self):
+        """获取sis cl论坛新贴信息
         """
         global event_exit
         interval = 86400 / 8
@@ -1006,8 +1006,8 @@ class PromNotify(object):
             fut = [self.do_work_test_conn(), ]
         else:
 # #            fut = [self.do_work_smzdm(), self.do_work_mmb(), self.do_work_coupon(), self.do_work_jr_coupon(), self.do_work_test_conn()]
-# #            fut = [self.do_work_smzdm(), self.do_work_mmb(), self.do_work_test_conn(), self.do_work_sis()]
-            fut = [self.do_work_smzdm(), self.do_work_mmb(), self.do_work_sis()]
+# #            fut = [self.do_work_smzdm(), self.do_work_mmb(), self.do_work_test_conn(), self.do_work_sis_cl()]
+            fut = [self.do_work_smzdm(), self.do_work_mmb(), self.do_work_sis_cl()]
             if self.coupon:
                 fut.append(self.do_work_coupon())
                 fut.append(self.do_work_jr_coupon())

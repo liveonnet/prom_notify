@@ -176,7 +176,7 @@ l_concern:
             - 口味
             - 筋头巴脑
     -
-        enable: true
+        enable: false
         inc:
             - 洗衣液
         exc:
@@ -189,7 +189,7 @@ l_concern:
             - 真丝
             - 羊毛
     -
-        enable: false
+        enable: true
         inc_all: true
         inc:
             - 金纺
@@ -424,12 +424,27 @@ l_concern:
         inc:
             - 5800u
     -
-        enable: true
+        enable: false
         inc_all: true
         inc:
             - 洗手液
         exc:
             - 免洗
+    -
+        enable: true
+        inc_all: true
+        inc:
+            - 飞利浦
+            - !!str 6511
+        exc:
+            - 刷头
+            - 适配
+    -
+        enable: true
+        inc_all: false
+        inc:
+            - 迷你主机
+            - N100
 
 
 l_include_coupon:

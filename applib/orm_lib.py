@@ -54,6 +54,19 @@ class SisTorrent(Base):
     ctime = Column(DateTime, nullable=True, default=datetime.now)
 
 
+class ClTorrent(Base):
+    __tablename__ = 'clt'
+
+    tid = Column(BigInteger, primary_key=True, autoincrement=False)
+    url = Column(String(256))
+    title = Column(String(256))
+    img_url = Column(String(4096), nullable=True)
+    name = Column(String(256))
+    size = Column(String(16), nullable=True)
+    download_url = Column(String(4096))
+    ctime = Column(DateTime, nullable=True, default=datetime.now)
+
+
 class Singleton(type):
     _instance = {}
 
@@ -192,11 +205,65 @@ class SisDB(object):
 #-#        info('closed.')
 
 
+class ClDB(object):
+    def __init__(self, conf_path='config/pn_conf.yaml'):
+        self.conf_path = os.path.abspath(conf_path)
+        self.conf = getConf(self.conf_path, root_key='orm')
+        self.conf = self.conf['cl']
+        self.sess_factory = SessionMaker.getSessMaker(self.conf['conn_str'], self.conf['echo'])
+
+    def getSess(self):
+        return self.sess_factory()
+
+    def existsRecord(self, tid, sess=None):
+        if not sess:
+            sess = self.getSess()
+        try:
+            x = sess.query(ClTorrent.ctime).filter(ClTorrent.tid == tid).first()
+        except Exception:
+            error('got error', exc_info=True)
+            x = None
+        sess.close()
+        return True if x else False
+
+    def createRecord(self, *args, **kwargs):
+        tid, url, title, img_url, name, size, download_url, sess = \
+            map(lambda x, d=kwargs: d.get(x, ''), ('tid', 'url', 'title', 'img_url', 'name', 'size', 'download_url', 'sess'))
+        if not sess:
+            sess = self.getSess()
+        try:
+            rcd = ClTorrent(tid=tid, url=url, title=title, img_url=img_url, name=name, size=size, download_url=download_url)
+            sess.add(rcd)
+            sess.commit()
+            sess.close()
+        except Exception:
+            error('create record error', exc_info=True)
+
+    def getRecords(self, seconds_ago, page=1, pagesize=10, sess=None):
+        ret = None
+        if not sess:
+            sess = self.getSess()
+        try:
+            if not page or int(page) < 1:
+                page = 1
+            start = (int(page) - 1) * pagesize
+            ret = sess.query(ClTorrent).filter(ClTorrent.ctime > seconds_ago).order_by(ClTorrent.ctime.desc())[start: start + pagesize]
+        except Exception:
+            error('got error', exc_info=True)
+        finally:
+            sess.close()
+        return ret
+
+    def clean(self):
+        pass
+#-#        info('closed.')
+
+
 if __name__ == '__main__':
     def createTable(table_obj):
         conf_path = os.path.abspath('config/pn_conf.yaml')
         conf = getConf(conf_path, root_key='orm')
-        conf = conf['sis']
+        conf = conf['cl']
         engine = create_engine(conf['conn_str'], echo=conf['echo'])
 #-#        table_obj.__table__.drop(bind=engine)
         table_obj.__table__.create(bind=engine)
@@ -205,7 +272,7 @@ if __name__ == '__main__':
 #-#    info(pcformat(h.getRecentItems('mmb', datetime.now() + timedelta(seconds=-240))))
 #-#    info(h.existsItem('mmb', 882564))
 
-# #    createTable(SisTorrent)
-    s = SisDB()
+    createTable(ClTorrent)
+    s = ClDB()
 #-#    embed()
     info(s.existsRecord(666))

@@ -8,12 +8,14 @@ from datetime import timedelta
 import subprocess
 from base64 import b64decode
 import http.server
+from lxml import etree
+import urllib.request
 #-#import aiohttp
 # #import setproctitle
 # #import asyncio
 #-#import uvloop
 #-#asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-#-#import ssl
+import ssl
 #-#from aiohttp import web
 #-#from lib.conf_lib import conf
 #-#from lib.load_handler import setup_routes
@@ -22,6 +24,7 @@ import http.server
 from urllib.parse import urljoin
 # #from urllib.parse import unquote
 #-#from urllib.parse import urlsplit
+from urllib.parse import urlencode
 from urllib.parse import parse_qs
 #-#from itertools import repeat
 #-#from itertools import count
@@ -32,7 +35,7 @@ from IPython import embed
 embed
 if __name__ == '__main__':
     sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
-from applib.discuz_lib import SisDB
+from applib.discuz_lib import SisDB, ClDB
 # #from applib.tools_lib import pcformat
 # #from applib.cache_lib import RedisManager
 from applib.conf_lib import getConf
@@ -91,6 +94,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             forum = [x for x in self.discuz_conf['forum'] if x['title'] == 'sis'][0]
             # 查询数据
             db = SisDB(self.conf_path)
+            db_cl = ClDB(self.conf_path)
             seconds_ago = datetime.now() + timedelta(hours=-144)
 #-#            rcds = db.getRecords(seconds_ago, page)
             l_rcd = []
@@ -110,6 +114,20 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 _aid = urljoin(forum['post_base_url'], f'attachment.php?aid={_rcd.aid}&clickDownload=1')
                 l_rcd.append((_rcd.title, _img_url, _rcd.name, _rcd.size, _aid, _rcd.ctime))
 #-#            embed()
+
+            for _rcd in db_cl.getRecords(seconds_ago, page):
+                try:
+                    l_img = json.loads(_rcd.img_url)
+                except json.decoder.JSONDecodeError:
+                    n_skip += 1
+                    warn(f'skip bad img_url for {_rcd.title}')
+                    continue  # 跳过异常记录
+                else:
+                    _img_url = '<br/>'.join(f'<a href="{_x}" ><img src="{_x}" alt="{_x}" ></img></a>' for _x in l_img)
+                l_rcd.append((_rcd.title, _img_url, _rcd.name, _rcd.size, _rcd.download_url, _rcd.ctime))
+#-#            embed()
+
+            l_rcd.sort(key=lambda x: x[5], reverse=True)
 
             l_content = []
             for _i, (_title, _img_url, _aname, _asize, _aurl, _ctime) in enumerate(l_rcd, 1):
@@ -202,6 +220,31 @@ a.torrent_link:hover {{background: #66ff66; text-decoration: underline}}
             self.send_error(404)
         return True
 
+    def getTorrentFile(self, url):
+        '''下载rmdown.com链接文件到本地 `url`形如 `https://www.rmdown.com/link.php?hash=xxxxxxxx`
+        '''
+        f_path = ''
+# #        context = ssl.create_default_context()
+        context = ssl._create_unverified_context()
+        req = urllib.request.Request(url, data=None, headers={'User-Agent': self.all_conf['net']['user_agent']})
+        debug(f'finding torrent {url}')
+        with urllib.request.urlopen(req, context=context) as resp:
+            data = resp.read()
+        if data:
+            pr = etree.HTMLParser()
+            tree = etree.fromstring(data, pr)
+            d_arg = dict(zip(tree.xpath('//form[@action="download.php"]/input/@name'), tree.xpath('//form[@action="download.php"]/input/@value')))
+            arg = urlencode(d_arg)
+            req_url = f'https://www.rmdown.com/download.php?{arg}'
+            req = urllib.request.Request(req_url, headers={'User-Agent': self.all_conf['net']['user_agent']})
+            debug(f'download torrent file {d_arg}')
+            with urllib.request.urlopen(req, context=context) as resp:
+                data = resp.read()
+                f_path = f'/tmp/tmp_{d_arg["ref"][-8:]}.torrent'
+                open(f_path, 'wb').write(data)
+                debug(f'saved {len(data)} {f_path}')
+        return f_path
+
     def do_POST(self):
         info(f'{id(self)} {self.path}')
         if not self.do_BasicAuth():
@@ -218,7 +261,11 @@ a.torrent_link:hover {{background: #66ff66; text-decoration: underline}}
                         d_cmd['add_start'] = '--no-start-paused'
                 elif _k == 'aurl' and _v:
                     d_cmd['torrent'] = _v[0]
+            if 'torrent' in d_cmd and d_cmd['torrent'].find('rmdown.com') != -1:  # 如果是rmdown.com, 将torrent文件下载到/tmp, d_cmd['torrent']改为下载文件的全路径名
+                d_cmd['torrent'] = self.getTorrentFile(d_cmd['torrent'])
+
             if 'torrent' in d_cmd:
+
                 tr_conf = self.all_conf['transmission']
                 cmd = f'transmission-remote {tr_conf["host"]}:{tr_conf["port"]} -n {tr_conf["user"]}:{tr_conf["auth"]} {d_cmd["add_start"]} -a "{d_cmd["torrent"]}"'
 #-#                cmd = shlex.split(cmd)
@@ -249,6 +296,15 @@ a.torrent_link:hover {{background: #66ff66; text-decoration: underline}}
                             l_content.append(errs.strip())
                     except subprocess.TimeoutExpired:
                         warn('timeout !!!')
+
+                f_path = d_cmd["torrent"]
+                if f_path.startswith('/tmp/'):
+                    try:
+                        if os.path.exists(f_path):
+                            os.remove(f_path)
+                            debug(f'del torrent file {f_path}')
+                    except Exception:
+                        pass
 
                 self.send_response(200)
                 self.send_header('Version', 'HTTP/1.0')
