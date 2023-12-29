@@ -9,7 +9,7 @@ from itertools import chain
 import pprint
 from io import StringIO
 import html.entities
-from urllib.parse import unquote
+# #from urllib.parse import unquote
 import xml.etree.ElementTree as ET
 from datetime import datetime
 if __name__ == '__main__':
@@ -18,7 +18,7 @@ from applib.log_lib import app_log
 info, debug, error, warn = app_log.info, app_log.debug, app_log.error, app_log.warning
 
 
-#升级json中的日期处理
+# 升级json中的日期处理
 class CJsonEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, datetime):
@@ -239,7 +239,7 @@ class Tools(object):
 #-##-#            return (("'" + unquote(_obj).decode('unicode-escape').encode('utf8') + "'") or "''", False, False)
 #-#            return (("'" + unquote(_obj) + "'") or "''", False, False)
 #-#    return pprint._safe_repr(_obj, context, maxlevels, level)
-pp = pprint.PrettyPrinter(width=160)
+pp = pprint.PrettyPrinter(indent=2, width=160, compact=True, sort_dicts=False)
 #pp.format = format
 pcformat = pp.pformat
 
@@ -270,7 +270,7 @@ def parseXml2Dict(xml_data):
         root = ET.fromstring(xml_data)
         for _child in root.getchildren():
             j_data[_child.tag] = _child.text
-    except:
+    except Exception:
 #-#        error('解析xml失败\nxml=%s', repr(xml_data), exc_info=True)
         info('解析xml失败\nxml=%s', repr(xml_data))
     return j_data
@@ -457,7 +457,7 @@ class ArgValidator(object):
         try:
             l_arg = ArgValidator.PATTERN_SCHEMA.findall(schema)
             assert l_arg
-        except:
+        except Exception:
             raise Exception('schema error %s' % (schema, ))
         else:
             rslt = {'arg_name': arg_name}
@@ -502,7 +502,7 @@ class ArgValidator(object):
             if stop is not None and x > stop:
                 return False, None
             return True, x
-        except:
+        except Exception:
             return False, None
 
 #-#    @staticmethod
@@ -525,7 +525,7 @@ class ArgValidator(object):
                 return True, value
             else:
                 return False, ''
-        except:
+        except Exception:
             return False, ''
 
     @staticmethod
@@ -537,7 +537,7 @@ class ArgValidator(object):
                 if convert:
                     try:
                         c = cls[0](value) if isinstance(cls, tuple) else cls(value)
-                    except:
+                    except Exception:
                         return False, empty
                     else:
                         return True, c
@@ -567,7 +567,7 @@ class ArgValidator(object):
                     return True, value.strftime(fmt)
                 else:
                     return True, datetime.datetime.strptime(value, fmt).date()
-        except:
+        except Exception:
             return False, None
 
     @staticmethod
@@ -582,7 +582,7 @@ class ArgValidator(object):
                 return False, ''
             if max_len is not None and len(value) > max_len:
                 return False, ''
-        except:
+        except Exception:
             return False, ''
         return True, value
 
@@ -592,7 +592,7 @@ class ArgValidator(object):
         try:
             value = int(value)
             assert 10000000 <= value <= 99999999
-        except:
+        except Exception:
             info('校验 uid %s 失败', value)
             return False, ''
         return True, value
@@ -602,7 +602,7 @@ class ArgValidator(object):
         try:
             _tmp = int(value)
             assert 13000000000 < _tmp < 39999999999  # 兼容300+<uid>的假手机号
-        except:
+        except Exception:
             return False, ''
         return True, value
 
@@ -692,7 +692,7 @@ class ArgValidator(object):
                     l_rslt.append(_arg_value)
         except MyBreak:
             pass
-        except:
+        except Exception:
             error('', exc_info=True)
 #-#        info('\nargs %s\nrtn  %s %s', pcformat(args), pcformat(l_rslt), pcformat(l_err))
         return l_rslt, l_err
@@ -748,6 +748,9 @@ if __name__ == '__main__':
     info('rslt: %s  err %s', l_rslt, l_err)
     l_rslt, l_err = x.get_my_arg('duration int&default=0')
     info('rslt: %s  err %s', l_rslt, l_err)
+    info(repr(htmlentitydecode('&gt;&cent;&sect;&yen;&micro;&sup2;')))
+    info(str2_int_list('2, 4, 6, 8'))
+    info(str2_str_list('abc, xyz, mno'))
     sys.exit(0)
 #-#    print Tools.checkIDCard('440524188001010014')
 #-#    print Tools.checkIDCard('11010519491231002X')

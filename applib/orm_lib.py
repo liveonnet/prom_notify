@@ -5,6 +5,7 @@ from datetime import datetime
 #-#from sqlalchemy.orm import scoped_session
 from sqlalchemy import create_engine
 from sqlalchemy import and_
+from sqlalchemy import literal
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 #-#from sqlalchemy.ext.automap import automap_base
@@ -185,20 +186,20 @@ class SisDB(object):
         except Exception:
             error('create record error', exc_info=True)
 
-    def getRecords(self, seconds_ago, page=1, pagesize=10, sess=None):
-        ret = None
-        if not sess:
-            sess = self.getSess()
-        try:
-            if not page or int(page) < 1:
-                page = 1
-            start = (int(page) - 1) * pagesize
-            ret = sess.query(SisTorrent).filter(SisTorrent.ctime > seconds_ago).order_by(SisTorrent.ctime.desc())[start: start + pagesize]
-        except Exception:
-            error('got error', exc_info=True)
-        finally:
-            sess.close()
-        return ret
+#-#    def getRecords(self, seconds_ago, page=1, pagesize=10, sess=None):
+#-#        ret = None
+#-#        if not sess:
+#-#            sess = self.getSess()
+#-#        try:
+#-#            if not page or int(page) < 1:
+#-#                page = 1
+#-#            start = (int(page) - 1) * pagesize
+#-#            ret = sess.query(SisTorrent).filter(SisTorrent.ctime > seconds_ago).order_by(SisTorrent.ctime.desc())[start: start + pagesize]
+#-#        except Exception:
+#-#            error('got error', exc_info=True)
+#-#        finally:
+#-#            sess.close()
+#-#        return ret
 
     def clean(self):
         pass
@@ -239,6 +240,35 @@ class ClDB(object):
         except Exception:
             error('create record error', exc_info=True)
 
+#-#    def getRecords(self, seconds_ago, page=1, pagesize=10, sess=None):
+#-#        ret = None
+#-#        if not sess:
+#-#            sess = self.getSess()
+#-#        try:
+#-#            if not page or int(page) < 1:
+#-#                page = 1
+#-#            start = (int(page) - 1) * pagesize
+#-#            ret = sess.query(ClTorrent).filter(ClTorrent.ctime > seconds_ago).order_by(ClTorrent.ctime.desc())[start: start + pagesize]
+#-#        except Exception:
+#-#            error('got error', exc_info=True)
+#-#        finally:
+#-#            sess.close()
+#-#        return ret
+
+    def clean(self):
+        pass
+#-#        info('closed.')
+
+
+class SisClDB(object):
+    def __init__(self, conf_path='config/pn_conf.yaml'):
+        self.conf_path = os.path.abspath(conf_path)
+        self.conf = getConf(self.conf_path, root_key='orm')
+        self.sess_factory = SessionMaker.getSessMaker(self.conf['conn_str'], self.conf['echo'])
+
+    def getSess(self):
+        return self.sess_factory()
+
     def getRecords(self, seconds_ago, page=1, pagesize=10, sess=None):
         ret = None
         if not sess:
@@ -247,7 +277,9 @@ class ClDB(object):
             if not page or int(page) < 1:
                 page = 1
             start = (int(page) - 1) * pagesize
-            ret = sess.query(ClTorrent).filter(ClTorrent.ctime > seconds_ago).order_by(ClTorrent.ctime.desc())[start: start + pagesize]
+            r1 = sess.query(SisTorrent.title, SisTorrent.img_url, SisTorrent.name, SisTorrent.size, literal('sis').label('source'), SisTorrent.aid, SisTorrent.ctime).filter(SisTorrent.ctime > seconds_ago)
+            r2 = sess.query(ClTorrent.title, ClTorrent.img_url, ClTorrent.name, ClTorrent.size, literal('cl').label('source'), ClTorrent.download_url, ClTorrent.ctime).filter(ClTorrent.ctime > seconds_ago)
+            ret = r1.union_all(r2).order_by(ClTorrent.ctime.desc())[start: start + pagesize]
         except Exception:
             error('got error', exc_info=True)
         finally:
@@ -272,7 +304,6 @@ if __name__ == '__main__':
 #-#    info(pcformat(h.getRecentItems('mmb', datetime.now() + timedelta(seconds=-240))))
 #-#    info(h.existsItem('mmb', 882564))
 
-    createTable(ClTorrent)
-    s = ClDB()
-#-#    embed()
-    info(s.existsRecord(666))
+# #    createTable(ClTorrent)
+# #    embed()
+# #    info(s.existsRecord(666))

@@ -35,7 +35,7 @@ from IPython import embed
 embed
 if __name__ == '__main__':
     sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
-from applib.discuz_lib import SisDB, ClDB
+from applib.orm_lib import SisClDB
 # #from applib.tools_lib import pcformat
 # #from applib.cache_lib import RedisManager
 from applib.conf_lib import getConf
@@ -93,12 +93,13 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
 #-#            info(f'{self.requestline}')
             forum = [x for x in self.discuz_conf['forum'] if x['title'] == 'sis'][0]
             # 查询数据
-            db = SisDB(self.conf_path)
-            db_cl = ClDB(self.conf_path)
+# #            db = SisDB(self.conf_path)
+# #            db_cl = ClDB(self.conf_path)
+            db = SisClDB(self.conf_path)
             seconds_ago = datetime.now() + timedelta(hours=-144)
-#-#            rcds = db.getRecords(seconds_ago, page)
             l_rcd = []
             n_skip = 0
+
             for _rcd in db.getRecords(seconds_ago, page):
                 # 图片转成可访问链接
 # #                _img_url = '<br/>'.join(f'<a href="{_x}" ><img src="{_x}" alt="{_x}" ></img></a>' for _x in json.loads(_rcd.img_url))
@@ -110,22 +111,12 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     continue  # 跳过异常记录
                 else:
                     _img_url = '<br/>'.join(f'<a href="{_x}" ><img src="{_x}" alt="{_x}" ></img></a>' for _x in l_img)
-                # 附件aid转成可访问链接
-                _aid = urljoin(forum['post_base_url'], f'attachment.php?aid={_rcd.aid}&clickDownload=1')
-                l_rcd.append((_rcd.title, _img_url, _rcd.name, _rcd.size, _aid, _rcd.ctime))
-#-#            embed()
-
-            for _rcd in db_cl.getRecords(seconds_ago, page):
-                try:
-                    l_img = json.loads(_rcd.img_url)
-                except json.decoder.JSONDecodeError:
-                    n_skip += 1
-                    warn(f'skip bad img_url for {_rcd.title}')
-                    continue  # 跳过异常记录
+                if _rcd.source == 'sis':
+                    # 附件aid转成可访问链接
+                    _aid = urljoin(forum['post_base_url'], f'attachment.php?aid={_rcd.aid}&clickDownload=1')
+                    l_rcd.append((_rcd.title, _img_url, _rcd.name, _rcd.size, _aid, _rcd.ctime))
                 else:
-                    _img_url = '<br/>'.join(f'<a href="{_x}" ><img src="{_x}" alt="{_x}" ></img></a>' for _x in l_img)
-                l_rcd.append((_rcd.title, _img_url, _rcd.name, _rcd.size, _rcd.download_url, _rcd.ctime))
-#-#            embed()
+                    l_rcd.append((_rcd.title, _img_url, _rcd.name, _rcd.size, _rcd.aid, _rcd.ctime))
 
             l_rcd.sort(key=lambda x: x[5], reverse=True)
 

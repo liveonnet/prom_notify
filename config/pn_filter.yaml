@@ -414,16 +414,6 @@ l_concern:
             - 7735H
             - 录像机
     -
-        enable: true
-        inc_all: false
-        inc:
-            - 5800U
-    -
-        enable: true
-        inc_all: false
-        inc:
-            - 5800u
-    -
         enable: false
         inc_all: true
         inc:
@@ -445,6 +435,14 @@ l_concern:
         inc:
             - 迷你主机
             - N100
+            - N5005
+            - N5095
+            - N5100
+            - N5105
+            - N6000
+            - N6005
+            - 5800u
+            - 5800U
 
 
 l_include_coupon:
