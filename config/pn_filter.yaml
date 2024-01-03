@@ -441,8 +441,21 @@ l_concern:
             - N5105
             - N6000
             - N6005
-            - 5800u
             - 5800U
+            - 5800H
+            - 6800U
+            - 6800H
+            - 7840H
+            - 3550H
+        exc:
+            - N95
+    -
+        enable: true
+        inc_all: true
+        inc:
+            - 便携屏
+            - 触摸
+
 
 
 l_include_coupon:

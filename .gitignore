@@ -7,11 +7,12 @@ __pycache__/
 *.so
 
 *.swp
-*.swn
-*.swo
+*.sw?
 *.ipynb
 *.sqlite
 *.db
+*.bk
+*.out
 *.gz
 *.tgz
 *~

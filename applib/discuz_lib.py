@@ -499,7 +499,7 @@ class ClManager(DiscuzManager):
         """获得帖子内容, 目前只取开帖内容，不取回帖内容
         """
         resp, text, ok = await self.net.getData(urljoin(forum_cfg['post_base_url'], url), timeout=5, my_fmt='str', my_str_encoding='utf8', headers={'Cookie': cookie} if cookie else None)
-        content, attach_size, image_list, attach_info = None, 'Unknown', None, None
+        content, attach_size, image_list, attach_info = None, 'Unknown', [], None
         if ok:
             pr = etree.HTMLParser()
             tree = etree.fromstring(text, pr)
@@ -531,8 +531,13 @@ class ClManager(DiscuzManager):
                         if _title.find('http') == -1:
                             break
                 attach_info = (attachlist_title, attachlist_url)
-                image_list = post_content.xpath('//div[@class="t t2"]//tr[@class="tr1 do_not_catch"]//div[@class="tpc_content do_not_catch" and @id="conttpc"]//img/@ess-data')
-                image_list = [x for x in image_list if x.find('51688.cc') == -1 and x.find('/ads/') == -1 and x.find('slong') == -1 and x.find('https://gdbco.xyz/wp-content/uploads/2021/06/202307061344259.gif') == -1]
+                img_list = post_content.xpath('//div[@class="t t2"]//tr[@class="tr1 do_not_catch"]//div[@class="tpc_content do_not_catch" and @id="conttpc"]//img/@ess-data')
+                for _x in img_list:
+                    if _x.startswith('https://img.blr844.com/images/20') and _x.endswith('.th.jpg'):
+# #                        debug(f'{_x} => {_x.replace(".th.jpg", ".jpg")}')
+                        _x = _x.replace('.th.jpg', '.jpg')
+                    if _x.find('51688.cc') == -1 and _x.find('/ads/') == -1 and _x.find('slong') == -1 and _x.find('https://gdbco.xyz/wp-content/uploads/2021/06/202307061344259.gif') == -1 and _x.find('https://img.blr844.com/images/2023/09/15/760x90---1.jpg') == -1 and _x.find('http://atpdxx.xyz/upload/avupload/ky/960x250_2018.gif') == -1:
+                        image_list.append(_x)
 #-#                info(f'{pcformat(image_list)}\n{attach_info}')
             elif '无权' in etree.tounicode(tree):
                 info(f'无权查看 {title} {url}')
@@ -571,8 +576,8 @@ async def test():
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     try:
-# #        x = loop.run_until_complete(main())
-        x = loop.run_until_complete(test())
+        x = loop.run_until_complete(main())
+# #        x = loop.run_until_complete(test())
         info(pcformat(x))
     except KeyboardInterrupt:
         info('cancel on KeyboardInterrupt..')
