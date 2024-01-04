@@ -94,39 +94,39 @@ class WeworkManager(object):
 
             if access_token:
                 url = f'https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={access_token}'
-                # markdown 消息只能在企业微信中查看
-                payload = {'touser': self.touser,
-                           'msgtype': 'markdown',
-                           'agentid': self.agentid,
-                           'markdown': {'content': f'''`{from_title}`{title}
-                                                    **详情**
-                                                  <font color='warning'>[发布]({item_url})</font>
-                                                  <font color='info'>[链接l({real_url})</font>
-                                                  <font color='comment'>{sbr_time.strftime('%H:%M:%S')}</font>
-                                                    '''
-                                        },
-                           'safe': 0,
-                           'enable_duplicate_check': 1,
-                           'duplicate_check_interval': 600
-                           }
+#-#                # markdown 消息只能在企业微信中查看
+#-#                payload = {'touser': self.touser,
+#-#                           'msgtype': 'markdown',
+#-#                           'agentid': self.agentid,
+#-#                           'markdown': {'content': f'''`{from_title}`{title}
+#-#                                                    **详情**
+#-#                                                  <font color='warning'>[发布]({item_url})</font>
+#-#                                                  <font color='info'>[链接l({real_url})</font>
+#-#                                                  <font color='comment'>{sbr_time.strftime('%H:%M:%S')}</font>
+#-#                                                    '''
+#-#                                        },
+#-#                           'safe': 0,
+#-#                           'enable_duplicate_check': 1,
+#-#                           'duplicate_check_interval': 600
+#-#                           }
                 # 图文消息  发3条，第一条发布页链接 第二条直达链接 第三条回显完整标题
                 payload = {'touser': self.touser,
                            'msgtype': 'news',
                            'agentid': self.agentid,
                            'news': {'articles': [{'title': f'{title[:30]}',
                                                   'description': f'{title}',
-                                                  'url': item_url,
+                                                  'url': item_url[:2000],
                                                   'picurl': pic_url,
                                                   },
                                                  {'title': f'{title[30:60]}' if len(title) > 30 else real_url,
                                                   'description': f'{from_title}',
-                                                  'url': real_url if real_url else item_url,
+                                                  'url': real_url[:2000] if real_url else item_url[:2000],
                                                   'picurl': pic_url,
                                                   },
                                                  {'title': f'{title[60:]}' if len(title) > 60 else title,
                                                   'description': f'{sbr_time.strftime("%H:%M:%S")}',
                                                   #'url': f'https://httpbin.org/base64/{urlsafe_b64encode(title.encode("utf8")).decode()}',  # 利用httpbin显示url后附上的完整标题
-                                                  'url': f'https://httpbin.org/base64/{urlsafe_b64encode(self.httpbin_html.format(**locals(), item_url_domain=urlsplit(item_url).netloc, real_url_domain=urlsplit(real_url).netloc).encode("utf8")).decode()}',  # 利用httpbin显示url后附上的完整内容
+                                                  'url': f'https://httpbin.org/base64/{urlsafe_b64encode(self.httpbin_html.format(**locals(), item_url_domain=urlsplit(item_url).netloc, real_url_domain=urlsplit(real_url).netloc).encode("utf8")).decode()[:2000]}',  # 利用httpbin显示url后附上的完整内容
                                                   'picurl': pic_url,
                                                   },
                                                  ]
@@ -145,7 +145,7 @@ class WeworkManager(object):
                     await self.rds.delete('wework_access_token')
                     continue
                 elif data['errcode'] != 0:  # 其他提示需要显示
-                    debug(f'{pcformat(data)}')
+                    warn(f'{pcformat(data)}')
                     break
                 else:  # 成功时不必提示
                     break
