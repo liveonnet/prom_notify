@@ -519,7 +519,7 @@ class ClManager(DiscuzManager):
                 for _url in reversed(post_content.xpath(forum_cfg['post_attachlist_url'])):
                     attachlist_url = _url
                     if _url.find('link.php') != -1:
-                        attachlist_title = _url
+                        attachlist_title = 'unknown'
                         break
                 if not attachlist_url:
                     for _title in reversed(post_content.xpath(forum_cfg['post_attachlist_title'])):
@@ -532,10 +532,15 @@ class ClManager(DiscuzManager):
                             break
                 attach_info = (attachlist_title, attachlist_url)
                 img_list = post_content.xpath('//div[@class="t t2"]//tr[@class="tr1 do_not_catch"]//div[@class="tpc_content do_not_catch" and @id="conttpc"]//img/@ess-data')
-                for _x in img_list:
+                img1_list = post_content.xpath('//div[@class="t t2"]//tr[@class="tr1 do_not_catch"]//div[@class="tpc_content do_not_catch" and @id="conttpc"]//img/@data-link')
+                for _i, _x in enumerate(img_list):
                     if _x.startswith('https://img.blr844.com/images/20') and _x.endswith('.th.jpg'):
 # #                        debug(f'{_x} => {_x.replace(".th.jpg", ".jpg")}')
                         _x = _x.replace('.th.jpg', '.jpg')
+                    elif _x.find('.imagetwist.com/th/') != -1 and _x.endswith('.jpg'):
+                        _x = _x.replace('/th/', '/i/')
+                        if img1_list[_i].endswith('.jpeg'):
+                            _x = _x.replace('.jpg', '.jpeg')
                     if _x.find('51688.cc') == -1 and _x.find('/ads/') == -1 and _x.find('slong') == -1 and _x.find('https://gdbco.xyz/wp-content/uploads/2021/06/202307061344259.gif') == -1 and _x.find('https://img.blr844.com/images/2023/09/15/760x90---1.jpg') == -1 and _x.find('http://atpdxx.xyz/upload/avupload/ky/960x250_2018.gif') == -1:
                         image_list.append(_x)
 #-#                info(f'{pcformat(image_list)}\n{attach_info}')

@@ -176,7 +176,7 @@ l_concern:
             - 口味
             - 筋头巴脑
     -
-        enable: false
+        enable: true
         inc:
             - 洗衣液
         exc:
@@ -188,6 +188,12 @@ l_concern:
             - 婴幼儿
             - 真丝
             - 羊毛
+    -
+        enable: true
+        inc:
+            - 洗衣粉
+        exc:
+            - 婴儿
     -
         enable: true
         inc_all: true
@@ -248,7 +254,7 @@ l_concern:
             - 米醋
             - 香醋
     -
-        enable: true
+        enable: false
         inc_all: true
         inc:
             - 龙头
@@ -307,7 +313,7 @@ l_concern:
             - 虾排
             - 刀
     -
-        enable: false
+        enable: true
         inc_all: true
         inc:
             - 滴露
@@ -381,13 +387,6 @@ l_concern:
             - 登山
             - 假日
     -
-        enable: true
-        inc_all: true
-        inc:
-            - 电动
-            - 牙刷
-            - 飞利浦
-    -
         enable: false
         inc_all: false
         inc:
@@ -425,36 +424,35 @@ l_concern:
         inc_all: true
         inc:
             - 飞利浦
-            - !!str 6511
-        exc:
             - 刷头
-            - 适配
+            - !!str 2431
     -
         enable: true
         inc_all: false
         inc:
-            - 迷你主机
             - N100
+            - N4000
             - N5005
+            - N5000
             - N5095
             - N5100
             - N5105
             - N6000
             - N6005
             - 5800U
-            - 5800H
-            - 6800U
-            - 6800H
-            - 7840H
+            - 5500U
+            - j4125
+            - j5005
             - 3550H
-        exc:
-            - N95
+            - 3750H
     -
         enable: true
         inc_all: true
         inc:
             - 便携屏
             - 触摸
+        exc:
+            - N5105
 
 
 
