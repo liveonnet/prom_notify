@@ -328,7 +328,7 @@ class PromNotify(object):
                             url = str(r.url)
                             l_redirect_his.append(url)
                         elif y in str(r.url):
-                            up = urlparse(r.url)
+                            up = urlparse(str(r.url))
                             d_p = parse_qs(up.query, encoding='gbk')
                             for _k in ('tourl', ):
                                 try:

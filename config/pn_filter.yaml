@@ -10,15 +10,15 @@ l_concern:
             - 脱脂
             - 婴儿
     -
-        enable: true
+        enable: false
         inc_all: true
         inc:
             - 小米
             - 电池
-            - 更换
             - !!str 9
     -
         enable: false
+        inc_all: false
         inc:
             - 湿巾
         exc:
@@ -40,7 +40,6 @@ l_concern:
             - 卸
             - 新生
             - 迷你
-            - 湿厕
             - 妆
             - 猫
             - 狗
@@ -51,6 +50,7 @@ l_concern:
             - 鸡翅
         exc:
             - 辣
+            - 蜂蜜
             - 奥尔良
             - 休闲
             - 盐焗
@@ -60,16 +60,21 @@ l_concern:
             - 翅中
             - 咖喱
             - 炸锅
+            - 火锅
             - 卤香
             - 蜜汁
             - 烧烤
             - 周黑鸭
+            - 鸡爪
+            - 鹌鹑
     -
-        enable: false
+        enable: true
+        inc_all: false
         inc:
             - 琵琶腿
     -
         enable: true
+        inc_all: false
         inc:
             - 牛腱
 #            - 牛腩
@@ -136,6 +141,7 @@ l_concern:
             - 有机
             - 牙签
             - 手撕
+            - 手把
             - 肉丝
             - 熟
             - 肠
@@ -176,7 +182,8 @@ l_concern:
             - 口味
             - 筋头巴脑
     -
-        enable: true
+        enable: false
+        inc_all: false
         inc:
             - 洗衣液
         exc:
@@ -189,7 +196,8 @@ l_concern:
             - 真丝
             - 羊毛
     -
-        enable: true
+        enable: false
+        inc_all: false
         inc:
             - 洗衣粉
         exc:
@@ -201,6 +209,7 @@ l_concern:
             - 金纺
             - 柔顺剂
     -
+        enable: true
         inc_all: true
         inc:
             - 三元
@@ -210,6 +219,7 @@ l_concern:
             - 脱脂
             - 低脂
     -
+        enable: true
         inc_all: true
         inc:
             - 三元
@@ -219,10 +229,10 @@ l_concern:
             - 脱脂
             - 低脂
     -
+        enable: true
         inc_all: true
         inc:
             - 麦片
-            - 桂格
             - 即食
         exc:
             - 黑芝麻
@@ -232,22 +242,11 @@ l_concern:
             - 独立
             - 组合
             - 礼盒
-    -
-        inc_all: true
-        inc:
-            - 麦片
-            - 西麦
-            - 即食
-        exc:
-            - 黑芝麻
-            - 小袋
-            - 牛奶
-            - 混合
-            - 独立
-            - 组合
-            - 礼盒
+            - 进口
+            - 玉米
     -
         enable: false
+        inc_all: false
         inc:
             - 香油
             - 芝麻油
@@ -277,6 +276,7 @@ l_concern:
             - 沥水
     -
         enable: false
+        inc_all: false
         inc:
             - 纸抽
             - 抽纸
@@ -285,6 +285,7 @@ l_concern:
             - 厨房
     -
         enable: false
+        inc_all: false
         inc:
             - 虾
         exc:
@@ -324,7 +325,7 @@ l_concern:
             - 洗手
             - 洗衣机
     -
-        enable: false
+        enable: true
         inc_all: true
         inc:
             - 京东
@@ -374,8 +375,10 @@ l_concern:
             - 宠物
             - 猫
             - 狗
+            - 套装
     -
-        enable: true
+        enable: false
+        inc_all: false
         inc:
             - 探拓
             - 日高
@@ -383,9 +386,12 @@ l_concern:
             - 溯溪
             - 女
             - 防晒衣
+            - 冲锋衣
+            - 运动鞋
             - 沙滩
             - 登山
             - 假日
+            - 速干裤
     -
         enable: false
         inc_all: false
@@ -393,6 +399,7 @@ l_concern:
             - 硬盘
         exc:
             - 固态
+            - 12T
             - 10T
             - 16T
             - 18T
@@ -412,6 +419,9 @@ l_concern:
             - 7840H
             - 7735H
             - 录像机
+            - N100
+            - 无内存
+            - 准系统
     -
         enable: false
         inc_all: true
@@ -425,11 +435,20 @@ l_concern:
         inc:
             - 飞利浦
             - 刷头
-            - !!str 2431
     -
-        enable: true
+        enable: false
         inc_all: false
         inc:
+            - 7840HS
+            - 7940HS
+            - 7940HX
+        exc:
+            - 8845H
+            - 5700U
+            - 5800U
+            - 6800H
+            - 6900H
+            - 7735H
             - N100
             - N4000
             - N5005
@@ -439,20 +458,117 @@ l_concern:
             - N5105
             - N6000
             - N6005
-            - 5800U
-            - 5500U
             - j4125
             - j5005
             - 3550H
             - 3750H
+            - 5500U
+            - 吾空
+            - 笔记本
+            - 橘宝
+            - 迷你
     -
-        enable: true
+        enable: false
         inc_all: true
         inc:
             - 便携屏
             - 触摸
         exc:
             - N5105
+            - 荣耀
+            - 机械师
+            - 机械革命
+            - RTX
+            - 笔记本
+    -
+        enable: false
+        inc_all: true
+        inc:
+            - 苹果
+            - iPad
+            - Air
+        exc:
+            - 键盘
+            - 保护壳
+            - 磁吸
+            - 保护套
+            - 触控笔
+            - 支架
+            - 电容笔
+            - 钢化膜
+            - 充电器
+            - 编织线
+            - 数据线
+            - 适用
+    -
+        enable: false
+        inc_all: true
+        inc:
+            - 苹果
+            - iPad
+            - Pro
+        exc:
+            - 键盘
+            - 保护壳
+            - 磁吸
+            - 保护套
+            - 触控笔
+            - 支架
+            - 电容笔
+            - 钢化膜
+            - 充电器
+    -
+        enable: false
+        inc_all: true
+        inc:
+            - 钢壳
+            - 交换机
+            - 千兆
+        exc:
+            - 万兆
+    -
+        enable: false
+        inc_all: false
+        inc:
+            - 中国移动
+            - 中国联通
+            - 中国电信
+        exc:
+            - 宽带
+            - 充值
+    -
+        enable: false
+        inc_all: true
+        inc:
+            - 通话
+            - 月租
+            - 流量
+    -
+        enable: false
+        inc_all: true
+        inc:
+            - 粉丝
+        exc:
+            - 酸辣
+            - 小吃
+            - 重庆
+    -
+        enable: false
+        inc_all: true
+        inc:
+            - 德芙
+            - 66%
+    -
+        enable: false
+        inc_all: true
+        inc:
+            - 飞鹤
+            - 奶粉
+        exc:
+            - 婴儿
+            - 幼儿
+
+
 
 
 

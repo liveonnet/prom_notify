@@ -224,7 +224,7 @@ a.torrent_link:hover {{background: #66ff66; text-decoration: underline}}
         if data:
             pr = etree.HTMLParser()
             tree = etree.fromstring(data, pr)
-            d_arg = dict(zip(tree.xpath('//form[@action="download.php"]/input/@name'), tree.xpath('//form[@action="download.php"]/input/@value')))
+            d_arg = dict(zip(tree.xpath('//form[@id="dl"]/input[@type="hidden"]/@name'), tree.xpath('//form[@id="dl"]/input[@type="hidden"]/@value')))
             arg = urlencode(d_arg)
             req_url = f'https://www.rmdown.com/download.php?{arg}'
             req = urllib.request.Request(req_url, headers={'User-Agent': self.all_conf['net']['user_agent']})

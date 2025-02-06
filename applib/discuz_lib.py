@@ -233,7 +233,7 @@ class SisManager(DiscuzManager):
         rds = await RedisManager.getConn('sis')
         db = SisDB(self.conf_path)
         p_js = re.compile('<script>(.+?)</script>', re.DOTALL | re.IGNORECASE | re.MULTILINE | re.UNICODE)
-        resp, aes_js, ok = await self.net.getData('http://23.225.255.99/aes.min.js', my_fmt='str')
+        resp, aes_js, ok = await self.net.getData(forum['cookie_init_url'] + 'aes.min.js', my_fmt='str')
         if not ok:
             return data
 #-#        embed()
@@ -423,13 +423,17 @@ class ClManager(DiscuzManager):
                 for _i in range(2):
                     info(f'fetching {_sub["title"]} page {_page} {"again" if _i == 1 else ""} ...')
                     url = _sub['url'].format(page=_page)
+# #                    debug(f'{url=}')
                     resp, text, ok = await self.net.getData(url, timeout=5, my_fmt='str', my_str_encoding='utf8', headers={'Cookie': cookie or cached_js_check} if cookie or cached_js_check else None, my_retry=2)
                     if ok:
                         if len(text) > 2000:
                             break
                         elif _i == 0:
                             debug('need process js ?')
-                            break
+                            debug(f'{text=}')
+                            cookie = 'ismob=0; expires=06 Feb 2030 04:10:37 GMT; path=/'
+                            cached_js_check = cookie
+                            continue
                         else:
                             debug(f'try js failed')
                             break
@@ -451,7 +455,7 @@ class ClManager(DiscuzManager):
                     l_tid = tree.xpath(_sub.get('postlist_tid') or forum['postlist_tid'])
                     l_ctime = tree.xpath(_sub.get('postlist_ctime') or forum['postlist_ctime'])
 # #                    debug(f'got {len(l_ctime)} ctime')
-                    info(f'{len(l_title)} {len(l_url)} {len(l_ctime)}')
+# #                    info(f'{len(l_title)} {len(l_url)} {len(l_ctime)}')
                     for _i, (_group, _title, _url, _tid, _ctime) in enumerate(zip(repeat(_sub['title'], len(l_title)), l_title, l_url, l_tid, l_ctime,), 1):
                         # check cache
                         tid = _tid[1:]
