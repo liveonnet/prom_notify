@@ -221,13 +221,20 @@ a.torrent_link:hover {{background: #66ff66; text-decoration: underline}}
                 req = urllib.request.Request(url, data=None, headers={'User-Agent': self.all_conf['net']['user_agent'], 'Referer': referer})
 # #                debug(f'fetching {url}')
                 with urllib.request.urlopen(req, context=context) as resp:
-                    data = resp.read()
+                    if resp.status != 200:
+                        self.send_error(resp.status)
+                        return True
                     content_type = resp.headers.get('Content-Type', 'image/jpeg')
-                self.send_response(200)
-                self.send_header('Content-Type', content_type)
-                self.send_header('Cache-Control', 'max-age=3600')
-                self.end_headers()
-                self.wfile.write(data)
+                    self.send_response(200)
+                    self.send_header('Content-Type', content_type)
+                    self.send_header('Content-Length', resp.headers['Content-Length'])
+                    self.send_header('Cache-Control', 'max-age=3600')
+                    self.end_headers()
+                    while True:
+                        chunk = resp.read(32768)
+                        if not chunk:
+                            break
+                        self.wfile.write(chunk)
             else:
                 self.send_error(404)
         else:
