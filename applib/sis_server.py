@@ -20,9 +20,9 @@ import ssl
 #-#from lib.conf_lib import conf
 #-#from lib.load_handler import setup_routes
 #-#from middleware import l_middleware
-#-#from urllib.parse import quote
+from urllib.parse import quote_plus, unquote_plus
+from urllib.parse import urlparse
 from urllib.parse import urljoin
-# #from urllib.parse import unquote
 #-#from urllib.parse import urlsplit
 from urllib.parse import urlencode
 from urllib.parse import parse_qs
@@ -42,6 +42,10 @@ from applib.conf_lib import getConf
 # #from applib.net_lib import NetManager
 from applib.log_lib import app_log
 info, debug, warn, error = app_log.info, app_log.debug, app_log.warning, app_log.error
+
+conf_path = os.path.abspath('config/pn_conf.yaml')
+conf = getConf(conf_path, root_key='sis_server')
+server_address = (conf['host'], conf['port'])
 
 
 class MyHandler(http.server.BaseHTTPRequestHandler):
@@ -110,6 +114,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     warn(f'skip bad img_url for {_rcd.title}')
                     continue  # 跳过异常记录
                 else:
+                    l_img = ['/pic/{}'.format(quote_plus(_x)) if _x.find('https://img.sis.la/img/') != -1 else _x for _x in l_img]
                     _img_url = '<br/>'.join(f'<a href="{_x}" ><img src="{_x}" alt="{_x}" ></img></a>' for _x in l_img)
                 if _rcd.source == 'sis':
                     # 附件aid转成可访问链接
@@ -207,6 +212,24 @@ a.torrent_link:hover {{background: #66ff66; text-decoration: underline}}
             self.send_header('Content-Length', len(s))
             self.end_headers()
             self.wfile.write(s)
+        elif self.path.startswith('/pic/'):  # 图片转发
+            m = self.pUrl.match(self.path)
+            if m:
+                url = unquote_plus(m.group(1))
+                referer = urlparse(url).netloc
+                context = ssl._create_unverified_context()
+                req = urllib.request.Request(url, data=None, headers={'User-Agent': self.all_conf['net']['user_agent'], 'Referer': referer})
+# #                debug(f'fetching {url}')
+                with urllib.request.urlopen(req, context=context) as resp:
+                    data = resp.read()
+                    content_type = resp.headers.get('Content-Type', 'image/jpeg')
+                self.send_response(200)
+                self.send_header('Content-Type', content_type)
+                self.send_header('Cache-Control', 'max-age=3600')
+                self.end_headers()
+                self.wfile.write(data)
+            else:
+                self.send_error(404)
         else:
             self.send_error(404)
         return True
@@ -328,12 +351,13 @@ a.torrent_link:hover {{background: #66ff66; text-decoration: underline}}
         # 其他配置
         cls.pageSize = 10
         cls.pPage = re.compile('^/(\d+)')
+        cls.pUrl = re.compile('^/pic/(.+?)$')
 
 
 def run(server_class=http.server.ThreadingHTTPServer, handler_class=MyHandler):
-    conf_path = os.path.abspath('config/pn_conf.yaml')
-    conf = getConf(conf_path, root_key='sis_server')
-    server_address = (conf['host'], conf['port'])
+# #    conf_path = os.path.abspath('config/pn_conf.yaml')
+# #    conf = getConf(conf_path, root_key='sis_server')
+# #    server_address = (conf['host'], conf['port'])
     handler_class.loadCfg()
     httpd = server_class(server_address, handler_class)
     info(f'listen on {server_address} ...\nhttp://{conf["host"]}:{conf["port"]}/')

@@ -102,7 +102,7 @@ class PromNotify(object):
         if self.conf['enable_coupon']:
             self.coupon = CouponManager(self.conf_file_path, event_notify)
 
-        self.p_price = re.compile(r'\s*(?:￥|券后|返后合|€|$|£)?([0-9\.]+)')
+        self.p_price = re.compile(r'\s*(?:￥|券后|返后|返后合|€|$|£)?([0-9\.]+)')
         self.p_chinese = re.compile('[\u4e00-\u9fa5]+')
 
         # 发送内容到微信
