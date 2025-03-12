@@ -43,10 +43,6 @@ from applib.conf_lib import getConf
 from applib.log_lib import app_log
 info, debug, warn, error = app_log.info, app_log.debug, app_log.warning, app_log.error
 
-conf_path = os.path.abspath('config/pn_conf.yaml')
-conf = getConf(conf_path, root_key='sis_server')
-server_address = (conf['host'], conf['port'])
-
 
 class MyHandler(http.server.BaseHTTPRequestHandler):
 #-#    def __init__(self, *args, **kwargs):
@@ -362,9 +358,9 @@ a.torrent_link:hover {{background: #66ff66; text-decoration: underline}}
 
 
 def run(server_class=http.server.ThreadingHTTPServer, handler_class=MyHandler):
-# #    conf_path = os.path.abspath('config/pn_conf.yaml')
-# #    conf = getConf(conf_path, root_key='sis_server')
-# #    server_address = (conf['host'], conf['port'])
+    conf_path = os.path.abspath('config/pn_conf.yaml')
+    conf = getConf(conf_path, root_key='sis_server')
+    server_address = (conf['host'], conf['port'])
     handler_class.loadCfg()
     httpd = server_class(server_address, handler_class)
     info(f'listen on {server_address} ...\nhttp://{conf["host"]}:{conf["port"]}/')
