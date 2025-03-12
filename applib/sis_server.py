@@ -114,7 +114,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     warn(f'skip bad img_url for {_rcd.title}')
                     continue  # 跳过异常记录
                 else:
-                    l_img = ['/pic/{}'.format(quote_plus(_x)) if _x.find('https://img.sis.la/img/') != -1 else _x for _x in l_img]
+                    l_img = ('/pic/{}'.format(quote_plus(_x)) if _x.find('https://img.sis.la/img/') != -1 else _x for _x in l_img)
                     _img_url = '<br/>'.join(f'<a href="{_x}" ><img src="{_x}" alt="{_x}" ></img></a>' for _x in l_img)
                 if _rcd.source == 'sis':
                     # 附件aid转成可访问链接
