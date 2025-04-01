@@ -543,13 +543,18 @@ class ClManager(DiscuzManager):
                         _x = _x.replace('.th.jpg', '.jpg')
                     elif _x.find('.imagetwist.com/th/') != -1 and _x.endswith('.jpg'):
                         _x = _x.replace('/th/', '/i/')
-                        if img1_list[_i].endswith('.jpeg'):
+                        if _i < len(img1_list) and img1_list[_i].endswith('.jpeg'):
                             _x = _x.replace('.jpg', '.jpeg')
                     if _x.find('51688.cc') == -1 and _x.find('/ads/') == -1 and _x.find('slong') == -1 and _x.find('https://gdbco.xyz/wp-content/uploads/2021/06/202307061344259.gif') == -1 and _x.find('https://img.blr844.com/images/2023/09/15/760x90---1.jpg') == -1 and _x.find('http://atpdxx.xyz/upload/avupload/ky/960x250_2018.gif') == -1:
                         image_list.append(_x)
 #-#                info(f'{pcformat(image_list)}\n{attach_info}')
+
+                if not image_list:
+                    warn(f'image not found in {title} {url}')
             elif '无权' in etree.tounicode(tree):
                 info(f'无权查看 {title} {url}')
+            else:
+                warn(f'获取帖子内容失败 {title} {url}')
         else:
             debug(f'fetch failed for {url=}')
         return content, attach_size, image_list, attach_info
