@@ -60,7 +60,7 @@ class WeworkManager(object):
             self.rds = await RedisManager.getConn()
 
         if not self.rds:
-            error('cache mgr not found!')
+            error(f'cache mgr not found!')
             return
 
         access_token = await self.rds.get('wework_access_token')
@@ -79,7 +79,7 @@ class WeworkManager(object):
                 url = f'https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid={self.corpid}&corpsecret={self.secret}'
                 r, data, ok = await self.net.getData(url, my_fmt='json', my_json_encoding='utf8')
                 if not ok:
-                    error('get token failed ! %d', r.status)
+                    error(f'get token failed ! {r.status}')
                     return
                 if data['errcode'] == 0:
                     access_token = data['access_token']
@@ -87,7 +87,7 @@ class WeworkManager(object):
                     debug(f'new access_token got.')
                     await self.rds.setex('wework_access_token', 3600, access_token)
                 else:
-                    error('get token failed ! %d', pcformat(data))
+                    error(f'get token failed ! {pcformat(data)}')
                     return
 # #            else:
 # #                debug(f'using cached access_token {access_token}')
@@ -137,7 +137,7 @@ class WeworkManager(object):
                            }
                 r, data, ok = await self.net.postData(url, json=payload, my_fmt='json', my_json_encoding='utf8')
                 if not ok:
-                    error('通过企业微信api发消息失败! %s', r)
+                    error(f'通过企业微信api发消息失败! {r}')
                     return
                 if data['errcode'] == 40014:
                     debug(f'access_code expired, request new one ...')
@@ -165,7 +165,7 @@ if __name__ == '__main__':
         x = loop.run_until_complete(task)
         info(pcformat(x))
     except KeyboardInterrupt:
-        info('cancel on KeyboardInterrupt..')
+        info(f'cancel on KeyboardInterrupt..')
         task.cancel()
         loop.run_forever()
         task.exception()

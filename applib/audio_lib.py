@@ -30,6 +30,7 @@ ERROR_HANDLER_FUNC = CFUNCTYPE(None, c_char_p, c_int, c_char_p, c_int, c_char_p)
 def py_error_handler(filename, line, function, err, fmt):
     pass
 
+
 c_error_handler = ERROR_HANDLER_FUNC(py_error_handler)
 
 
@@ -79,7 +80,7 @@ class PlaySound(object):
         """
         new_text = re.sub('(\d+-\d+)', lambda x: x.group(1).replace('-', '减'), text, re.U)
         if new_text != text:
-            info('%s -> %s', text, new_text)
+            info(f'{text} -> {new_text}')
         # call tts
         if self.conf['target'] == 'pi':
             loop = asyncio.get_event_loop()
@@ -112,7 +113,7 @@ class PlaySound(object):
                 outs, errs = proc.communicate()
                 proc.terminate()
             except subprocess.TimeoutExpired:
-                warn('kill timeout proc %s', proc)
+                warn(f'kill timeout proc {proc}')
                 proc.kill()
                 outs, errs = proc.communicate()
         elif tp == 'play':
@@ -126,7 +127,7 @@ class PlaySound(object):
                 outs, errs = proc.communicate(audio_data, timeout=30)
             except subprocess.TimeoutExpired:
                 if proc:
-                    warn('kill timeout proc %s', proc)
+                    warn(f'kill timeout proc {proc}')
                     proc.kill()
                     outs, errs = proc.communicate()
         elif tp == 'mplayer':
@@ -137,7 +138,7 @@ class PlaySound(object):
             try:
                 outs, errs = proc.communicate(audio_data, timeout=30)
             except subprocess.TimeoutExpired:
-                warn('kill timeout proc %s', proc)
+                warn(f'kill timeout proc {proc}')
                 proc.kill()
                 outs, errs = proc.communicate()
         elif tp == 'ao':
@@ -169,7 +170,7 @@ class PlaySound(object):
             audio_size = open.path.getsize(audio_file)
             if audio_size > 1024 * 1024:
                 cmd = 'mplayer -demuxer rawaudio -rawaudio channels=1:rate=16000:bitrate=16 -softvol -volume 10 -novideo %s' % audio_file
-                info('EXEC_CMD< %s ...', cmd)
+                info(f'EXEC_CMD< {cmd} ...')
                 subprocess.Popen(cmd, shell=True).wait()
             else:
                 self.playAudio(open(audio_file, 'rb').read(), tp=tp)
@@ -191,26 +192,26 @@ class PlaySound(object):
         """async support
         """
         setproctitle('audio_play')
-        debug('audio play process started.')
+        debug(f'audio play process started.')
         we_pause = False  # 记录是否是我们在播放音频前pause cmus的播放的，如果不是则我们也不会在播放音频后play它
         while 1:
             try:
                 text, audio_data, tp, extra_data = q_audio.get()
             except KeyboardInterrupt:
-                warn('got KeyboardInterrupt when waiting for play, exit!')
+                warn(f'got KeyboardInterrupt when waiting for play, exit!')
                 break
             except Exception as e:
-                warn('got exception when waiting for play, exit! %s', e)
+                warn(f'got exception when waiting for play, exit! {e}')
                 break
             else:
                 if not audio_data:
-                    info('(no audio data to play) [%s] %s (%s) %s --> %s', extra_data['from_title'], text, '/'.join(extra_data['cut_word']), extra_data['item_url'], extra_data['real_url'])
+                    info(f'(no audio data to play) [{extra_data["from_title"]}] {text} ({"/".join(extra_data["cut_word"])}) {extra_data["item_url"]} --> {extra_data["real_url"]}')
                     continue
 
                 if not text and not audio_data:
-                    info('break !!!')
+                    info(f'break !!!')
                     break
-                info('(%s left) [%s] %s (%s) %s --> %s', q_audio.qsize(), extra_data['from_title'], text, '/'.join(extra_data['cut_word']), extra_data['item_url'], extra_data['real_url'])
+                info(f'({q_audio.qsize()} left) [{extra_data["from_title"]}] {text} ({"/".join(extra_data["cut_word"])}) {extra_data["item_url"]} --> {extra_data["real_url"]}')
                 try:
                     if 'playing' in subprocess.run('cmus-remote -Q | grep status', universal_newlines=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, shell=True).stdout:
                         subprocess.Popen('cmus-remote -u', stderr=subprocess.DEVNULL, shell=True).wait()
@@ -222,22 +223,22 @@ class PlaySound(object):
 #-#                        subprocess.Popen('cmus-remote -k +1', stderr=subprocess.DEVNULL, shell=True).wait()
                         we_pause = False
                 except KeyboardInterrupt:
-                    warn('got KeyboardInterrupt when playing, exit!')
+                    warn(f'got KeyboardInterrupt when playing, exit!')
                     break
                 except Exception as e:
-                    warn('got exception when playing, exit! %s', e)
+                    warn(f'got exception when playing, exit! {e}')
                     break
                 if event_exit.is_set():
-                    info('got exit flag, exit ~')
+                    info(f'got exit flag, exit ~')
                     break
 
     def clean(self):
-        info('audio closing ...')
+        info(f'audio closing ...')
         if self.executor_t2s:
             self.executor_t2s.shutdown()
         if self.proc_play and self.proc_play.is_alive():
             self.proc_play.join()
-        info('audio closed.')
+        info(f'audio closed.')
 
 
 def text2AudioAsync(target, conf_path, text, tp, extra_data, q_audio):
@@ -250,7 +251,7 @@ def text2AudioAsync(target, conf_path, text, tp, extra_data, q_audio):
     new_text = re.sub('\d+?(?:个|元|g)?/(?:件|袋|个|包|块)?', lambda x: x.group(0).replace('/', '每'), new_text, re.U)
 
     if new_text != text:
-        debug('%s -> %s', text, new_text)
+        debug(f'{text} -> {new_text}')
     # call tts
     if target == 'pi':
         # http://stackoverflow.com/questions/29703620/asyncio-event-loop-per-python-process-aioprocessing-multiple-event-loops

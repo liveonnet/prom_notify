@@ -48,7 +48,7 @@ from applib.conf_lib import getConf
 from applib.tools_lib import pcformat
 from applib.log_lib import app_log
 
-info, debug, warn, error = app_log.info, app_log.debug, app_log.warning, app_log.error
+info, debug, warn, excep, error = app_log.info, app_log.debug, app_log.warning, app_log.exception, app_log.error
 
 
 class NetManager(object):
@@ -68,7 +68,7 @@ class NetManager(object):
             self.sess = aiohttp.ClientSession(connector=conn, headers={'User-Agent': self.conf['user_agent']}, loop=self.loop)
         else:
             self.sess = aiohttp.ClientSession(connector=conn, headers={'User-Agent': self.conf['user_agent']})
-        info('sess inited.')
+        info(f'sess inited.')
 
     async def postData(self, url, *args, **kwargs):
         """post 方式提交数据，基本照搬getData，自定义参数最好不用
@@ -115,24 +115,25 @@ class NetManager(object):
                 break
             except asyncio.TimeoutError:
                 if nr_try == max_try - 1:  # 日志输出最后一次超时
-                    debug('%sTimeoutError %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url)
-            except aiohttp.client_exceptions.ClientConnectorError as e:
-                error('%sClientConnectionError %s %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs), e)
+                    debug(f'{("%s/%s " % (nr_try + 1, max_try)) if max_try > 1 else ""}TimeoutError {url}')
+            except aiohttp.client_exceptions.ClientConnectorError:
+                excep('{("%s/%s " % (nr_try + 1, max_try)) if max_try > 1 else ""} {url} {pcformat(args)} {pcformat(kwargs)}')
             except ConnectionResetError:
-                error('%sConnectionResetError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
+                error(f'{("%s/%s " % (nr_try + 1, max_try)) if max_try > 1 else ""}ConnectionResetError {url} {pcformat(args)} {pcformat(kwargs)}')
             except aiohttp.client_exceptions.ContentTypeError:
-                error('%sContentTypeError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs), exc_info=True)
+                error(f'{("%s/%s " % (nr_try + 1, max_try)) if max_try > 1 else ""}ContentTypeError {url} {pcformat(args)} {pcformat(kwargs)}')
                 data = await resp.text(encoding=str_encoding)
-                info('data %s', data[:50])
+                info(f'data {data[:50]}')
             except ClientError:
-                error('%sClientError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs), exc_info=True)
+                error(f'{("%s/%s " % (nr_try + 1, max_try)) if max_try > 1 else ""}ClientError {url} {pcformat(args)} {pcformat(kwargs)}')
             except UnicodeDecodeError:
-                error('%sUnicodeDecodeError %s %s %s %s\n%s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs), pcformat(resp.headers), await resp.read(), exc_info=True)
+                _tmp = await resp.read()
+                excep(f'{("%s/%s " % (nr_try + 1, max_try)) if max_try > 1 else ""} {url} {pcformat(args)} {pcformat(kwargs)} {pcformat(resp.headers)} {_tmp}')
 #-#                raise e
             except json.decoder.JSONDecodeError:
-                error('%sJSONDecodeError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs), exc_info=True)
+                excep(f'{("%s/%s " % (nr_try + 1, max_try)) if max_try > 1 else ""}JSONDecodeError {url} {pcformat(args)} {pcformat(kwargs)}')
             except aiodns.error.DNSError:
-                error('%sDNSError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
+                error(f'{("%s/%s " % (nr_try + 1, max_try)) if max_try > 1 else ""}DNSError {url} {pcformat(args)} {pcformat(kwargs)}')
             finally:
                 if resp:
                     resp.release()
@@ -180,7 +181,14 @@ class NetManager(object):
                     except aiohttp.client_exceptions.ContentTypeError:
                         warn('ignore content encoding error from %s', url)
                 elif fmt == 'json':
-                    data = await resp.json(encoding=json_encoding, loads=json_loads, content_type=None)
+                    try:
+                        data = await resp.json(encoding=json_encoding, loads=json_loads, content_type=None)
+                    except UnicodeDecodeError as e:
+                        debug(f'got except {e}')
+                        break
+                    except Exception as e:
+                        debug(f'got except with {url} {e}')
+                        break
 #-#                    if not data:
 #-#                    if 'json' not in resp.headers.get('content-type', ''):
 #-#                        warn('data not in json? %s', resp.headers.get('content-type', ''))
@@ -199,11 +207,11 @@ class NetManager(object):
             except asyncio.TimeoutError:
 #-#                debug('%sTimeoutError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
                 if nr_try == max_try - 1:  # 日志输出最后一次超时
-                    debug('%sTimeoutError %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url)
+                    debug(f'{("%s/%s " % (nr_try + 1, max_try)) if max_try > 1 else ""}TimeoutError {url}')
             except aiohttp.client_exceptions.ClientConnectorError:
-                error('%sClientConnectionError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
+                error(f'{("%s/%s " % (nr_try + 1, max_try)) if max_try > 1 else ""}ClientConnectorError {url} {pcformat(args)} {pcformat(kwargs)}')
             except ConnectionResetError:
-                error('%sConnectionResetError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
+                error(f'{("%s/%s " % (nr_try + 1, max_try)) if max_try > 1 else ""}ConnectionResetError {url} {pcformat(args)} {pcformat(kwargs)}')
 #-#            except aiohttp.errors.ClientResponseError:
 #-#                debug('%sClientResponseError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
 #-#            except ClientHttpProcessingError:
@@ -211,18 +219,19 @@ class NetManager(object):
 #-#            except ClientTimeoutError:
 #-#                debug('%sClientTimeoutError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
             except aiohttp.client_exceptions.ContentTypeError:
-                error('%sContentTypeError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs), exc_info=True)
+                excep(f'{("%s/%s " % (nr_try + 1, max_try)) if max_try > 1 else ""} {url} {pcformat(args)} {pcformat(kwargs)}')
                 data = await resp.text(encoding=str_encoding)
-                info('data %s', data[:50])
+                info(f'data {data[:50]}')
             except ClientError:
-                error('%sClientError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs), exc_info=True)
+                excep(f'{("%s/%s " % (nr_try + 1, max_try)) if max_try > 1 else ""} {url} {pcformat(args)} {pcformat(kwargs)}')
             except UnicodeDecodeError:
-                error('%sUnicodeDecodeError %s %s %s %s\n%s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs), pcformat(resp.headers), await resp.read(), exc_info=True)
+                _tmp = await resp.read()
+                excep(f'{("%s/%s " % (nr_try + 1, max_try)) if max_try > 1 else ""} {url} {pcformat(args)} {pcformat(kwargs)} {pcformat(resp.headers)} {_tmp}')
 #-#                raise e
             except json.decoder.JSONDecodeError:
-                error('%sJSONDecodeError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs), exc_info=True)
+                excep(f'{("%s/%s " % (nr_try + 1, max_try)) if max_try > 1 else ""} {url} {pcformat(args)} {pcformat(kwargs)}')
             except aiodns.error.DNSError:
-                error('%sDNSError %s %s %s', ('%s/%s ' % (nr_try + 1, max_try)) if max_try > 1 else '', url, pcformat(args), pcformat(kwargs))
+                error(f'{("%s/%s " % (nr_try + 1, max_try)) if max_try > 1 else ""}DNSError {url} {pcformat(args)} {pcformat(kwargs)}')
             finally:
                 if resp:
                     resp.release()
@@ -232,7 +241,7 @@ class NetManager(object):
     async def clean(self):
         if self.sess:
             await self.sess.close()
-            info('sess closed.')
+            info(f'sess closed.')
 
 
 if __name__ == '__main__':
@@ -248,7 +257,7 @@ if __name__ == '__main__':
         x = loop.run_until_complete(task)
         info(pcformat(x))
     except KeyboardInterrupt:
-        info('cancel on KeyboardInterrupt..')
+        info(f'cancel on KeyboardInterrupt..')
         task.cancel()
         loop.run_forever()
         task.exception()

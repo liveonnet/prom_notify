@@ -40,7 +40,7 @@ if __name__ == '__main__':
 from applib.conf_lib import getConf
 from applib.log_lib import get_lan_ip
 from applib.log_lib import app_log
-info, debug, warn, error = app_log.info, app_log.debug, app_log.warning, app_log.error
+info, debug, warn, excep, error = app_log.info, app_log.debug, app_log.warning, app_log.exception, app_log.error
 
 msg_information = {}
 face_bug = None  # 针对表情包的内容
@@ -79,32 +79,32 @@ class ItchatManager(object):
         self.proc_wx.start()
 
     def onLogin(self):
-        info('itchat login ok ~')
+        info(f'itchat login ok ~')
 
     def onExit(self):
-        info('itchat exit')
+        info(f'itchat exit')
 
     def run(self, event_exit, q_send):
         setproctitle('wx_proc')
         self.start()
         if self.thread_id is None:
             self.thread_id = _thread.start_new_thread(itchat.run, (), {'debug': self.conf['debug'], })
-            info('instance %s', itchat.instanceList[-1])
-            info('itchat running')
+            info(f'instance {itchat.instanceList[-1]}')
+            info(f'itchat running')
         else:
-            info('itchat already running')
+            info(f'itchat already running')
 
         if self.gid is None:  # 有时候登录后第一次查不到“我们”群，尝试多次查找
             try:
-                debug('finding chatroom ...')
+                debug(f'finding chatroom ...')
                 groups = itchat.get_chatrooms(update=True)
                 for _g in groups:
                     if _g['MemberCount'] == 3 and _g.Self.NickName == "刘强":
                         self.gid = _g['UserName']
-                        info('我们 gid %s', self.gid)
+                        info(f'我们 gid {self.gid}')
                         break
                 else:
-                    debug('chatroom not found')
+                    debug(f'chatroom not found')
 #-#                            debug('%s\t%s', _g['NickName'], _g['UserName'])
 #-#                        g = itchat.search_chatrooms(name="我们")
 #-#                        if g:
@@ -116,35 +116,35 @@ class ItchatManager(object):
 #-#                        else:
 #-#                            debug('chatroom not found')
             except Exception:
-                error('error finding chatroom 我们', exc_info=True)
+                excep(f'error finding chatroom 我们')
 
         while 1:
 #-#            embed()
             try:
                 msg, who = q_send.get(timeout=30)
             except KeyboardInterrupt:
-                warn('got KeyboardInterrupt when waiting for msg to send, exit!')
+                warn(f'got KeyboardInterrupt when waiting for msg to send, exit!')
                 break
             except Empty:
                 if event_exit.is_set():
-                    info('got exit flag, exit~')
+                    info(f'got exit flag, exit~')
                     break
             except Exception as e:
-                warn('got exception when waiting for msg to send, exit! %s', e)
+                warn(f'got exception when waiting for msg to send, exit! {e}')
                 break
             else:
                 if not msg and not who:
-                    info('break !!!')
+                    info(f'break !!!')
                     break
                 self.sendMsg(msg, toUserName=who)
                 if event_exit.is_set():
-                    info('got exit flag, exit~')
+                    info(f'got exit flag, exit~')
                     break
 
         self.clean()
 
     def start(self):
-        info('itchat starting ..')
+        info(f'itchat starting ..')
         itchat.auto_login(enableCmdQR=2, hotReload=True, picDir='/tmp', statusStorageDir='config/itchat.pkl', loginCallback=self.onLogin, exitCallback=self.onExit)
 #-#        groups = itchat.get_chatrooms()
 #-#        for _g in groups:
@@ -157,11 +157,11 @@ class ItchatManager(object):
 #-#                self.gid = g['UserName']
 #-#                info('我们 gid %s', self.gid)
 
-        info('itchat started')
+        info(f'itchat started')
 
     def stop(self):
         itchat.logout()
-        info('itchat logout')
+        info(f'itchat logout')
 
     def clean(self):
         self.stop()
@@ -180,12 +180,12 @@ class ItchatManager(object):
 #-#        info('[%s %s] %s', msg['Type'], msg['MsgId'], msg_from)
         if msg['Type'] in ('Text', 'Friends'):  # 如果发送的消息是文本或者好友推荐
             msg_content = msg['Text']
-            info('[%s %s] %s: %s', msg['Type'], msg['MsgId'], msg_from, msg_content)
+            info(f'[{msg["Type"]} {msg["MsgId"]}] {msg_from}: {msg_content}')
 #-#            info('%s', msg_content)
         elif msg['Type'] in ('Attachment', 'Video', 'Picture', 'Recording'):  # 如果发送的消息是附件、视屏、图片、语音
             msg_content = msg['FileName']  # 内容就是他们的文件名
             msg['Text'](os.path.join(attachment_dir, msg_content))  # 下载文件
-            info('[%s %s] %s', msg['Type'], msg['MsgId'], msg_from)
+            info(f'[{msg["Type"]} {msg["MsgId"]}] {msg_from}')
             # print msg_content
         elif msg['Type'] == 'Card':  # 如果消息是推荐的名片
             msg_content = msg['RecommendInfo']['NickName'] + '的名片'  # 内容就是推荐人的昵称和性别
@@ -194,19 +194,19 @@ class ItchatManager(object):
             else:
                 msg_content += '性别为女'
 #-#            info('%s', msg_content)
-            info('[%s %s] %s: %s', msg['Type'], msg['MsgId'], msg_from, msg_content)
+            info(f'[{msg["Type"]} {msg["MsgId"]}] {msg_from}: {msg_content}')
         elif msg['Type'] == 'Map':  # 如果消息为分享的位置信息
             x, y, location = re.search("<location x=\"(.*?)\" y=\"(.*?)\".*label=\"(.*?)\".*", msg['OriContent']).group(1, 2, 3)
             if location is None:
                 msg_content = "纬度->" + x.__str__() + " 经度->" + y.__str__()  # 内容为详细的地址
             else:
                 msg_content = location
-            info('[%s %s] %s: %s', msg['Type'], msg['MsgId'], msg_from, msg_content)
+            info(f'[{msg["Type"]} {msg["MsgId"]}] {msg_from}: {msg_content}')
         elif msg['Type'] == 'Sharing':  # 如果消息为分享的音乐或者文章，详细的内容为文章的标题或者是分享的名字
             msg_content = msg['Text']
             msg_share_url = msg['Url']  # 记录分享的url
 #-#            info('%s', msg_share_url)
-            info('[%s %s] %s: %s', msg['Type'], msg['MsgId'], msg_from, msg_share_url)
+            info(f'[{msg["Type"]} {msg["MsgId"]}] {msg_from}: {msg_share_url}')
         face_bug = msg_content
 
         # 将信息存储在字典中，每一个msg_id对应一条信息
@@ -226,7 +226,7 @@ class ItchatManager(object):
             if _v['msg_time_rec'] <= time_5min_early:
                 l_msgid_2del.append(_msgid)
         if l_msgid_2del:
-            info('del %s old msg', len(l_msgid_2del))
+            info(f'del {len(l_msgid_2del)} old msg')
         for _msgid in l_msgid_2del:
             msg_information.pop(_msgid, None)
 
@@ -237,7 +237,7 @@ class ItchatManager(object):
         if '撤回了一条消息' in msg['Content']:
             old_msg_id = re.search("\<msgid\>(.*?)\<\/msgid\>", msg['Content']).group(1)  # 在返回的content查找撤回的消息的id
             old_msg = msg_information.get(old_msg_id)  # 得到消息
-            info('old msg: %s', old_msg)
+            info(f'old msg: {old_msg}')
             if not old_msg:  # 找不到消息
                 return
             if len(old_msg_id) < 11:  # 如果发送的是表情包
@@ -275,7 +275,7 @@ class ItchatManager(object):
             itchat.send_msg(msg_body, toUserName)
 #-#        debug('send %s %s', msg_body, self.gid if self.gid else toUserName)
         except Exception:
-            error('got except', exc_info=True)
+            excep(f'got except')
 
 
 if __name__ == '__main__':
@@ -285,7 +285,7 @@ if __name__ == '__main__':
         try:
             sleep(10)
         except KeyboardInterrupt:
-            info('cancel on KeyboardInterrupt..')
+            info(f'cancel on KeyboardInterrupt..')
             it.clean()
 
 

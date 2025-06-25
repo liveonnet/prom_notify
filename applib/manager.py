@@ -38,10 +38,10 @@ MySyncManager.register('get_wx_send_q', callable=lambda: wx_send_q)
 def server_manager(address, authkey):
     mgr = MySyncManager(address, authkey)
     setproctitle('process_mgr')
-    debug('manager server started.')
+    debug(f'manager server started.')
     server = mgr.get_server()
     server.serve_forever()
-    debug('manager server stopped.')
+    debug(f'manager server stopped.')
 
 
 class MyManager(object):

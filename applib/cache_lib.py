@@ -18,7 +18,7 @@ from applib.conf_lib import getConf
 from applib.tools_lib import pcformat
 from applib.tools_lib import CJsonEncoder
 from applib.log_lib import app_log
-info, debug, warn, error = app_log.info, app_log.debug, app_log.warning, app_log.error
+info, debug, warn, excep, error = app_log.info, app_log.debug, app_log.warning, app_log.exception, app_log.error
 #pcformat
 
 
@@ -92,13 +92,13 @@ class MyRedis(object):
             try:
                 ret[_k] = json.loads(_v.decode('utf8'))
             except Exception:
-                info('%s %s', _k, pcformat(_v), exc_info=True)
+                excep(f'{_k} {pcformat(_v)}')
                 try:
                     _tmp = _v.replace("'", '"')
                     _obj = json.loads(_tmp.decode('utf8'))
                     ret[_k] = _obj
                 except Exception:
-                    info('%s %s', _k, pcformat(_tmp), exc_info=True)
+                    excep(f'{_k} {pcformat(_tmp)}')
                     ret[_k] = _v
         return ret
 
@@ -115,7 +115,7 @@ class MyRedis(object):
                     _tmp = s.replace("'", '"')
                     s = json.loads(_tmp.decode('utf8'))
                 except Exception:
-                    error('name %s key %s', name, key, exc_info=True)
+                    excep('name {name} key {key}')
         return s
 
     async def getHashObjMultiValue(self, name, l_key):
@@ -134,7 +134,7 @@ class MyRedis(object):
                         s = json.loads(_tmp)
                     except Exception:
                         s = None
-                        error('name %s key %s', name, l_key[_i], exc_info=True)
+                        excep(f'name {name} key {l_key[_i]}')
             l_rslt.append(s)
         return l_rslt
 
@@ -148,7 +148,7 @@ class MyRedis(object):
                 _tmp = json.dumps(s, cls=CJsonEncoder)
                 s = _tmp
             except Exception:
-                error('', exc_info=True)
+                excep('')
                 pass
         ret = await self.redis.hset(name, key, s)
         if ex:
@@ -250,7 +250,7 @@ class RedisManager(object):
     @staticmethod
     def info(redis_name='default'):
         pool = RedisManager.POOL[redis_name]
-        info('redis pool stat: %s total %s free %s', redis_name, pool.size, pool.freesize)
+        info(f'redis pool stat: {redis_name} total {pool.size} free {pool.freesize}')
 
     @staticmethod
     async def releaseConn(conn_obj, redis_name='default'):
@@ -272,13 +272,13 @@ class RedisManager(object):
         while 1:
             try:
                 _redis_name, _pool = RedisManager.POOL.popitem()
-                info('redis pool stat: %s total %s free %s', _redis_name, _pool.size, _pool.freesize)
+                info(f'redis pool stat: {_redis_name} total {_pool.size} free {_pool.freesize}')
             except KeyError:
                 break
             else:
                 await _pool.disconnect()
 #-#                _pool.close()
 #-#                await _pool.wait_closed()
-                info('pool %s closed %s %s', _redis_name, _pool, _pool.closed)
+                info(f'pool {_redis_name} closed {_pool} {_pool.closed}')
 
 

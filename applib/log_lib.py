@@ -4,9 +4,10 @@ import os
 import logging
 import logging.handlers
 import socket
-#-#import sys
+import sys
 import struct
 import colorlog
+from loguru import logger
 #-#from logging import Formatter
 
 if os.name != 'nt':
@@ -53,7 +54,7 @@ class InternalLog(object):
     _logger = None
 
     @classmethod
-    def getLogger(cls):
+    def getLogger_old(cls):
         if cls._logger:
             print('use existing logger')
             return cls._logger
@@ -92,6 +93,24 @@ class InternalLog(object):
             if isinstance(hdl, logging.handlers.RotatingFileHandler) or isinstance(hdl, logging.FileHandler):
                 print('log file %s %s' % (hdl.baseFilename, hdl.mode), flush=True)
         cls._logger.info('root logger init done. script dir %s' % (os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)), ))
+        return cls._logger
+
+    @classmethod
+    def getLogger(cls):
+        if cls._logger:
+            print('use existing logger')
+            return cls._logger
+
+        logger.remove()
+        logger.add(sys.stderr, colorize=True, format='<green>{time:YYMMDD_HHmmss}</green><cyan>{level:.1s}</cyan>:{module}.{function}:{line}|<level>{message}</level>', filter='', level='DEBUG')
+        mylogger = logger.opt(colors=True)
+        mylogger.level('INFO', color='<white>')
+        mylogger.level('DEBUG', color='<blue>')
+        mylogger.level('WARNING', color='<yellow>')
+        mylogger.level('ERROR', color='<RED><white>')
+        cls._logger = mylogger
+
+        cls._logger.info(f'root logger init done. script dir {os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir))}')
         return cls._logger
 
 

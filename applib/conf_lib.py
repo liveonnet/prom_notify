@@ -17,7 +17,7 @@ def getConf(conf_path='./pn_conf.yaml', root_key=None, force_reload=False):
 
     if conf is None or force_reload:
         if force_reload:
-            debug('force load conf from file %s', conf_file_path)
+            debug(f'force load conf from file {conf_file_path}')
         assert os.path.exists(conf_file_path)
         conf = yaml.load(open(conf_file_path), Loader=yaml.FullLoader)  # https://github.com/yaml/pyyaml/wiki/PyYAML-yaml.load(input)-Deprecation
         _cache_conf[conf_file_path] = conf
@@ -27,7 +27,7 @@ def getConf(conf_path='./pn_conf.yaml', root_key=None, force_reload=False):
 
     if root_key:
         if root_key not in conf:
-            error('conf no root_key %s in %s !!!', root_key, conf_file_path)
+            error(f'conf no root_key {root_key} in {conf_file_path} !!!')
         conf = conf.get(root_key)
 
     return conf

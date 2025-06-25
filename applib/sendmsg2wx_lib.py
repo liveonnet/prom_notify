@@ -41,9 +41,9 @@ class SendMsg2WeiXin(object):
                 self.mgr.connect()
                 self.send_q = self.mgr.get_wx_send_q()  # 获取到了发送队列
             else:
-                warn('itchat not use custom manager, can\'t send msg via wx !!!')
+                warn(f'itchat not use custom manager, can\'t send msg via wx !!!')
         else:
-            warn('wx not enabled, can\'t send msg via wx !!!')
+            warn(f'wx not enabled, can\'t send msg via wx !!!')
 
     def run(self):
         """输入格式：
@@ -64,12 +64,12 @@ class SendMsg2WeiXin(object):
                         to = ''
                     self.send_q.put_nowait([s, to or dft_user])
             except Full:
-                warn('wx send queue is FULL !!!')
+                warn(f'wx send queue is FULL !!!')
             except (EOFError, KeyboardInterrupt):
                 info('break')
                 break
 
-        info('done')
+        info(f'done')
 
 
 if __name__ == '__main__':

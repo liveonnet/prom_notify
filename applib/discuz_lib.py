@@ -15,6 +15,7 @@ from itertools import repeat
 from itertools import count
 import importlib
 import asyncio
+from random import randint
 from getpass import getuser
 if getuser() != 'pi':  # orangepi 上不检查优惠券信息
     from selenium import webdriver
@@ -35,7 +36,7 @@ from applib.cache_lib import RedisManager
 from applib.conf_lib import getConf
 from applib.net_lib import NetManager
 from applib.log_lib import app_log
-info, debug, warn, error = app_log.info, app_log.debug, app_log.warning, app_log.error
+info, debug, warn, excep, error = app_log.info, app_log.debug, app_log.warning, app_log.exception, app_log.error
 
 cached_js_check = None
 
@@ -82,7 +83,7 @@ class DiscuzManager(object):
                     finally:
                         await mgr.clean()
                 else:
-                    info('找不到处理类 %s', _forum['mgr'])
+                    info(f'找不到处理类 {_forum["mgr"]}')
         finally:
             await self.clean()
 
@@ -136,15 +137,15 @@ class QiLanManager(DiscuzManager):
         """获得帖子列表
         """
         data = None
-        debug('fetching %s ...', forum['title'])
+        debug(f'fetching {forum["title"]} ...')
         for _sub in forum['subforum']:
             if not _sub['enabled']:
                 continue
-            debug('fetching sub forum %s\n%s ...', _sub['title'], _sub['url'])
+            debug(f'fetching sub forum {_sub["title"]}\n{_sub["url"]} ...')
             cookie, save_cookie = self.cookie, False
             if cookie is None and os.path.exists(forum['cookie_file']):
                 cookie = open(forum['cookie_file']).read()
-                info('loaded cookie from %s', forum['cookie_file'])
+                info(f'loaded cookie from {forum["cookie_file"]}')
                 self.cookie = cookie
             for _ in range(2):
                 resp, text, ok = await self.net.getData(_sub['url'], timeout=5, my_fmt='str', my_str_encoding='gb18030', headers={'Cookie': cookie} if cookie else None)
@@ -155,11 +156,11 @@ class QiLanManager(DiscuzManager):
                         self.cookie = None
                         cookie = await self.login(forum)
                         if cookie:
-                            info('got new cookie: %s', cookie)
+                            info(f'got new cookie: {cookie}')
                             save_cookie = True
                             continue
                         else:
-                            info('貌似登录不成功 %s 终止获取帖子', forum['title'])
+                            info(f'貌似登录不成功 {forum["title"]} 终止获取帖子')
                             return
                     else:
                         pr = etree.HTMLParser()
@@ -178,9 +179,9 @@ class QiLanManager(DiscuzManager):
                         break
             if save_cookie:
                 open(os.path.abspath(forum['cookie_file']), 'w').write(cookie)
-                info('saved cookie to %s', forum['cookie_file'])
+                info(f'saved cookie to {forum["cookie_file"]}')
 #-#            break  # debug only
-        info('%s 处理完毕', forum['title'])
+        info(f'{forum["title"]} 处理完毕')
         return data
 
     async def getPost(self, title, url):
@@ -237,7 +238,7 @@ class SisManager(DiscuzManager):
         if not ok:
             return data
 #-#        embed()
-        debug('fetching %s ...', forum['title'])
+        debug(f'fetching { forum["title"]} ...')
         cookie, _ = self.cookie, False
         for _sub in forum['subforum']:
             if not _sub['enabled']:
@@ -245,7 +246,7 @@ class SisManager(DiscuzManager):
 #-#            debug('fetching sub forum %s\n%s ...', _sub['title'], _sub['url'])
             if cookie is None and os.path.exists(forum['cookie_file']):
                 cookie = open(forum['cookie_file']).read()
-                info('loaded cookie from %s', forum['cookie_file'])
+                info(f'loaded cookie from {forum["cookie_file"]}')
                 self.cookie = cookie
             #if False:
             #if cookie is None:
@@ -268,7 +269,7 @@ class SisManager(DiscuzManager):
                                 js += 'function KKK(a,b,c){s="CeRaHigh1="+toHex(slowAES.decrypt(c,2,a,b));return s}KKK(a,b,c);'
                                 #debug('%s', js)
                                 x = js2py.eval_js(aes_js + '\n' + js)
-                                debug('eval js got: %s', x)
+                                debug(f'eval js got: {x}')
                                 #_k, _v = x.split('=', 1)
                                 #cookie = json.dumps({_k: _v})
                                 cookie = x + '; path=/'
@@ -322,7 +323,7 @@ class SisManager(DiscuzManager):
                                         info(f'\n[{_type}] {_i}/{len(l_title)} {_title} {_ctime} {_utime}\n\t--> {urljoin(forum["post_base_url"], _url)}\n\t {pcformat(_img_list)}\n\t {_attach_size} {_attach_info}\n\n')
                                         db.createRecord(tid=tid, url=_url, title=_title, img_url=json.dumps(_img_list), name=_attach_info[0], size=_attach_size, aid=_aid)
                                 except Exception:
-                                    warn('got except title: %s', _title, exc_info=True)
+                                    excep(f'got except title: {_title}')
 #-#                        else:
 #-#                            warn(f'SKIP type {_type} for {_title}')
                 else:
@@ -332,7 +333,7 @@ class SisManager(DiscuzManager):
 #-#        RedisManager.info('sis')
         await RedisManager.releaseConn(rds, 'sis')
 #-#        RedisManager.info('sis')
-        info('%s 处理完毕', forum['title'])
+        info(f'{forum["title"]} 处理完毕')
         return data
 
     async def getPost(self, title, url, forum_cfg, subforum_cfg, cookie):
@@ -408,7 +409,7 @@ class ClManager(DiscuzManager):
         RedisManager.setCfg(self.conf_path, loop)
         rds = await RedisManager.getConn('cl')
         db = ClDB(self.conf_path)
-        debug('fetching %s ...', forum['title'])
+        debug(f'fetching {forum["title"]} ...')
         cookie, _ = self.cookie, False
         for _sub in forum['subforum']:
             if not _sub['enabled']:
@@ -416,7 +417,7 @@ class ClManager(DiscuzManager):
 #-#            debug('fetching sub forum %s\n%s ...', _sub['title'], _sub['url'])
             if cookie is None and os.path.exists(forum['cookie_file']):
                 cookie = open(forum['cookie_file']).read()
-                info('loaded cookie from %s', forum['cookie_file'])
+                info(f'loaded cookie from {forum["cookie_file"]}')
                 self.cookie = cookie
             for _page in count(1):
                 got_new = False
@@ -430,9 +431,10 @@ class ClManager(DiscuzManager):
                             break
                         elif _i == 0:
                             debug('need process js ?')
-                            debug(f'{text=}')
+                            debug(f'text={text.replace("<", "{").replace(">", "}")}')
                             cookie = 'ismob=0; expires=06 Feb 2030 04:10:37 GMT; path=/'
                             cached_js_check = cookie
+                            self.cookie = cookie
                             continue
                         else:
                             debug(f'try js failed')
@@ -442,12 +444,15 @@ class ClManager(DiscuzManager):
                 if ok:
                     #debug('---%s', resp.cookies)
 #-#                    info('resp %s', pcformat(resp))
-                    #info(f'resp text len {len(text)}')
+# #                    info(f'resp text len {len(text)}')
+# #                    open(f'/tmp/t{_sub["title"]}.txt', 'w').write(text)
                     pr = etree.HTMLParser()
                     tree = etree.fromstring(text, pr)
                     l_title = tree.xpath(_sub.get('postlist_title') or forum['postlist_title'])
                     if not l_title:
                         debug(f'no l_title !!!')
+# #                        if _sub['title'] == '亚无原':
+# #                            embed()
                         break
 # #                    debug(f'got {len(l_title)} title')
                     l_url = tree.xpath(_sub.get('postlist_url') or forum['postlist_url'])
@@ -475,15 +480,25 @@ class ClManager(DiscuzManager):
 #-#                                    warn(f'SKIP keyword {_keyword} for {_title}')
                                 break
                         else:
-                            info(f'{_i}/{len(l_title)} {_title} {_ctime}\n\t--> {urljoin(forum["post_base_url"], _url)}\n\n')
+                            info(f'{_i}/{len(l_title)} {_title.replace("<", "{").replace(">", "}")} {_ctime}\n\t--> {urljoin(forum["post_base_url"], _url)}\n\n')
                             got_new = True
+                            await asyncio.sleep(randint(5, 9))  # 看看是否能避免反复要求登录
                             try:
-                                _content, _attach_size, _img_list, _attach_info = await self.getPost(_title, _url, forum, _sub, cookie)
-                                if _content and _attach_info and _attach_info[0] and _attach_info[1]:
-                                    info(f'\n{_i}/{len(l_title)} {_title} {_ctime}\n\t--> {urljoin(forum["post_base_url"], _url)}\n\t {pcformat(_img_list)}\n\t {_attach_size} {_attach_info}\n\n')
-                                    db.createRecord(tid=tid, url=_url, title=_title, img_url=json.dumps(_img_list), name=_attach_info[0], size=_attach_size, download_url=_attach_info[1])
+                                for _retry in range(2):
+                                    _content, _attach_size, _img_list, _attach_info = await self.getPost(_title, _url, forum, _sub, cookie)
+                                    if _content is None:
+                                        if _retry == 0:
+                                            debug(f'to try again ...')
+                                            cookie = 'ismob=0; expires=06 Feb 2030 04:10:37 GMT; path=/'
+                                            cached_js_check = cookie
+                                            self.cookie = cookie
+                                            continue
+                                    elif _content and _attach_info and _attach_info[0] and _attach_info[1]:
+                                        info(f'\n{_i}/{len(l_title)} {_title.replace("<", "{").replace(">", "}")} {_ctime}\n\t--> {urljoin(forum["post_base_url"], _url)}\n\t {pcformat(_img_list)}\n\t {_attach_size} {_attach_info}\n\n')
+                                        db.createRecord(tid=tid, url=_url, title=_title, img_url=json.dumps(_img_list), name=_attach_info[0], size=_attach_size, download_url=_attach_info[1])
+                                        break
                             except Exception:
-                                warn('got except title: %s', _title, exc_info=True)
+                                excep(f'got except title: {_title}')
                 else:
                     info(f'no ok')
                     break
@@ -496,7 +511,7 @@ class ClManager(DiscuzManager):
 #-#        RedisManager.info('cl')
         await RedisManager.releaseConn(rds, 'cl')
 #-#        RedisManager.info('cl')
-        info('%s 处理完毕', forum['title'])
+        info(f'{forum["title"]} 处理完毕')
         return data
 
     async def getPost(self, title, url, forum_cfg, subforum_cfg, cookie):
@@ -554,7 +569,7 @@ class ClManager(DiscuzManager):
             elif '无权' in etree.tounicode(tree):
                 info(f'无权查看 {title} {url}')
             else:
-                warn(f'获取帖子内容失败 {title} {url}')
+                warn(f'获取帖子内容失败 {title} {url} size={len(text)} {text.replace("<", "{").replace(">", "}") if len(text) < 200 else ""}')
         else:
             debug(f'fetch failed for {url=}')
         return content, attach_size, image_list, attach_info

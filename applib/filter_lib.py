@@ -38,11 +38,11 @@ class FilterTitle(object):
         debug(f'concern item(s) loaded {len(self.l_concern)}')
         self.l_include_coupon = conf['l_include_coupon'] or []
         self.l_exclude_coupon = conf['l_exclude_coupon'] or []
-        debug('include/exclude coupon item(s) loaded. %s/%s ', len(self.l_include_coupon), len(self.l_exclude_coupon))
+        debug(f'include/exclude coupon item(s) loaded. {len(self.l_include_coupon)}/{len(self.l_exclude_coupon)}')
 
         self.l_include_jr_coupon = conf['l_include_jr_coupon'] or []
         self.l_exclude_jr_coupon = conf['l_exclude_jr_coupon'] or []
-        debug('include/exclude jr coupon item(s) loaded. %s/%s ', len(self.l_include_jr_coupon), len(self.l_exclude_jr_coupon))
+        debug(f'include/exclude jr coupon item(s) loaded. {len(self.l_include_jr_coupon)}/{len(self.l_exclude_jr_coupon)}')
         if force_reload:
             self._addUserWord()
 
@@ -55,7 +55,7 @@ class FilterTitle(object):
         l_dynamic_word = sorted(set(l_dynamic_word), key=lambda x: len(x) if x else 0, reverse=True)
         debug(pcformat(l_dynamic_word))
         list(map(lambda w: jieba.add_word(w, freq=1500, tag=None) if w else 0, l_dynamic_word))
-        debug('added %s include/exclude word(s) to jieba', len(l_dynamic_word))
+        debug(f'added {len(l_dynamic_word)} include/exclude word(s) to jieba')
 
     def _initJieba(self):
         """初始化结巴分词
@@ -222,7 +222,7 @@ class FilterTitle(object):
         return action, word, extra_data
 
     def clean(self):
-        info('filter closed.')
+        info(f'filter closed.')
 
 
 if __name__ == '__main__':

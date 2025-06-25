@@ -41,7 +41,7 @@ from applib.orm_lib import SisClDB
 from applib.conf_lib import getConf
 # #from applib.net_lib import NetManager
 from applib.log_lib import app_log
-info, debug, warn, error = app_log.info, app_log.debug, app_log.warning, app_log.error
+info, debug, warn, excep, error = app_log.info, app_log.debug, app_log.warning, app_log.exception, app_log.error
 
 
 class MyHandler(http.server.BaseHTTPRequestHandler):
@@ -301,7 +301,7 @@ a.torrent_link:hover {{background: #66ff66; text-decoration: underline}}
                 tr_conf = self.all_conf['transmission']
                 cmd = f'transmission-remote {tr_conf["host"]}:{tr_conf["port"]} -n {tr_conf["user"]}:{tr_conf["auth"]} {d_cmd["add_start"]} -a "{d_cmd["torrent"]}"'
 #-#                cmd = shlex.split(cmd)
-                debug('EXEC_CMD< %s ...', cmd)
+                debug(f'EXEC_CMD< {cmd} ...')
 
                 l_content = []
                 try:
@@ -314,7 +314,7 @@ a.torrent_link:hover {{background: #66ff66; text-decoration: underline}}
                         info(f'{errs}')
                         l_content.append(errs.strip())
                 except subprocess.TimeoutExpired:
-                    warn('timeout !!!')
+                    warn(f'timeout !!!')
                 else:
                     try:
                         cmd = f'transmission-remote {tr_conf["host"]}:{tr_conf["port"]} -n {tr_conf["user"]}:{tr_conf["auth"]} {d_cmd["add_start"]} -l'
@@ -327,7 +327,7 @@ a.torrent_link:hover {{background: #66ff66; text-decoration: underline}}
                             info(f'\n{errs}')
                             l_content.append(errs.strip())
                     except subprocess.TimeoutExpired:
-                        warn('timeout !!!')
+                        warn(f'timeout !!!')
 
                 f_path = d_cmd["torrent"]
                 if f_path.startswith('/tmp/'):
@@ -380,7 +380,7 @@ def run(server_class=http.server.ThreadingHTTPServer, handler_class=MyHandler):
     httpd = server_class(server_address, handler_class)
     info(f'listen on {server_address} ...\nhttp://{conf["host"]}:{conf["port"]}/')
     httpd.serve_forever()
-    info('done.')
+    info(f'done.')
 
 
 run()

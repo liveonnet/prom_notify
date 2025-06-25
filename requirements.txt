@@ -1,6 +1,7 @@
 aiohttp==3.3.2
 aiodns==1.1.1
 colorlog==2.10.0
+loguru==0.7.3
 PyAudio==0.2.10
 setproctitle==1.1.10
 #lxml==3.7.3

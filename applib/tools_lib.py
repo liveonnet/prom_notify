@@ -272,7 +272,7 @@ def parseXml2Dict(xml_data):
             j_data[_child.tag] = _child.text
     except Exception:
 #-#        error('解析xml失败\nxml=%s', repr(xml_data), exc_info=True)
-        info('解析xml失败\nxml=%s', repr(xml_data))
+        info(f'解析xml失败\nxml={repr(xml_data)}')
     return j_data
 
 
@@ -745,9 +745,9 @@ if __name__ == '__main__':
     x.post_data = {'item_type': 'xx'}
 #-#    l_rslt, l_err = x.get_my_arg('uid int&default=0')
     l_rslt, l_err = x.get_my_arg('item_type re(re.compile(r"^(news)|(img)|(ad)$"))&default=""')
-    info('rslt: %s  err %s', l_rslt, l_err)
+    info(f'rslt: {l_rslt}  err {l_err}')
     l_rslt, l_err = x.get_my_arg('duration int&default=0')
-    info('rslt: %s  err %s', l_rslt, l_err)
+    info(f'rslt: {l_rslt} err {l_err}')
     info(repr(htmlentitydecode('&gt;&cent;&sect;&yen;&micro;&sup2;')))
     info(str2_int_list('2, 4, 6, 8'))
     info(str2_str_list('abc, xyz, mno'))
@@ -778,5 +778,5 @@ if __name__ == '__main__':
 #-#                info('break')
 #-#                break
     total = nr_succ + nr_fail
-    info('%d(succ) %.2f%% + %d(fail) %.2f%% = %d', nr_succ, float(nr_succ) / total * 100, nr_fail, float(nr_fail) / total * 100, total)
+    info(f'{nr_succ}(succ) {float(nr_succ) / total * 100: .2f}%% + {nr_fail}(fail) {float(nr_fail) / total * 100: .2f}%% = {total}')
     embed()

@@ -17,7 +17,7 @@ if __name__ == '__main__':
 # #from applib.tools_lib import pcformat
 from applib.conf_lib import getConf
 from applib.log_lib import app_log
-info, debug, warn, error = app_log.info, app_log.debug, app_log.warning, app_log.error
+info, debug, warn, excep, error = app_log.info, app_log.debug, app_log.warning, app_log.exception, app_log.error
 
 
 # http://docs.sqlalchemy.org/en/rel_1_1/index.html
@@ -89,13 +89,13 @@ class SessionMaker():
             # TODO 加锁
             engine = SessionMaker._engine.get(conn_str)
             if not engine:
-                info('create engine for %s echo %s', conn_str, echo)
+                info(f'create engine for {conn_str} echo {echo}')
                 engine = create_engine(conn_str, echo=echo, pool_pre_ping=True)  # https://stackoverflow.com/questions/23747742/sqlalchemy-session-reconnect
                 SessionMaker._engine[conn_str] = engine
             else:
-                info('using cached engine for %s', conn_str)
+                info(f'using cached engine for {conn_str}')
 
-            info('create sessionmaker for %s', conn_str)
+            info(f'create sessionmaker for {conn_str}')
             sf = sessionmaker(bind=engine)
             SessionMaker._sess_factory[conn_str] = sf
 #-#        else:
@@ -129,7 +129,7 @@ class HistoryDB(object):
         try:
             x = sess.query(Item.ctime).filter(and_(Item.source == source, Item.sid == sid)).first()
         except Exception:
-            error('got error', exc_info=True)
+            excep('got error')
             x = None
         sess.close()
         return True if x else False
@@ -145,7 +145,7 @@ class HistoryDB(object):
             sess.commit()
             sess.close()
         except Exception:
-            error('create item error', exc_info=True)
+            excep('create item error')
 
     def clean(self):
         pass
@@ -168,7 +168,7 @@ class SisDB(object):
         try:
             x = sess.query(SisTorrent.ctime).filter(SisTorrent.tid == tid).first()
         except Exception:
-            error('got error', exc_info=True)
+            excep('got error')
             x = None
         sess.close()
         return True if x else False
@@ -184,7 +184,7 @@ class SisDB(object):
             sess.commit()
             sess.close()
         except Exception:
-            error('create record error', exc_info=True)
+            excep('create record error')
 
 #-#    def getRecords(self, seconds_ago, page=1, pagesize=10, sess=None):
 #-#        ret = None
@@ -222,7 +222,7 @@ class ClDB(object):
         try:
             x = sess.query(ClTorrent.ctime).filter(ClTorrent.tid == tid).first()
         except Exception:
-            error('got error', exc_info=True)
+            excep('got error')
             x = None
         sess.close()
         return True if x else False
@@ -238,7 +238,7 @@ class ClDB(object):
             sess.commit()
             sess.close()
         except Exception:
-            error('create record error', exc_info=True)
+            excep('create record error')
 
 #-#    def getRecords(self, seconds_ago, page=1, pagesize=10, sess=None):
 #-#        ret = None
@@ -281,7 +281,7 @@ class SisClDB(object):
             r2 = sess.query(ClTorrent.title, ClTorrent.img_url, ClTorrent.name, ClTorrent.size, literal('cl').label('source'), ClTorrent.download_url, ClTorrent.ctime).filter(ClTorrent.ctime > seconds_ago)
             ret = r1.union_all(r2).order_by(ClTorrent.ctime.desc())[start: start + pagesize]
         except Exception:
-            error('got error', exc_info=True)
+            excep('got error')
         finally:
             sess.close()
         return ret

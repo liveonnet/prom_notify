@@ -567,6 +567,26 @@ l_concern:
         exc:
             - 婴儿
             - 幼儿
+    -
+        enable: true
+        inc_all: false
+        inc:
+            - 多维
+        exc:
+            - 面包
+            - 饮料
+            - 饼干
+            - 兽用
+    -
+        enable: true
+        inc_all: false
+        inc:
+            - 小黄鱼
+            - 小黄花鱼
+        exc:
+            - 饮料
+            - 饼干
+
 
 
 

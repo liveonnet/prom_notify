@@ -57,7 +57,7 @@ class HistoryDB(object):
 
     def clean(self):
         self.db.close()
-        info('db closed.')
+        info(f'db closed.')
 
 #-#    def __getattr__(self, name):
 #-#        """直接访问底层的方法
