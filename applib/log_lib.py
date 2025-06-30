@@ -102,7 +102,7 @@ class InternalLog(object):
             return cls._logger
 
         logger.remove()
-        logger.add(sys.stderr, colorize=True, format='<green>{time:YYMMDD_HHmmss}</green><cyan>{level:.1s}</cyan>:{module}.{function}:{line}|<level>{message}</level>', filter='', level='DEBUG')
+        logger.add(sys.stderr, colorize=True, format='<green>{time:YYMMDD_HHmmss}</green><cyan>{level:.1s}</cyan>:{module}.{function}:{line}|<level>{message}</level>', filter='', level='DEBUG', enqueue=True)
         mylogger = logger.opt(colors=True)
         mylogger.level('INFO', color='<white>')
         mylogger.level('DEBUG', color='<blue>')

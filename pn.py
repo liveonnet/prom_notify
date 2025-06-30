@@ -103,7 +103,7 @@ class PromNotify(object):
             self.coupon = CouponManager(self.conf_file_path, event_notify)
 
         self.p_price = re.compile(r'\s*(?:￥|券后|返后|返后合|现价|到手价|€|$|£)?([0-9\.]+)')
-        self.p_price1 = re.compile(r'原价(?:[0-9\.]+元?\s*|,|，)现价([0-9\.]+)元?')
+        self.p_price1 = re.compile(r'原价(?:[0-9\.]+元?)(?:\s*|,|，)现价([0-9\.]+)元?')
         self.p_chinese = re.compile('[\u4e00-\u9fa5]+')
 
         # 发送内容到微信
@@ -210,7 +210,7 @@ class PromNotify(object):
             if not slience:
                 self.ps.playTextAsync(title, extra_data)
 # #            info('[%s] %s (%s) %s --> %s', from_title, title, '/'.join(extra_data['cut_word']), item_url, real_url)
-            info(f'[{from_title}] {title} ({"/".join(extra_data["cut_word"])}) {item_url} --> {real_url}')
+            info(f'[{from_title}] <bold><green>{title}</green></bold> ({"/".join(extra_data["cut_word"])}) <fg #939393>{item_url} --> {real_url}</fg #939393>')
 
             if self.wx:
                 msg = '[%s] %s (%s) %s --> %s' % (from_title, title, '/'.join(extra_data['cut_word']), item_url, real_url)
@@ -229,7 +229,7 @@ class PromNotify(object):
                         subprocess.Popen(cmd, shell=True).wait()
 
 # #                debug('[%s] %s (%s) %s --> %s', from_title, title, '/'.join(extra_data['cut_word']), item_url, real_url)
-                debug(f'[{from_title}] <bold><green>{title}</green></bold> <fg #939393>{item_url} --> {real_url}</fg #939393>')
+                debug(f'[{from_title}] <bold><magenta>{title}</magenta></bold> <fg #939393>{item_url} --> {real_url}</fg #939393>')
                 if self.wx:
                     msg = '[%s] %s (%s) %s --> %s' % (from_title, title, '/'.join(extra_data['cut_word']), item_url, real_url)
                     self.wx.q_send.put([msg, ''])
@@ -249,7 +249,7 @@ class PromNotify(object):
         v = float(m.group(1))
 # #            info('got price %s from %s', v, price)
         if self.conf['ignore_high_price'] and v >= self.conf['ignore_high_price']:
-            debug(f'ignore high price: {v} for <bold><green>{title}</green></bold> {price}', v, title, price)
+            debug(f'ignore high price: {v} for <bold><magenta>{title}</magenta></bold> {price}', v, title, price)
             return False
 
         return True
