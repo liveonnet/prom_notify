@@ -175,7 +175,7 @@ class QiLanManager(DiscuzManager):
                         l_ctime = tree.xpath(_sub.get('postlist_ctime') or forum['postlist_ctime'])
                         l_utime = tree.xpath(_sub.get('postlist_utime') or forum['postlist_utime'])
                         for _i, (_group, _title, _url, _ctime, _utime) in enumerate(zip(l_group, l_title, l_url, l_ctime, l_utime), 1):
-                            info(f'[{_group}] {_i}/{len(l_title)} {_title} {_ctime} {_utime}\n--> {urljoin(forum["post_base_url"], _url)}')
+                            info(f'[{_group}] {_i}/{len(l_title)} {_title.replace("<", "{").replace(">", "}")} {_ctime} {_utime}\n--> {urljoin(forum["post_base_url"], _url)}')
                         break
             if save_cookie:
                 open(os.path.abspath(forum['cookie_file']), 'w').write(cookie)
@@ -320,10 +320,10 @@ class SisManager(DiscuzManager):
                                     if _attach_info:
                                         _aid = parse_qs(urlsplit(_attach_info[1]).query).get('aid', [None, 0])[0]
                                     if _content and _aid:
-                                        info(f'\n[{_type}] {_i}/{len(l_title)} {_title} {_ctime} {_utime}\n\t--> {urljoin(forum["post_base_url"], _url)}\n\t {pcformat(_img_list)}\n\t {_attach_size} {_attach_info}\n\n')
+                                        info(f'\n[{_type}] {_i}/{len(l_title)} {_title.replace("<", "{").replace(">", "}")} {_ctime} {_utime}\n\t--> {urljoin(forum["post_base_url"], _url)}\n\t {pcformat(_img_list)}\n\t {_attach_size} {_attach_info}\n\n')
                                         db.createRecord(tid=tid, url=_url, title=_title, img_url=json.dumps(_img_list), name=_attach_info[0], size=_attach_size, aid=_aid)
                                 except Exception:
-                                    excep(f'got except title: {_title}')
+                                    excep(f'got except title: {_title.replace("<", "{").replace(">", "}")}')
 #-#                        else:
 #-#                            warn(f'SKIP type {_type} for {_title}')
                 else:
@@ -480,7 +480,7 @@ class ClManager(DiscuzManager):
 #-#                                    warn(f'SKIP keyword {_keyword} for {_title}')
                                 break
                         else:
-                            info(f'{_i}/{len(l_title)} {_title.replace("<", "{").replace(">", "}")} {_ctime}\n\t--> {urljoin(forum["post_base_url"], _url)}\n\n')
+                            debug(f'{_i}/{len(l_title)} {_title.replace("<", "{").replace(">", "}")} {_ctime}\n\t--> {urljoin(forum["post_base_url"], _url)}\n\n')
                             got_new = True
                             await asyncio.sleep(randint(5, 9))  # 看看是否能避免反复要求登录
                             try:
@@ -498,7 +498,7 @@ class ClManager(DiscuzManager):
                                         db.createRecord(tid=tid, url=_url, title=_title, img_url=json.dumps(_img_list), name=_attach_info[0], size=_attach_size, download_url=_attach_info[1])
                                         break
                             except Exception:
-                                excep(f'got except title: {_title}')
+                                excep(f'got except title: {_title.replace("<", "{").replace(">", "}")}')
                 else:
                     info(f'no ok')
                     break
@@ -565,11 +565,11 @@ class ClManager(DiscuzManager):
 #-#                info(f'{pcformat(image_list)}\n{attach_info}')
 
                 if not image_list:
-                    warn(f'image not found in {title} {url}')
+                    warn(f'image not found in {title.replace("<", "{").replace(">", "}")} {url}')
             elif '无权' in etree.tounicode(tree):
-                info(f'无权查看 {title} {url}')
+                info(f'无权查看 {title.replace("<", "{").replace(">", "}")} {url}')
             else:
-                warn(f'获取帖子内容失败 {title} {url} size={len(text)} {text.replace("<", "{").replace(">", "}") if len(text) < 200 else ""}')
+                warn(f'获取帖子内容失败 {title.replace("<", "{").replace(">", "}")} {url} size={len(text)} {text.replace("<", "{").replace(">", "}") if len(text) < 200 else ""}')
         else:
             debug(f'fetch failed for {url=}')
         return content, attach_size, image_list, attach_info
