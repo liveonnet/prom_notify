@@ -527,7 +527,7 @@ l_concern:
         exc:
             - 万兆
     -
-        enable: false
+        enable: true
         inc_all: false
         inc:
             - 中国移动
@@ -537,14 +537,14 @@ l_concern:
             - 宽带
             - 充值
     -
-        enable: false
+        enable: true
         inc_all: true
         inc:
             - 通话
             - 月租
             - 流量
     -
-        enable: false
+        enable: true
         inc_all: true
         inc:
             - 粉丝

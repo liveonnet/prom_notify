@@ -517,7 +517,7 @@ class ClManager(DiscuzManager):
     async def getPost(self, title, url, forum_cfg, subforum_cfg, cookie):
         """获得帖子内容, 目前只取开帖内容，不取回帖内容
         """
-        resp, text, ok = await self.net.getData(urljoin(forum_cfg['post_base_url'], url), timeout=5, my_fmt='str', my_str_encoding='utf8', headers={'Cookie': cookie} if cookie else None)
+        resp, text, ok = await self.net.getData(urljoin(forum_cfg['post_base_url'], url), timeout=5, my_fmt='str', my_str_encoding='utf8', headers={'Cookie': cookie} if cookie else None, my_retry=2)
         content, attach_size, image_list, attach_info = None, 'Unknown', [], None
         if ok:
             pr = etree.HTMLParser()

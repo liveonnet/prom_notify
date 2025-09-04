@@ -110,7 +110,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     warn(f'skip bad img_url for {_rcd.title}')
                     continue  # 跳过异常记录
                 else:
-                    l_img = ('/pic/{}'.format(quote_plus(_x)) if (_x.find('https://img.sis.la/img/') != -1 or _x.find('.imagetwist.com/') != -1) else _x for _x in l_img)
+                    l_img = ('/pic/{}'.format(quote_plus(_x)) if (_x.startswith(('https://img.sis.la/img/', 'https://www.imgccc.com/')) or _x.find('.imagetwist.com/') != -1) else _x for _x in l_img)
                     _img_url = '<br/>'.join(f'<a href="{_x}" ><img src="{_x}" alt="{_x}" ></img></a>' for _x in l_img)
                 if _rcd.source == 'sis':
                     # 附件aid转成可访问链接
@@ -227,25 +227,36 @@ a.torrent_link:hover {{background: #66ff66; text-decoration: underline}}
                         'Referer': referer,
                     }
                 req = urllib.request.Request(url, data=None, headers=headers)
+                if referer.find('imgccc.com') != -1:
+                    debug(f'using proxy {self.conf["proxy"]} to fetch {referer}')
+                    opener = urllib.request.build_opener(urllib.request.ProxyHandler({'http': self.conf['proxy'], 'https': self.conf['proxy']}),
+                                                         urllib.request.HTTPSHandler(context=context))
+                else:
+                    opener = urllib.request.build_opener(urllib.request.HTTPSHandler(context=context))
+
 # #                debug(f'fetching {url}, {headers=}')
-                with urllib.request.urlopen(req, context=context) as resp:
-                    if resp.status != 200:
-                        warn(f'fetch got status {resp.status} {url}')
-                        self.send_error(resp.status)
-                        return True
-                    if resp.url != url:
-                        warn(f'fetch got redirect {resp.url} {url}')
-                    content_type = resp.headers.get('Content-Type', 'image/jpeg')
-                    self.send_response(200)
-                    self.send_header('Content-Type', content_type)
-                    self.send_header('Content-Length', resp.headers['Content-Length'])
-                    self.send_header('Cache-Control', 'max-age=3600')
-                    self.end_headers()
-                    while True:
-                        chunk = resp.read(32768)
-                        if not chunk:
-                            break
-                        self.wfile.write(chunk)
+                try:
+                    with opener.open(req) as resp:
+                        if resp.status != 200:
+                            warn(f'fetch got status {resp.status} {url}')
+                            self.send_error(resp.status)
+                            return True
+                        if resp.url != url:
+                            warn(f'fetch got redirect {resp.url} {url}')
+                        content_type = resp.headers.get('Content-Type', 'image/jpeg')
+                        self.send_response(200)
+                        self.send_header('Content-Type', content_type)
+                        self.send_header('Content-Length', resp.headers['Content-Length'])
+                        self.send_header('Cache-Control', 'max-age=3600')
+                        self.end_headers()
+                        while True:
+                            chunk = resp.read(32768)
+                            if not chunk:
+                                break
+                            self.wfile.write(chunk)
+                except Exception as e:
+                    debug(f'request failed {e}')
+                    self.send_error(500)
             else:
                 self.send_error(404)
         else:

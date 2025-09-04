@@ -246,11 +246,15 @@ class PromNotify(object):
                 warn(f'price not found: {price}|{title}')
                 return True
 
-        v = float(m.group(1))
-# #            info('got price %s from %s', v, price)
-        if self.conf['ignore_high_price'] and v >= self.conf['ignore_high_price']:
-            debug(f'ignore high price: {v} for <bold><magenta>{title}</magenta></bold> {price}', v, title, price)
-            return False
+        try:
+            v = float(m.group(1))
+        except Exception:
+            excep(f'convert price {m.group(1)} to float error!')
+        else:
+    # #            info('got price %s from %s', v, price)
+            if self.conf['ignore_high_price'] and v >= self.conf['ignore_high_price']:
+                debug(f'ignore high price: {v} for <bold><magenta>{title}</magenta></bold> {price}', v, title, price)
+                return False
 
         return True
 
