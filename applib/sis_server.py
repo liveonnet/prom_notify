@@ -110,7 +110,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     warn(f'skip bad img_url for {_rcd.title}')
                     continue  # 跳过异常记录
                 else:
-                    l_img = ('/pic/{}'.format(quote_plus(_x)) if (_x.startswith(('https://img.sis.la/img/', 'https://www.imgccc.com/')) or _x.find('.imagetwist.com/') != -1) else _x for _x in l_img)
+                    l_img = ('/pic/{}'.format(quote_plus(_x)) if (_x.startswith(('https://img.sis.la/img/', 'https://www.imgccc.com/')) or _x.find('.imagetwist.com/') != -1 or _x.find('.bbmmic2.com/') != -1) else _x for _x in l_img)
                     _img_url = '<br/>'.join(f'<a href="{_x}" ><img src="{_x}" alt="{_x}" ></img></a>' for _x in l_img)
                 if _rcd.source == 'sis':
                     # 附件aid转成可访问链接
@@ -227,8 +227,8 @@ a.torrent_link:hover {{background: #66ff66; text-decoration: underline}}
                         'Referer': referer,
                     }
                 req = urllib.request.Request(url, data=None, headers=headers)
-                if referer.find('imgccc.com') != -1:
-                    debug(f'using proxy {self.conf["proxy"]} to fetch {referer}')
+                if referer.find('imgccc.com') != -1 or referer.find('bbmmic2.com') != -1:
+# #                    debug(f'using proxy {self.conf["proxy"]} to fetch {referer}')
                     opener = urllib.request.build_opener(urllib.request.ProxyHandler({'http': self.conf['proxy'], 'https': self.conf['proxy']}),
                                                          urllib.request.HTTPSHandler(context=context))
                 else:
