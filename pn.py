@@ -733,18 +733,24 @@ window.visualViewport = { width: 1920, height: 1080 };
 # #                                debug('getting real_url for %s ...', direct_url)
                                 rr, rr_text, ok = await self.net.getData(direct_url, timeout=5, headers=headers)
                                 if ok and rr.status == 200:
-                                    s_js = re.search(r'eval\((.+?)\)\s+\</script\>', rr_text, re.DOTALL | re.IGNORECASE | re.MULTILINE | re.UNICODE).group(1)
-                                    s_rs = execjs.eval(s_js)
-                                    s_key = re.search(r'location\.href=(.+?)}', s_rs).group(1)
-                                    m = re.search(r'''%s='(?P<real_url>.+?)';''' % (s_key,), s_rs, re.DOTALL | re.IGNORECASE | re.MULTILINE | re.UNICODE)
-                                    if m:
-                                        real_url = m.group('real_url')
-# #                                        debug('%s -> %s', direct_url, real_url)
+                                    try:
+                                        s_js = re.search(r'eval\((.+?)\)\s+\</script\>', rr_text, re.DOTALL | re.IGNORECASE | re.MULTILINE | re.UNICODE).group(1)
+                                    except Exception:
+                                        warn('error processing direct_url=%s rr_text[:100]=%.100s' % (direct_url, rr_text.replace("<", "\<").replace(">", "\>").replace("\n", " ")))
+                                        real_url = direct_url[:]
                                     else:
-                                        warn(f'can\'t find real_url')
+                                        s_rs = execjs.eval(s_js)
+                                        s_key = re.search(r'location\.href=(.+?)}', s_rs).group(1)
+                                        m = re.search(r'''%s='(?P<real_url>.+?)';''' % (s_key,), s_rs, re.DOTALL | re.IGNORECASE | re.MULTILINE | re.UNICODE)
+                                        if m:
+                                            real_url = m.group('real_url')
+    # #                                        debug('%s -> %s', direct_url, real_url)
+                                        else:
+                                            warn(f'can\'t find real_url')
                             else:
                                 real_url = direct_url[:]
-                            real_url = self.get_from_linkstars(real_url, source='smzdm')
+                            if not real_url:
+                                real_url = self.get_from_linkstars(real_url, source='smzdm')
 
                         action, data = await self._notify(slience=self.conf['slience'], title=show_title, real_url=real_url, pic=pic, sbr_time=sbr_time, item_url=url, from_title='什么值得买', price=price, db_his=his)
 #-#                        if getuser() == 'pi' and action in ('NOTIFY', 'NORMAL', ''):

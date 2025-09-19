@@ -228,7 +228,7 @@ a.torrent_link:hover {{background: #66ff66; text-decoration: underline}}
                     }
                 req = urllib.request.Request(url, data=None, headers=headers)
                 if referer.find('imgccc.com') != -1 or referer.find('bbmmic2.com') != -1:
-# #                    debug(f'using proxy {self.conf["proxy"]} to fetch {referer}')
+                    debug(f'using proxy {self.conf["proxy"]} to fetch {referer}')
                     opener = urllib.request.build_opener(urllib.request.ProxyHandler({'http': self.conf['proxy'], 'https': self.conf['proxy']}),
                                                          urllib.request.HTTPSHandler(context=context))
                 else:
@@ -253,7 +253,11 @@ a.torrent_link:hover {{background: #66ff66; text-decoration: underline}}
                             chunk = resp.read(32768)
                             if not chunk:
                                 break
-                            self.wfile.write(chunk)
+                            try:
+                                self.wfile.write(chunk)
+                            except BrokenPipeError:
+                                warn(f'broken pipe writting {url}')
+                                break
                 except Exception as e:
                     debug(f'request failed {e}')
                     self.send_error(500)
