@@ -446,9 +446,9 @@ class PromNotify(object):
         # #                    info('SKIP EXISTING item mmb %s', _id)
         # #                    continue
                         continue
-                    title = x.xpath('./div[@class="content"]/h2/a[1]/text()')[0][:].strip()
+                    title = x.xpath('./div[@class="content"]/div[@class="itemInfo"]/h2/a[1]/text()')[0][:].strip()
 # #                    debug('title %s', title)
-                    price = x.xpath('./div[@class="content"]/h2/a[2]/text()')[0][:].strip()
+                    price = x.xpath('./div[@class="content"]/div[@class="itemInfo"]/h2/a[2]/text()')[0][:].strip()
 # #                    debug('price %s', price)
                     if not await self._checkChinese('慢慢买', title):
                         continue

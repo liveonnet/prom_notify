@@ -60,11 +60,11 @@ def get_args():
     l_file = []
     for _f in flat_list(args.attachment_file):
         if not os.path.exists(_f):
-            info('attachment file not exists %s', _f)
+            info(f'attachment file not exists {_f}')
             continue
         l_file.append(_f)
     cfg._attached_file = l_file
-    info('\ncmd: %s\nargs: \n%s', sys.argv, pformat(cfg.__dict__))
+    info(f'\ncmd: {sys.argv}\nargs: \n{pformat(cfg.__dict__)}')
     return cfg
 
 
@@ -97,7 +97,7 @@ def send_mail(smtp_server, smtp_port, smtp_user, smtp_password, from_address, to
             ftype, fsubtype = guesstype.split('/')
 
         if any(_ext in _file_name for _ext in ('.jpg', '.bmp', '.jpeg', '.png', '.gif')):
-            info('detect image file (guesstype %s): %s, len(_file_content)=%d', guesstype, _file_name, len(_file_content))
+            info(f'detect image file (guesstype {guesstype}): {_file_name}, len(_file_content)={len(_file_content)}')
             part = MIMEImage(_file_content, fsubtype)
             part.add_header("Content-ID", "<%s>" % os.path.basename(_file_name))
         else:
@@ -116,14 +116,14 @@ def send_mail(smtp_server, smtp_port, smtp_user, smtp_password, from_address, to
     smtp = smtplib.SMTP(smtp_server)
 #    smtp.set_debuglevel(1)
     while True:
-        info('connecting mail server %s:%d ...', smtp_server, smtp_port)
+        info(f'connecting mail server {smtp_server}:{smtp_port} ...')
         try:
             smtp.connect(smtp_server, smtp_port)
             break
         except smtplib.SMTPConnectError:
             info('got SMTPConnectError when trying to connect mail server ! while try after 30 seconds.')
         except Exception as e:
-            info('got Error: %s', e)
+            info(f'got Error: {e}')
             return rtn
 
     try:
@@ -134,12 +134,12 @@ def send_mail(smtp_server, smtp_port, smtp_user, smtp_password, from_address, to
         smtp.login(smtp_user, smtp_password)
         info('login ok.')
         to = list(chain(to_addresses, cc_addresses))
-        info('send to: %s ...', to)
+        info(f'send to: {to} ...')
         smtp.sendmail(msgroot['From'], to, msgroot.as_string())
         info('send ok.')
         rtn = True
     except (smtplib.SMTPAuthenticationError, smtplib.SMTPRecipientsRefused, smtplib.SMTPHeloError, smtplib.SMTPSenderRefused, smtplib.SMTPDataError) as e:
-        info('got %s', e)
+        info(f'got {e}')
     finally:
         smtp.close()
 
