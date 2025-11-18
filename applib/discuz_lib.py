@@ -432,7 +432,8 @@ class ClManager(DiscuzManager):
                         elif _i == 0:
                             debug('need process js ?')
                             debug(f'text={text.replace("<", "{").replace(">", "}")}')
-                            cookie = 'ismob=0; expires=06 Feb 2030 04:10:37 GMT; path=/'
+                            # cookie = 'ismob=0; expires=06 Feb 2030 04:10:37 GMT; path=/'
+                            cookie = 'ismob=0; 227c9_lastvisit=0%091744172326%09%2Fthread0806.php%3Ffid%3D4%26search%3Dtoday;'  # 从浏览器导出cookie放到这里
                             cached_js_check = cookie
                             self.cookie = cookie
                             continue
