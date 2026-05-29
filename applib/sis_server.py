@@ -126,7 +126,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             for _i, (_title, _img_url, _aname, _asize, _aurl, _ctime) in enumerate(l_rcd, 1):
                 l_content.append(f'<div>'
                                  f'<a id="pos_{_i}"></a>'
-                                 f'<h3>{_i}/{len(l_rcd)} {_title}<a href="#pos_{_i-1 if _i > 1 else "top"}">{"↑" if _i > 1 else ""}</a><a href="#pos_{_i+1 if _i < len(l_rcd) else _i}">{"↓" if _i < len(l_rcd) else ""}</a></h3><h5>{_ctime}</h5>'
+                                 f'<h3>{_i}/{len(l_rcd)} {_title}<a href="#pos_{_i-1 if _i > 1 else "top"}">{"↑" if _i > 1 else ""}</a><a href="#pos_{_i+1 if _i < len(l_rcd) else "bottom"}">{"↓" if _i < len(l_rcd) else "bottom"}</a></h3><h5>{_ctime}</h5>'
                                  f'{_img_url}<br/>'
                                  f'<form id="form_{_i}" action="/dl/" method="POST" target="_blank">'
                                  f'<a class="torrent_link" target="_blank" href="{_aurl}">{_aname}&nbsp;&nbsp;{_asize}</a>&nbsp;&nbsp;&nbsp;'
