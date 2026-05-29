@@ -238,7 +238,7 @@ class SisManager(DiscuzManager):
         if not ok:
             return data
 #-#        embed()
-        debug(f'fetching { forum["title"]} ...')
+        debug(f'fetching {forum["title"]} ...')
         cookie, _ = self.cookie, False
         for _sub in forum['subforum']:
             if not _sub['enabled']:
@@ -253,7 +253,7 @@ class SisManager(DiscuzManager):
             #    cookie = json.dumps({'CeRaHigh1': 'e5015f46e9b2ab6a9c77c26c6c624aa8'})
             for _page in count(1):
                 for _i in range(2):
-                    info(f'fetching {_sub["title"]} page {_page} {"again" if _i == 1 else ""} ...')
+                    info(f'fetching {forum["title"]} {_sub["title"]} page {_page} {"again" if _i == 1 else ""} ...')
                     url = _sub['url'].format(page=_page)
                     resp, text, ok = await self.net.getData(url, timeout=5, my_fmt='str', my_str_encoding='utf8', headers={'Cookie': cookie or cached_js_check} if cookie or cached_js_check else None, my_retry=2)
                     if ok:
@@ -422,7 +422,7 @@ class ClManager(DiscuzManager):
             for _page in count(1):
                 got_new = False
                 for _i in range(2):
-                    info(f'fetching {_sub["title"]} page {_page} {"again" if _i == 1 else ""} ...')
+                    info(f'fetching {forum["title"]} {_sub["title"]} page {_page} {"again" if _i == 1 else ""} ...')
                     url = _sub['url'].format(page=_page)
 # #                    debug(f'{url=}')
                     resp, text, ok = await self.net.getData(url, timeout=5, my_fmt='str', my_str_encoding='utf8', headers={'Cookie': cookie or cached_js_check} if cookie or cached_js_check else None, my_retry=2)

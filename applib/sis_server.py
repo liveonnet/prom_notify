@@ -111,6 +111,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                     continue  # 跳过异常记录
                 else:
                     l_img = ('/pic/{}'.format(quote_plus(_x)) if (_x.startswith(('https://img.sis.la/img/', 'https://www.imgccc.com/')) or _x.find('.imagetwist.com/') != -1 or _x.find('.bbmmic2.com/') != -1) else _x for _x in l_img)
+# #                    l_img = (_x for _x in l_img)
                     _img_url = '<br/>'.join(f'<a href="{_x}" ><img src="{_x}" alt="{_x}" ></img></a>' for _x in l_img)
                 if _rcd.source == 'sis':
                     # 附件aid转成可访问链接
@@ -124,7 +125,8 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             l_content = []
             for _i, (_title, _img_url, _aname, _asize, _aurl, _ctime) in enumerate(l_rcd, 1):
                 l_content.append(f'<div>'
-                                 f'<h3>{_i}/{len(l_rcd)} {_title}</h3><h5>{_ctime}</h5>'
+                                 f'<a id="pos_{_i}"></a>'
+                                 f'<h3>{_i}/{len(l_rcd)} {_title}<a href="#pos_{_i-1 if _i > 1 else "top"}">{"↑" if _i > 1 else ""}</a><a href="#pos_{_i+1 if _i < len(l_rcd) else _i}">{"↓" if _i < len(l_rcd) else ""}</a></h3><h5>{_ctime}</h5>'
                                  f'{_img_url}<br/>'
                                  f'<form id="form_{_i}" action="/dl/" method="POST" target="_blank">'
                                  f'<a class="torrent_link" target="_blank" href="{_aurl}">{_aname}&nbsp;&nbsp;{_asize}</a>&nbsp;&nbsp;&nbsp;'
@@ -190,12 +192,16 @@ a.torrent_link:hover {{background: #66ff66; text-decoration: underline}}
 <title>sis torrent page {cur_page}</title>
 </head>
 <body>
+<a id="pos_top"></a>
+<h2><a href="#pos_bottom">↓↓↓</a></h2>
 {pre_page}
 {nxt_page}
 {content}
 <div/>
+<a id="pos_bottom"></a>
 {pre_page}
 {nxt_page}
+<h2><a href="#pos_top">↑↑↑</a></h2>
 </body>
 </html>'''.format(content='<br/><hr/>'.join(l_content), pre_page=pre_page, nxt_page=nxt_page, cur_page=page).encode()
 
